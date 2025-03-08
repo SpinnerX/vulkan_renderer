@@ -1,130 +1,127 @@
-#include "vulkan-cpp/vulkan_driver.hpp"
-#include "vulkan-cpp/vulkan_physical_driver.hpp"
-#include "vulkan-cpp/vulkan_context.hpp"
-#include "vulkan-cpp/vulkan_swapchain.hpp"
-
-#include "vulkan-cpp/vulkan-imports.hpp"
-#include <fstream>
-#include <fmt/core.h>
-#include <glm/glm.hpp>
 #include <vulkan/vulkan_core.h>
-#include "vulkan-cpp/helper_functions.hpp"
+#include <fmt/core.h>
+#include <vulkan-cpp/logger.hpp>
+#include <vulkan-cpp/vk_window.hpp>
+#include <vulkan-cpp/vk_context.hpp>
+#include <vulkan-cpp/vk_driver.hpp>
+#include <vulkan-cpp/vk_swapchain.hpp>
+#include <vulkan-cpp/vk_renderpass.hpp>
 
-std::vector<char> readFile(const std::string& filename) {
-    std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-    if (!file.is_open()) {
-        throw std::runtime_error("failed to open file!");
+static std::vector<char> readFile(const std::string& p_filename){
+    std::ifstream ins(p_filename, std::ios::ate | std::ios::binary);
+    if(!ins){
+        return {};
+    }
+    else{
+        console_log_trace("Successfully Read Shader File = {}", p_filename);
     }
 
-    size_t fileSize = (size_t) file.tellg();
-    std::vector<char> buffer(fileSize);
+    size_t size = (size_t)ins.tellg();
 
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
-
-    file.close();
+    std::vector<char> buffer(size);
+    ins.seekg(0);
+    ins.read(buffer.data(), size);
+    ins.close();
 
     return buffer;
 }
 
-VkShaderModule createShaderModule(const VkDevice& p_device, const std::vector<char>& code) {
-    VkShaderModuleCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = code.size();
-    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+VkShaderModule CreateShaderModule(const VkDevice& p_driver, const std::vector<char>& p_code) {
+    VkShaderModuleCreateInfo module_ci = {
+        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        .codeSize = p_code.size(),
+        .pCode = reinterpret_cast<const uint32_t*>(p_code.data())
+    };
 
-    VkShaderModule shaderModule;
-    if (vkCreateShaderModule(p_device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create shader module!");
-    }
 
-    return shaderModule;
+    VkShaderModule shader_module;
+    vk::vk_check(vkCreateShaderModule(p_driver, &module_ci, nullptr, &shader_module), "vkCreateShaderModule", __FUNCTION__);
+
+    return shader_module;
 }
 
-struct Vertex {
-    glm::vec2 pos;
-    glm::vec3 color;
-    glm::vec2 texCoord;
-
-    static VkVertexInputBindingDescription getBindingDescription() {
-        VkVertexInputBindingDescription bindingDescription{};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-        return bindingDescription;
-    }
-
-    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
-        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-        attributeDescriptions[1].binding = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-        attributeDescriptions[2].binding = 0;
-        attributeDescriptions[2].location = 2;
-        attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-
-        return attributeDescriptions;
-    }
-};
-
-namespace vk{
-class vulkan_shader{
+class shader_tutorial {
 public:
-    vulkan_shader(const VkDevice& p_device, const std::string& p_vertex, const std::string& p_fragment){
-        fmt::println("\nVulkan Shader Begin Initialization!!!");
-        auto vertex_shader = readFile(p_vertex);
-        auto fragment_shader = readFile(p_fragment);
 
-        VkShaderModule vert_shader_module = createShaderModule(p_device, vertex_shader);
-        VkShaderModule frag_shader_module = createShaderModule(p_device, fragment_shader);
-        
-        VkPipelineShaderStageCreateInfo vert_shader_stage_info{
+    shader_tutorial(const VkDevice& p_driver) : m_driver(p_driver){
+        create_shader_modules();
+    }
+
+    ~shader_tutorial() {
+        // vkDestroyRenderPass(m_driver, m_shader_renderpass, nullptr);
+        vkDestroyPipeline(m_driver, m_graphics_pipeline, nullptr);
+        vkDestroyPipelineLayout(m_driver, m_graphics_pipeline_layout, nullptr);
+
+        vkDestroyShaderModule(m_driver, m_fragment_shader_module, nullptr);
+        vkDestroyShaderModule(m_driver, m_vertex_shader_module, nullptr);
+    }
+
+    void cleanup(){
+        vkDestroyPipeline(m_driver, m_graphics_pipeline, nullptr);
+        vkDestroyPipelineLayout(m_driver, m_graphics_pipeline_layout, nullptr);
+        vkDestroyShaderModule(m_driver, m_fragment_shader_module, nullptr);
+        vkDestroyShaderModule(m_driver, m_vertex_shader_module, nullptr);
+    }
+
+
+    void create_shader_modules() {
+        // First we read the shader
+        auto vertex_shader = readFile("shaders/vert.spv");
+        auto fragment_shader = readFile("shaders/frag.spv");
+
+        // Then we setup the shader module
+        m_vertex_shader_module = CreateShaderModule(m_driver, vertex_shader);
+        m_fragment_shader_module = CreateShaderModule(m_driver, fragment_shader);
+    }
+
+
+    void create_pipeline_shader_stages(const VkRenderPass& p_renderpass) {
+        VkPipelineShaderStageCreateInfo vertex_pipeine_stage_ci = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
             .stage = VK_SHADER_STAGE_VERTEX_BIT,
-            .module = vert_shader_module,
-            .pName = "main",
+            .module = m_vertex_shader_module,
+            .pName = "main"
         };
 
-        VkPipelineShaderStageCreateInfo frag_shader_stage_info{
+        VkPipelineShaderStageCreateInfo fragment_pipeine_stage_ci = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
             .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-            .module = frag_shader_module,
-            .pName = "main",
+            .module = m_fragment_shader_module,
+            .pName = "main"
         };
 
-        std::array<VkPipelineShaderStageCreateInfo, 2> stages = {vert_shader_stage_info, frag_shader_stage_info};
-        
-        auto bindingDescription = Vertex::getBindingDescription();
-        auto attributeDescriptions = Vertex::getAttributeDescriptions();
-
-        fmt::println("Vulkan Shader End Initialization!!!\n");
+        std::array<VkPipelineShaderStageCreateInfo, 2> shader_stages = { vertex_pipeine_stage_ci, fragment_pipeine_stage_ci};
 
 
-        fmt::println("\nVulkan Begin Graphics Pipeline Layout Initialization!!");
-
-        VkPipelineVertexInputStateCreateInfo vertexInputInfo = {
+        VkPipelineVertexInputStateCreateInfo vertex_input_info = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-            .vertexBindingDescriptionCount = 1,
-            .pVertexBindingDescriptions = &bindingDescription,
-            .vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
-            .pVertexAttributeDescriptions = attributeDescriptions.data(),
+            .vertexBindingDescriptionCount = 0,
+            .pVertexBindingDescriptions = nullptr, // Optional
+            .vertexAttributeDescriptionCount = 0,
+            .pVertexAttributeDescriptions = nullptr, // Optional
         };
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
             .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
             .primitiveRestartEnable = VK_FALSE,
+        };
+        VkExtent2D swapchain_extent = vk::vk_swapchain::get_extent();
+        console_log_trace("W = {}", swapchain_extent.width);
+        console_log_trace("H = {}", swapchain_extent.height);
+
+        VkViewport viewport = {
+            .x = 0.0f,
+            .y = 0.0f,
+            .width = (float) swapchain_extent.width,
+            .height = (float) swapchain_extent.height,
+            .minDepth = 0.0f,
+            .maxDepth = 1.0f,
+        };
+
+        VkRect2D scissor = {
+            .offset = {0, 0},
+            .extent = swapchain_extent,
         };
 
         VkPipelineViewportStateCreateInfo viewportState = {
@@ -133,66 +130,154 @@ public:
             .scissorCount = 1,
         };
 
-        VkPipelineRasterizationStateCreateInfo rasterizer = {
+        //! @note Rasterization
+        VkPipelineRasterizationStateCreateInfo rasterizer_ci = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
             .depthClampEnable = VK_FALSE,
-            .rasterizerDiscardEnable = VK_FALSE,
-            .polygonMode = VK_POLYGON_MODE_FILL,
-            .cullMode = VK_CULL_MODE_BACK_BIT,
-            .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+            .rasterizerDiscardEnable = VK_FALSE, // set to true make fragmenta that are beyond near/far planes clamped to them as opposed to discarding them
+            .polygonMode = VK_POLYGON_MODE_FILL, // if set to true then geometry never passes through rasterizer stage. This basically disables output to frame_buffer
+            .lineWidth = 1.0f,                  // represents thickness of lines
+            .cullMode = VK_CULL_MODE_BACK_BIT,  // determines what culling to use. Can also be disabled, culls front-face, back-face or both
+            .frontFace = VK_FRONT_FACE_CLOCKWISE, // specifies vertex order of fdaces considered front-face or clockwise/counter-clockwise
             .depthBiasEnable = VK_FALSE,
-            .lineWidth = 1.0f,
+            .depthBiasConstantFactor = 0.0f, // Optional
+            .depthBiasClamp = 0.0f, // Optional
+            .depthBiasSlopeFactor = 0.0f, // Optional
         };
 
-        VkPipelineMultisampleStateCreateInfo multisampling = {
+        //! @note Multi-sampling
+        VkPipelineMultisampleStateCreateInfo  multisampling_ci = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-            .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
             .sampleShadingEnable = VK_FALSE,
+            .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+            .minSampleShading = 1.0f, // Optional
+            .pSampleMask = nullptr, // Optional
+            .alphaToCoverageEnable = VK_FALSE, // Optional
+            .alphaToOneEnable = VK_FALSE, // Optional
         };
 
-        VkPipelineColorBlendAttachmentState colorBlendAttachment{
-            .blendEnable = VK_FALSE,
+        // Depth Blending (will add later)
+
+        // Color blending Attachment -- blending color when the fragment returns the color
+        VkPipelineColorBlendAttachmentState color_blend_attachment = {
             .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+            .blendEnable = VK_FALSE,
+            .srcColorBlendFactor = VK_BLEND_FACTOR_ONE, // Optional
+            .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO, // Optional
+            .colorBlendOp = VK_BLEND_OP_ADD, // Optional
+            .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE, // Optional
+            .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO, // Optional
+            .alphaBlendOp = VK_BLEND_OP_ADD, // Optional
         };
 
-        VkPipelineColorBlendStateCreateInfo colorBlending{
+        VkPipelineColorBlendStateCreateInfo color_blending_ci = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
             .logicOpEnable = VK_FALSE,
-            .logicOp = VK_LOGIC_OP_COPY,
+            .logicOp = VK_LOGIC_OP_COPY, // Optional
             .attachmentCount = 1,
-            .pAttachments = &colorBlendAttachment,
-            .blendConstants = {0.0f, 0.0f, 0.0f, 0.0f}
+            .pAttachments = &color_blend_attachment,
+            .blendConstants[0] = 0.0f, // Optional
+            .blendConstants[1] = 0.0f, // Optional
+            .blendConstants[2] = 0.0f, // Optional
+            .blendConstants[3] = 0.0f, // Optional
         };
 
-        std::vector<VkDynamicState> dynamicStates = {
+        //! @note Dynamic State
+        //! @note -- pipeline states needs to be baked into the pipeline state
+        std::array<VkDynamicState, 2> dynamic_states = {
             VK_DYNAMIC_STATE_VIEWPORT,
             VK_DYNAMIC_STATE_SCISSOR
         };
-        VkPipelineDynamicStateCreateInfo dynamicState{};
-        dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
-        dynamicState.pDynamicStates = dynamicStates.data();
 
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo{
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .setLayoutCount = 0,
-            .pSetLayouts = nullptr,
-            // pipelineLayoutInfo.setLayoutCount = 1,
-            // pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout,
+        VkPipelineDynamicStateCreateInfo dynamic_state_ci = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+            .dynamicStateCount = static_cast<uint32_t>(dynamic_states.size()),
+            .pDynamicStates = dynamic_states.data()
         };
 
-        vk_check(vkCreatePipelineLayout(p_device, &pipelineLayoutInfo, nullptr, &m_graphics_pipeline_layout), "vkCreateGraphicsPipelines", __FILE__, __LINE__, __FUNCTION__);
+        VkPipelineLayoutCreateInfo pipeline_layout_ci = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .setLayoutCount = 0, // Optional
+            .pSetLayouts = nullptr, // Optional
+            .pushConstantRangeCount = 0, // Optional
+            .pPushConstantRanges = nullptr, // Optional
+        };
 
-        fmt::println("\nVulkan End Graphics Pipeline Layout Initialization Successfullyy!!!");
+        vk::vk_check(vkCreatePipelineLayout(m_driver, &pipeline_layout_ci, nullptr, &m_graphics_pipeline_layout), "vkCreatePipelineLayout", __FUNCTION__);
+
+        VkGraphicsPipelineCreateInfo graphics_pipeline_ci = {
+            .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .stageCount = static_cast<uint32_t>(shader_stages.size()),
+            .pStages = shader_stages.data(),
+            .pVertexInputState = &vertex_input_info,
+            .pInputAssemblyState = &inputAssembly,
+            .pViewportState = &viewportState,
+            .pRasterizationState = &rasterizer_ci,
+            .pMultisampleState = &multisampling_ci,
+            .pDepthStencilState = nullptr, // Optional
+            .pColorBlendState = &color_blending_ci,
+            .pDynamicState = &dynamic_state_ci,
+            .layout = m_graphics_pipeline_layout,
+            .renderPass = p_renderpass,
+            .subpass = 0,
+            .basePipelineHandle = VK_NULL_HANDLE,
+            .basePipelineIndex = -1
+        };
+
+        vk::vk_check(vkCreateGraphicsPipelines(m_driver, VK_NULL_HANDLE, 1, &graphics_pipeline_ci, nullptr, &m_graphics_pipeline), "vkCreateGraphicsPipelines", __FUNCTION__);
+
+        // vkDestroyShaderModule(m_driver, m_fragment_shader_module, nullptr);
+        // vkDestroyShaderModule(m_driver, m_vertex_shader_module, nullptr);
     }
 
 private:
-    VkPipelineLayout m_graphics_pipeline_layout = nullptr;
+    VkDevice m_driver=nullptr;
+    VkShaderModule m_vertex_shader_module;
+    VkShaderModule m_fragment_shader_module;
+    VkPipelineLayout m_graphics_pipeline_layout;
+    VkPipeline m_graphics_pipeline;
+    // VkRenderPass m_shader_renderpass;
 };
 
-}; // end of vk namespace
+VkRenderPass create_renderpass(const VkDevice& p_driver, const VkSurfaceFormatKHR& p_format){
+    VkAttachmentDescription colorAttachment{};
+    colorAttachment.format = p_format.format;
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    VkAttachmentReference colorAttachmentRef{};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmentRef;
+
+    VkRenderPassCreateInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassInfo.attachmentCount = 1;
+    renderPassInfo.pAttachments = &colorAttachment;
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+    
+    VkRenderPass renderpass;
+    if (vkCreateRenderPass(p_driver, &renderPassInfo, nullptr, &renderpass) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create render pass!");
+    }
+
+    return renderpass;
+}
 
 int main(){
+    logger::console_log_manager::initialize_logger_manager();
 
     //! @note Initializing GLFW
     if(!glfwInit()){
@@ -206,37 +291,43 @@ int main(){
 
     int width = 800;
     int height = 600;
-    GLFWwindow* window = glfwCreateWindow(width, height, "Vulkan Window", nullptr, nullptr);
+
+    //! @note 0.) Initialize Vulkan
+    // create_vulkan_instance();
+    vk::vk_context initiating_vulkan = vk::vk_context("vulkan");
     
-    //! @note 1.) Initialize Vulkan
-    vk::context create_context = vk::context();
+    //! @note 1.) Initialize GLFW Window
+    vk::vk_window main_window = vk::vk_window("Vulkan Window", width, height);
 
-    //! @note 2.) Creating window surface (requires vulkan to be instantiated)
-    VkSurfaceKHR surface = nullptr;
-    VkResult surface_result = glfwCreateWindowSurface(vk::context::get_instance(), window, nullptr, &surface);
+    //! @note 2.) Initiates Vulkan Surface
+    main_window.create_window_surface(initiating_vulkan);
 
-    if(surface_result != VK_SUCCESS){
-        fmt::println("Surface VkResult Failed with status === {}", (int)surface_result);
-        return -1;
-    }
-    glfwMakeContextCurrent(window);
-
-
-    //! @note 4.) Initiates vulkan physical and logical drivers
-    vk::physical_driver physical = vk::physical_driver(create_context);
-    vk::driver logical_driver = vk::driver(physical);
-
+    //! @note 3.) Initialize Vulkan physical and logical drivers
+    vk::vk_physical_driver main_physical_device = vk::vk_physical_driver(initiating_vulkan);
+    vk::vk_driver main_driver = vk::vk_driver(main_physical_device);
 
     //! @note 4.) Initializing Swapchain
-    // create_swapchain(physical, logical_driver);
-    vk::swapchain main_swapchain = vk::swapchain(physical, logical_driver, surface);
-    main_swapchain.on_create(width, height);
+    vk::vk_swapchain main_window_swapchain = vk::vk_swapchain(main_physical_device, main_driver, main_window);
 
-    vk::vulkan_shader shader_and_graphics_pipeline = vk::vulkan_shader(logical_driver, "shaders/vert.spv", "shaders/frag.spv");
+    shader_tutorial first_shader = shader_tutorial(main_driver);
+    
+    // Creating a render pass for the graphics pipeline
+    //! @note For some reason this renderpass is valid but not the one in the vk_swapchain class.... could it because of the cleanup within this scope (???)
 
+    // abstraction around the renderpass
+    vk::vk_renderpass main_swapchain_renderpass = vk::vk_renderpass(main_driver, main_window_swapchain.get_format());
+    // VkRenderPass rp = create_renderpass(main_driver, main_window_swapchain.get_format());
+    first_shader.create_pipeline_shader_stages(main_swapchain_renderpass);
 
-    while(!glfwWindowShouldClose(window)){
+    while(main_window.is_active()){
+
+        // Submitting drawing stuff here
+
+        // main_swapchain.submit_to(shader_and_graphics_pipeline.get_graphics_pipeline(), {1.f, 0.f, 0.f, 1.f});
 
         glfwPollEvents(); 
     }
+
+    // Doing cleanup
+    main_window_swapchain.cleanup();
 }
