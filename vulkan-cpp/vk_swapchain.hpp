@@ -23,11 +23,7 @@ namespace vk {
 
         VkSurfaceFormatKHR get_format() const { return m_surface_format; }
 
-        // VkRenderPass& get_renderpass() { return m_renderpass; }
-
-        void cleanup(){
-            vkDestroyRenderPass(m_driver, m_renderpass, nullptr);
-        }
+        VkFramebuffer read_framebuffer(uint32_t p_frame_index) const { return m_swapchain_framebuffers[p_frame_index]; }
 
     private:
         //! @note These private functions are for initiating the swapchain first

@@ -43,7 +43,7 @@ namespace vk {
 
     vk_swapchain::~vk_swapchain() {
 
-        // vkDestroyRenderPass(m_driver, m_renderpass, nullptr);
+        vkDestroyRenderPass(m_driver, m_renderpass, nullptr);
 
         for(const VkFramebuffer& fb : m_swapchain_framebuffers){
             vkDestroyFramebuffer(m_driver, fb, nullptr);

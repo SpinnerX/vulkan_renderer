@@ -232,48 +232,66 @@ public:
         // vkDestroyShaderModule(m_driver, m_vertex_shader_module, nullptr);
     }
 
+    VkPipeline get_graphics_pipeline() const { return m_graphics_pipeline; }
+
 private:
     VkDevice m_driver=nullptr;
     VkShaderModule m_vertex_shader_module;
     VkShaderModule m_fragment_shader_module;
     VkPipelineLayout m_graphics_pipeline_layout;
     VkPipeline m_graphics_pipeline;
-    // VkRenderPass m_shader_renderpass;
 };
 
-VkRenderPass create_renderpass(const VkDevice& p_driver, const VkSurfaceFormatKHR& p_format){
-    VkAttachmentDescription colorAttachment{};
-    colorAttachment.format = p_format.format;
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+VkCommandPool create_command_pool(const VkDevice& p_driver, uint32_t p_graphics_index) {
+    VkCommandPool command_pool;
+    VkCommandPoolCreateInfo cmd_pool_create_info = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+        .queueFamilyIndex = p_graphics_index,
+    };
 
-    VkAttachmentReference colorAttachmentRef{};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    vk::vk_check(vkCreateCommandPool(p_driver, &cmd_pool_create_info, nullptr, &command_pool), "vkCreateCommandPool", __FUNCTION__);
 
-    VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
+    return command_pool;
+}
 
-    VkRenderPassCreateInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = 1;
-    renderPassInfo.pAttachments = &colorAttachment;
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
-    
-    VkRenderPass renderpass;
-    if (vkCreateRenderPass(p_driver, &renderPassInfo, nullptr, &renderpass) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create render pass!");
-    }
+VkCommandBuffer create_command_buffers(const VkDevice& p_driver, const VkCommandPool& p_command_pool) {
+    // VkCommandPool command_pool = create_command_pool(p_driver, p_graphics_index);
+    VkCommandBufferAllocateInfo cmd_buffer_alloc_info = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool = p_command_pool,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandBufferCount = 1,
+    };
 
-    return renderpass;
+    VkCommandBuffer command_buffer;
+    vk::vk_check(vkAllocateCommandBuffers(p_driver, &cmd_buffer_alloc_info, &command_buffer), "vkAllocateCommandBuffers", __FUNCTION__);
+    return command_buffer;
+}
+
+/**
+ * @name p_current_command_buffer
+ * @note The current command buffer to record/write data to
+ * 
+ * @name p_current_renderpass
+ * @note The renderpass to record the current command buffer too
+*/
+template<typename UFunction>
+void record_command_buffer(const VkCommandBuffer& p_current_command_buffer, const UFunction& p_callable) {
+
+    // Begin command buffer recording operation
+    VkCommandBufferBeginInfo cmd_buffer_begin_info = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = 0,// Optional
+        .pInheritanceInfo = nullptr, // Optional
+    };
+
+    vk::vk_check(vkBeginCommandBuffer(p_current_command_buffer, &cmd_buffer_begin_info), "vkBeginCommandBuffer", __FUNCTION__);
+
+    p_callable(p_current_command_buffer);
+
+    vk::vk_check(vkEndCommandBuffer(p_current_command_buffer), "vkEndCommandBuffer", __FUNCTION__);
+
 }
 
 int main(){
@@ -311,13 +329,18 @@ int main(){
 
     shader_tutorial first_shader = shader_tutorial(main_driver);
     
-    // Creating a render pass for the graphics pipeline
-    //! @note For some reason this renderpass is valid but not the one in the vk_swapchain class.... could it because of the cleanup within this scope (???)
-
-    // abstraction around the renderpass
+    //! @note 5.) Creating a render pass for the graphics pipeline
     vk::vk_renderpass main_swapchain_renderpass = vk::vk_renderpass(main_driver, main_window_swapchain.get_format());
-    // VkRenderPass rp = create_renderpass(main_driver, main_window_swapchain.get_format());
     first_shader.create_pipeline_shader_stages(main_swapchain_renderpass);
+
+    VkPipeline graphics_pipeline = first_shader.get_graphics_pipeline();
+
+    //! @note 6.) Create Command Pools, Buffers
+    VkCommandPool command_pool = create_command_pool(main_driver, main_physical_device.get_queue_indices().Graphics);
+    VkCommandBuffer command_buffer = create_command_buffers(main_driver, command_pool);
+    uint32_t frame_index = 0;
+
+
 
     while(main_window.is_active()){
 
@@ -325,9 +348,50 @@ int main(){
 
         // main_swapchain.submit_to(shader_and_graphics_pipeline.get_graphics_pipeline(), {1.f, 0.f, 0.f, 1.f});
 
+        /*
+        record_command_buffer(command_buffer, [&](const VkCommandBuffer& p_current_command_buffer){
+            VkRenderPassBeginInfo renderpass_begin_info = {
+                .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+                .renderPass = main_swapchain_renderpass,
+                .framebuffer = main_window_swapchain.read_framebuffer(frame_index),
+                .renderArea.offset = {0, 0},
+                .renderArea.extent = main_window_swapchain.get_extent(),
+            };
+        
+            VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+            renderpass_begin_info.clearValueCount = 1;
+            renderpass_begin_info.pClearValues = &clearColor;
+        
+            vkCmdBeginRenderPass(p_current_command_buffer, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+    
+            vkCmdBindPipeline(p_current_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
+       
+            VkViewport viewport = {
+                .x = 0.0f,
+                .y = 0.0f,
+                .width = static_cast<float>(main_window_swapchain.get_extent().width),
+                .height = static_cast<float>(main_window_swapchain.get_extent().height),
+                .minDepth = 0.0f,
+                .maxDepth = 1.0f,
+            };
+            vkCmdSetViewport(p_current_command_buffer, 0, 1, &viewport);
+    
+            VkRect2D scissor = {
+                .offset = {0, 0},
+                .extent = main_window_swapchain.get_extent(),
+            };
+    
+            vkCmdSetScissor(p_current_command_buffer, 0, 1, &scissor);
+    
+            vkCmdDraw(p_current_command_buffer, 3, 1, 0, 0);
+    
+            vkCmdEndRenderPass(p_current_command_buffer);
+        });
+        */
+
         glfwPollEvents(); 
     }
 
-    // Doing cleanup
-    main_window_swapchain.cleanup();
+    // Doing cleanup (implicityl by the class's destructor)
+    vkDestroyCommandPool(main_driver, command_pool, nullptr);
 }
