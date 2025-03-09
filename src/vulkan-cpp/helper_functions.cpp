@@ -8,14 +8,14 @@ namespace vk {
         const char* p_filepath,
         uint32_t p_line) {
         if (result != VK_SUCCESS) {
-        console_log_info_tagged("vulkan",
+        console_log_error_tagged("vulkan",
                                 "VkResult failed taking in {0} file: {1} "
                                 "--- Line: {2} --- In Function: {3}",
                                 p_tag,
                                 p_filepath,
                                 p_line,
                                 p_function_name);
-        console_log_info_tagged(
+        console_log_error_tagged(
             "vulkan", "VkResult returned: {}", (int)result);
         }
     }
@@ -25,13 +25,13 @@ namespace vk {
                     const char* p_filepath,
                     uint32_t p_line) {
         if (p_format == VK_FORMAT_UNDEFINED) {
-        console_log_info_tagged(
+        console_log_error_tagged(
             "vulkan",
             "VkFormat failed in file: {0} --- Line: {1} --- In Function: {2}",
             p_filepath,
             p_line,
             p_function_name);
-        console_log_info_tagged(
+        console_log_error_tagged(
             "vulkan", "VkFormat was assigned to VK_FORMAT_UNDEFINED");
         }
     }

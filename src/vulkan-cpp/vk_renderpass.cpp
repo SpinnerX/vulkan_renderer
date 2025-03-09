@@ -36,7 +36,7 @@ namespace vk {
     }
 
     vk_renderpass::~vk_renderpass() {
-        vkDestroyRenderPass(m_driver, m_renderpass_handler, nullptr);
+        // vkDestroyRenderPass(m_driver, m_renderpass_handler, nullptr);
         // cleanup();
     }
 

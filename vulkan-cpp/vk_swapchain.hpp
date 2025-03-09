@@ -4,10 +4,11 @@
 
 namespace vk {
     struct swapchain_configs {
-        static constexpr uint32_t MaxFramesInFlight = 2;
+        static constexpr uint32_t MaxFramesInFlight = 3;
     };
     class vk_swapchain {
     public:
+        // static uint32_t FrameIndex = 0;
         vk_swapchain() = default;
         vk_swapchain(const vk_physical_driver& p_physical, const vk_driver& p_driver, const VkSurfaceKHR& p_surface);
         ~vk_swapchain();
@@ -24,6 +25,9 @@ namespace vk {
         VkSurfaceFormatKHR get_format() const { return m_surface_format; }
 
         VkFramebuffer read_framebuffer(uint32_t p_frame_index) const { return m_swapchain_framebuffers[p_frame_index]; }
+        VkFramebuffer& read_framebuffer(uint32_t p_frame_index) { return m_swapchain_framebuffers[p_frame_index]; }
+
+        void submit_to(const VkCommandBuffer& p_current_command_buffer);
 
     private:
         //! @note These private functions are for initiating the swapchain first
@@ -43,6 +47,13 @@ namespace vk {
         // Now we are creating framebuffers
         void create_swapchain_framebuffers();
 
+        // Creating synchronization objects
+        void create_semaphores();
+
+    public:
+        //! @note Acquire Next Image
+        uint32_t read_acquired_image();
+
     private:
         // private functions for initiating the VkImage/VkImageView
         /**
@@ -59,6 +70,11 @@ namespace vk {
         struct image {
             VkImage Image;
             VkImageView ImageView;
+        };
+        struct depth_image {
+            VkImage Image;
+            VkImage ImageView;
+            VkDeviceMemory DeviceMemory;
         };
 
         // surface properties
@@ -77,8 +93,34 @@ namespace vk {
         std::array<image, swapchain_configs::MaxFramesInFlight> m_swapchain_images;
 
         //! @note Setting up Renderpass
+        //! @note This swapchain's renderpass
+        //! @note Main renderpass to submit rendering tasks to this swapchain, specifically
         VkRenderPass m_renderpass;
 
+        /**
+         * @note The only structures that needs to be set to frames in flight of the frames we want to process are framebuffers and images
+         * @note The VkFence should be the size of the images available
+         * @note This way because if they are all either MaxFramesInFlight including the fences then the fences will try to check the current scene and signaling it
+         * @note When you onl want to signal 2 frames at a time, so that the frames do not get ahead of the CPU
+        */
         std::array<VkFramebuffer, swapchain_configs::MaxFramesInFlight> m_swapchain_framebuffers;
+        // std::vector<VkFramebuffer> m_swapchain_framebuffers;
+
+        //! @note Synchronization Objects
+        //! @note Semaphores are for when the frame's available to render to
+        std::array<VkSemaphore, swapchain_configs::MaxFramesInFlight> m_swapchain_images_available;
+        // std::vector<VkSemaphore> m_swapchain_images_available;
+
+        //! @note Semaphores for when frames rendered are completed
+        // std::vector<VkSemaphore> m_swapchain_rendered_images_completed;
+        std::vector<VkFence> m_swapchain_fences_in_flight;
+        std::array<VkSemaphore, swapchain_configs::MaxFramesInFlight> m_swapchain_rendered_images_completed;
+
+        // VkFence m_current_image_fence = nullptr;
+
+
+        uint32_t m_image_size = 0;
+        uint32_t m_current_frame = 0;
+        uint32_t m_current_image_index = 0;
     };
 };

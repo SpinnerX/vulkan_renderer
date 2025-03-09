@@ -16,7 +16,7 @@ namespace vk {
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
-    vk_swapchain::vk_swapchain(const vk_physical_driver& p_physical, const vk_driver& p_driver, const VkSurfaceKHR& p_surface) : m_physical(p_physical), m_driver(p_physical), m_current_surface(p_surface) {
+    vk_swapchain::vk_swapchain(const vk_physical_driver& p_physical, const vk_driver& p_driver, const VkSurfaceKHR& p_surface) : m_physical(p_physical), m_driver(p_driver), m_current_surface(p_surface) {
         //! @note 0.) Getting surface capabilities
         vk_check(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physical, m_current_surface, &m_surface_capabilities), "vkGetPhysicalDeviceSurfaceCapabilitiesKHR",__FUNCTION__);
 
@@ -38,10 +38,19 @@ namespace vk {
         on_create();
 
         s_instance = this;
+        m_current_frame = 0;
+
 
     }
 
     vk_swapchain::~vk_swapchain() {
+
+        console_log_trace("begin ~vk_swapchain cleanup destructor!!!");
+        for(size_t i = 0; i < swapchain_configs::MaxFramesInFlight; i++){
+            vkDestroySemaphore(m_driver, m_swapchain_images_available[i], nullptr);
+            vkDestroySemaphore(m_driver, m_swapchain_rendered_images_completed[i], nullptr);
+            vkDestroyFence(m_driver, m_swapchain_fences_in_flight[i], nullptr);
+        }
 
         vkDestroyRenderPass(m_driver, m_renderpass, nullptr);
 
@@ -57,6 +66,7 @@ namespace vk {
             vkDestroySwapchainKHR(m_driver, m_swapchain_handler, nullptr);
         }
 
+        console_log_trace("finished ~vk_swapchain cleanup destructor!!!");
     }
 
     void vk_swapchain::on_create() {
@@ -110,6 +120,8 @@ namespace vk {
         create_renderpass_for_swapchain();
 
         create_swapchain_framebuffers();
+
+        create_semaphores();
     }
 
     void vk_swapchain::select_swapchain_surface_formats(){
@@ -157,16 +169,20 @@ namespace vk {
 
 
     void vk_swapchain::setup_images() {
-        uint32_t image_count = -1;
+        uint32_t image_count;
         console_log_info("\nSwapchain Begin Image Initialization!");
         std::vector<VkImage> images;
         vkGetSwapchainImagesKHR(m_driver, m_swapchain_handler, &image_count, nullptr);
-        images.reserve(image_count);
+        images.resize(image_count);
         // m_swapchain_images.resize(image_count);
+        console_log_trace("image_count = {}", image_count);
+        console_log_trace("images.size() = {}", images.size());
 
         vkGetSwapchainImagesKHR(m_driver, m_swapchain_handler, &image_count, images.data());
 
-        for(uint32_t i = 0; i < m_swapchain_images.size(); i++){
+        m_swapchain_fences_in_flight.resize(image_count);
+
+        for(uint32_t i = 0; i < images.size(); i++){
             m_swapchain_images[i].Image = images[i];
 
             VkImageViewCreateInfo image_view_ci = {
@@ -196,37 +212,28 @@ namespace vk {
         console_log_info("\nSwapchain Begin Image Initialization!!!\n\n");
     }
 
+    void vk_swapchain::create_semaphores() {
+        VkSemaphoreCreateInfo semaphore_create_info = {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0
+        };
+
+        VkFenceCreateInfo fence_create_info = {
+            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = VK_FENCE_CREATE_SIGNALED_BIT,
+        };
+
+        for(size_t i = 0; i < m_swapchain_images_available.size(); i++){
+            vk_check(vkCreateSemaphore(m_driver, &semaphore_create_info, nullptr, &m_swapchain_images_available[i]), "vkCreateSemaphore", __FUNCTION__);
+            vk_check(vkCreateSemaphore(m_driver, &semaphore_create_info, nullptr, &m_swapchain_rendered_images_completed[i]), "vkCreateSemaphore", __FUNCTION__);
+
+            vk_check(vkCreateFence(m_driver, &fence_create_info, nullptr, &m_swapchain_fences_in_flight[i]), "vkCreateFence", __FUNCTION__);
+        }
+    }
+
     void vk_swapchain::create_renderpass_for_swapchain() {
-
-        // VkAttachmentDescription color_attachment = {
-        //     .format = m_surface_format.format,
-        //     .samples = VK_SAMPLE_COUNT_1_BIT,
-        //     .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        //     .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-        //     .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        //     .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        //     .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-        //     .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-        // };
-
-        // VkAttachmentReference color_attachment_reference = {
-        //     .attachment = 0,
-        //     .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        // };
-
-        // VkSubpassDescription subpass = {
-        //     .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-        //     .colorAttachmentCount = 1,
-        //     .pColorAttachments = &color_attachment_reference,
-        // };
-
-        // VkRenderPassCreateInfo renderpass_ci = {
-        //     .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-        //     .attachmentCount = 1,
-        //     .pAttachments = &color_attachment,
-        //     .subpassCount = 1,
-        //     .pSubpasses = &subpass,
-        // };
         console_log_trace("VkFormat = {}", vk_format_to_string(m_surface_format.format));
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = m_surface_format.format;
@@ -274,6 +281,168 @@ namespace vk {
             vk_check(vkCreateFramebuffer(m_driver, &fb_create_info, nullptr, &m_swapchain_framebuffers[i]), "vkCreateFramebuffer", __FUNCTION__);
         }
     }
+
+
+
+
+
+    uint32_t vk_swapchain::read_acquired_image() {
+        vkWaitForFences(m_driver, 1, &m_swapchain_fences_in_flight[m_current_frame], true, std::numeric_limits<uint32_t>::max());
+        uint32_t image_index;
+
+        vkAcquireNextImageKHR(m_driver, m_swapchain_handler, std::numeric_limits<uint32_t>::max(), m_swapchain_images_available[m_current_frame], VK_NULL_HANDLE, &image_index);
+        m_current_image_index = image_index;
+        return image_index;
+    }
+
+    void vk_swapchain::submit_to(const VkCommandBuffer& p_current_command_buffer) {
+        
+        // if(m_swapchain_fences_in_flight[m_current_frame] != VK_NULL_HANDLE) {
+        vkWaitForFences(m_driver, 1, &m_swapchain_fences_in_flight[m_current_frame], true, std::numeric_limits<uint32_t>::max());
+        vkQueueWaitIdle(m_driver.get_graphics_queue());
+        vkResetFences(m_driver, 1, &m_swapchain_fences_in_flight[m_current_frame]);
+
+        VkSemaphore waitSemaphores[] = {m_swapchain_images_available[m_current_frame]};
+        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+        VkSemaphore signalSemaphores[] = {m_swapchain_rendered_images_completed[m_current_frame]};
+
+        VkSubmitInfo submitInfo = {
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .pNext = nullptr,
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = waitSemaphores,
+            .pWaitDstStageMask = waitStages,
+            .commandBufferCount = 1,
+            .pCommandBuffers = &p_current_command_buffer,
+
+            .signalSemaphoreCount = 1,
+            .pSignalSemaphores = signalSemaphores,
+        };
+
+        // if (vkQueueSubmit(m_driver.get_graphics_queue(), 1, &submitInfo, m_swapchain_fences_in_flight[m_current_frame]) != VK_SUCCESS) {
+        //     throw std::runtime_error("failed to submit draw command buffer!");
+        // }
+        vk_check(vkQueueSubmit(m_driver.get_graphics_queue(), 1, &submitInfo, m_swapchain_fences_in_flight[m_current_frame]), "vkQueueSubmit", __FUNCTION__);
+
+        VkPresentInfoKHR presentInfo{};
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores = signalSemaphores;
+
+        VkSwapchainKHR swapChains[] = {m_swapchain_handler};
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = swapChains;
+
+        presentInfo.pImageIndices = &m_current_image_index;
+
+        vk_check(vkQueuePresentKHR(m_present_queue, &presentInfo), "vkQueuePresentKHR", __FUNCTION__);
+
+        m_current_frame = (m_current_frame + 1) % swapchain_configs::MaxFramesInFlight;
+    }
+
+
+
+
+    /*
+    uint32_t vk_swapchain::read_acquired_image() {
+        uint32_t image_index;
+        vk_check(
+          vkWaitForFences(m_driver,
+                          1,
+                          &m_swapchain_fences_in_flight[FrameIndex],
+                          true,
+                          std::numeric_limits<uint32_t>::max()),
+          "vkWaitForFences",
+          __FUNCTION__);
+
+        VkResult res = vkAcquireNextImageKHR(
+          m_driver,
+          m_swapchain_handler,
+          std::numeric_limits<uint64_t>::max(),
+          m_swapchain_images_available[FrameIndex],
+          VK_NULL_HANDLE,
+          &image_index);
+        
+          if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
+            return -3;
+        }
+
+        vk_check(res, "vkAcquireNextImageKHR", __FUNCTION__);
+
+        // FrameIndex = image_index;
+        ImageIndex = image_index;
+        return image_index;
+    }
+
+    void vk_swapchain::submit_to(const VkCommandBuffer& p_current_command_buffer) {
+        if(m_swapchain_fences_images_available[ImageIndex] != VK_NULL_HANDLE) {
+            vkWaitForFences(m_driver, 1, &m_swapchain_fences_in_flight[ImageIndex], true, std::numeric_limits<uint32_t>::max());
+        }
+
+        m_swapchain_fences_images_available[ImageIndex] = m_swapchain_fences_in_flight[FrameIndex];
+
+        VkSubmitInfo submission_info = {
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .pNext = nullptr,
+        };
+        
+        VkSemaphore wait_semaphore[] = {
+            m_swapchain_images_available[FrameIndex]
+        };
+
+        VkPipelineStageFlags wait_stages[] = {
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+        };
+
+        submission_info.waitSemaphoreCount = 1;
+        submission_info.pWaitSemaphores = wait_semaphore;
+        submission_info.pWaitDstStageMask = wait_stages;
+
+        submission_info.commandBufferCount = 1;
+        submission_info.pCommandBuffers = &p_current_command_buffer;
+
+        VkSemaphore signal_sems[] = {
+            m_swapchain_rendered_images_completed[FrameIndex]
+        };
+
+        submission_info.signalSemaphoreCount = 1;
+        submission_info.pSignalSemaphores = signal_sems;
+
+        vkResetFences(m_driver, 1, &m_swapchain_fences_in_flight[FrameIndex]);
+
+        vk_check(vkQueueSubmit(m_driver.get_graphics_queue(), 1, &submission_info, m_swapchain_fences_in_flight[FrameIndex]), "vkQueueSubmit", __FUNCTION__);
+
+        //! @note Now we present our data to the display.
+        VkPresentInfoKHR present_info = {
+            .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = signal_sems,
+        };
+
+        VkSwapchainKHR swapchains_array[] = { m_swapchain_handler };
+        present_info.swapchainCount = 1;
+        present_info.pSwapchains = swapchains_array;
+
+        present_info.pImageIndices = &ImageIndex;
+        if (m_present_queue == VK_NULL_HANDLE) {
+            console_log_error("PresentationQueue is nullptr!!!");
+        }
+
+        auto res = vkQueuePresentKHR(m_present_queue, &present_info);
+        if (res == VK_ERROR_OUT_OF_DATE_KHR) {
+            console_log_trace("VK_ERROR_OUT_OF_DATE_KHR occurrred!!!");
+            return;
+        }
+
+        vk_check(res, "vkQueuePresentKHR", __FUNCTION__);
+
+        FrameIndex = (FrameIndex + 1) % swapchain_configs::MaxFramesInFlight;
+
+        console_log_fatal("FrameIndex = {}", FrameIndex);
+
+    }
+    */
 
     void vk_swapchain::resize(uint32_t p_width, uint32_t p_height) {
         m_swapchain_size.width = p_width;

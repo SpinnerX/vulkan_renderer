@@ -49,16 +49,18 @@ public:
 
     ~shader_tutorial() {
         // vkDestroyRenderPass(m_driver, m_shader_renderpass, nullptr);
-        vkDestroyPipeline(m_driver, m_graphics_pipeline, nullptr);
-        vkDestroyPipelineLayout(m_driver, m_graphics_pipeline_layout, nullptr);
+        // vkDestroyPipeline(m_driver, m_graphics_pipeline, nullptr);
+        // vkDestroyPipelineLayout(m_driver, m_graphics_pipeline_layout, nullptr);
 
-        vkDestroyShaderModule(m_driver, m_fragment_shader_module, nullptr);
-        vkDestroyShaderModule(m_driver, m_vertex_shader_module, nullptr);
+        // vkDestroyShaderModule(m_driver, m_fragment_shader_module, nullptr);
+        // vkDestroyShaderModule(m_driver, m_vertex_shader_module, nullptr);
+        cleanup();
     }
 
     void cleanup(){
         vkDestroyPipeline(m_driver, m_graphics_pipeline, nullptr);
         vkDestroyPipelineLayout(m_driver, m_graphics_pipeline_layout, nullptr);
+
         vkDestroyShaderModule(m_driver, m_fragment_shader_module, nullptr);
         vkDestroyShaderModule(m_driver, m_vertex_shader_module, nullptr);
     }
@@ -269,6 +271,20 @@ VkCommandBuffer create_command_buffers(const VkDevice& p_driver, const VkCommand
     return command_buffer;
 }
 
+std::vector<VkCommandBuffer> create_command_buffers_vec(const VkDevice& p_driver, const VkCommandPool& p_command_pool) {
+    // VkCommandPool command_pool = create_command_pool(p_driver, p_graphics_index);
+    VkCommandBufferAllocateInfo cmd_buffer_alloc_info = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool = p_command_pool,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandBufferCount = 1,
+    };
+
+    std::vector<VkCommandBuffer> command_buffer(vk::swapchain_configs::MaxFramesInFlight);
+    vk::vk_check(vkAllocateCommandBuffers(p_driver, &cmd_buffer_alloc_info, command_buffer.data()), "vkAllocateCommandBuffers", __FUNCTION__);
+    return command_buffer;
+}
+
 /**
  * @name p_current_command_buffer
  * @note The current command buffer to record/write data to
@@ -337,19 +353,21 @@ int main(){
 
     //! @note 6.) Create Command Pools, Buffers
     VkCommandPool command_pool = create_command_pool(main_driver, main_physical_device.get_queue_indices().Graphics);
-    VkCommandBuffer command_buffer = create_command_buffers(main_driver, command_pool);
+    // VkCommandBuffer command_buffer = create_command_buffers(main_driver, command_pool);
+    std::array<VkCommandBuffer, vk::swapchain_configs::MaxFramesInFlight> swapchain_command_buffers;
+
+    for(size_t i = 0; i < swapchain_command_buffers.size(); i++) {
+        swapchain_command_buffers[i] = create_command_buffers(main_driver, command_pool);
+    }
+
     uint32_t frame_index = 0;
 
-
-
     while(main_window.is_active()){
+        frame_index = main_window_swapchain.read_acquired_image();
 
         // Submitting drawing stuff here
-
-        // main_swapchain.submit_to(shader_and_graphics_pipeline.get_graphics_pipeline(), {1.f, 0.f, 0.f, 1.f});
-
-        /*
-        record_command_buffer(command_buffer, [&](const VkCommandBuffer& p_current_command_buffer){
+        vkResetCommandBuffer(swapchain_command_buffers[frame_index], 0);
+        record_command_buffer(swapchain_command_buffers[frame_index], [&main_swapchain_renderpass, &frame_index, &main_window_swapchain, &graphics_pipeline](const VkCommandBuffer& p_current_command_buffer){
             VkRenderPassBeginInfo renderpass_begin_info = {
                 .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
                 .renderPass = main_swapchain_renderpass,
@@ -387,11 +405,15 @@ int main(){
     
             vkCmdEndRenderPass(p_current_command_buffer);
         });
-        */
 
-        glfwPollEvents(); 
+        main_window_swapchain.submit_to(swapchain_command_buffers[frame_index]);
+        
+
+        glfwPollEvents();
     }
 
     // Doing cleanup (implicityl by the class's destructor)
     vkDestroyCommandPool(main_driver, command_pool, nullptr);
+    // first_shader.cleanup();
+    // main_swapchain_renderpass.cleanup();
 }
