@@ -11,7 +11,7 @@ namespace vk {
         // static uint32_t FrameIndex = 0;
         vk_swapchain() = default;
         vk_swapchain(vk_physical_driver& p_physical, const vk_driver& p_driver, const VkSurfaceKHR& p_surface);
-        ~vk_swapchain();
+        ~vk_swapchain() {}
 
         void resize(uint32_t p_width, uint32_t p_height);
 
@@ -30,7 +30,12 @@ namespace vk {
         void submit_to(const VkCommandBuffer& p_current_command_buffer);
 
 
-        void clean();
+        // Used to indicate you want to destroy this swapchain
+        void destroy();
+
+        // Method used for resizing this swapchain based on window resizing events
+        //! TODO: Implement this for swapchain recreation
+        void recreate() {}
 
     private:
         //! @note These private functions are for initiating the swapchain first

@@ -28,7 +28,7 @@ namespace vk {
         operator VkDevice() const { return m_driver; }
         operator VkDevice() { return m_driver; }
 
-        void clean();
+        void destroy();
 
     private:
         VkDevice m_driver = nullptr;

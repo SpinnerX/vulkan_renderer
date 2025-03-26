@@ -375,7 +375,7 @@ int main(){
         glfwPollEvents();
     }
 
-    main_window_swapchain.clean();
-    main_driver.clean();
+    main_window_swapchain.destroy();
+    main_driver.destroy();
 
 }

@@ -16,23 +16,35 @@ namespace vk {
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
-    // VkSurfaceFormatKHR get_surface_format(const std::)
+    // validate the capabilities to ensure we are not requesting the maximum over the amount of images we are able to request
+    uint32_t select_images_size(const VkSurfaceCapabilitiesKHR& p_surface_capabilities) {
+        uint32_t requested_images = p_surface_capabilities.minImageCount + 1;
+
+        uint32_t final_image_count = 0;
+
+        if((p_surface_capabilities.maxImageCount > 0) and (requested_images > p_surface_capabilities.maxImageCount)) {
+            final_image_count = p_surface_capabilities.maxImageCount;
+        }
+        else {
+            final_image_count = requested_images;
+        }
+
+        return final_image_count;
+    }
 
     vk_swapchain::vk_swapchain(vk_physical_driver& p_physical, const vk_driver& p_driver, const VkSurfaceKHR& p_surface) : m_driver(p_driver), m_current_surface(p_surface) {
         m_surface_data = p_physical.get_surface_properties(p_surface);
 
-        // if(m_surface_data.SurfaceCapabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
-        //     m_swapchain_size = m_surface_data.SurfaceCapabilities.currentExtent;
-        // }
-        // m_swapchain_size = m_surface_data.SurfaceCapabilities.currentExtent;
-
         m_swapchain_size = m_surface_data.SurfaceCapabilities.currentExtent;
+
+        // request what our minimum image count is
+        uint32_t request_min_image_count = select_images_size(m_surface_data.SurfaceCapabilities);
 
 
         VkSwapchainCreateInfoKHR swapchain_ci = {
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             .surface = p_surface,
-            .minImageCount = 2,
+            .minImageCount = request_min_image_count,
             .imageFormat = m_surface_data.SurfaceFormat.format,
             .imageColorSpace = m_surface_data.SurfaceFormat.colorSpace,
             // use physical device surface formats to getting the right formats in vulkan
@@ -56,10 +68,7 @@ namespace vk {
 
     }
 
-    vk_swapchain::~vk_swapchain() {
-    }
-
-    void vk_swapchain::clean() {
+    void vk_swapchain::destroy() {
         vkDestroySwapchainKHR(m_driver, m_swapchain_handler, nullptr);
     }
 
