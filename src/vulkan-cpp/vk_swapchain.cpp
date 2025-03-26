@@ -45,28 +45,28 @@ namespace vk {
 
     vk_swapchain::~vk_swapchain() {
 
-        console_log_trace("begin ~vk_swapchain cleanup destructor!!!");
-        for(size_t i = 0; i < swapchain_configs::MaxFramesInFlight; i++){
-            vkDestroySemaphore(m_driver, m_swapchain_images_available[i], nullptr);
-            vkDestroySemaphore(m_driver, m_swapchain_rendered_images_completed[i], nullptr);
-            vkDestroyFence(m_driver, m_swapchain_fences_in_flight[i], nullptr);
-        }
+        // console_log_warn("begin ~vk_swapchain cleanup destructor!!!");
+        // for(size_t i = 0; i < swapchain_configs::MaxFramesInFlight; i++){
+        //     vkDestroySemaphore(m_driver, m_swapchain_images_available[i], nullptr);
+        //     vkDestroySemaphore(m_driver, m_swapchain_rendered_images_completed[i], nullptr);
+        //     vkDestroyFence(m_driver, m_swapchain_fences_in_flight[i], nullptr);
+        // }
 
-        vkDestroyRenderPass(m_driver, m_renderpass, nullptr);
+        // vkDestroyRenderPass(m_driver, m_renderpass, nullptr);
 
-        for(const VkFramebuffer& fb : m_swapchain_framebuffers){
-            vkDestroyFramebuffer(m_driver, fb, nullptr);
-        }
+        // for(const VkFramebuffer& fb : m_swapchain_framebuffers){
+        //     vkDestroyFramebuffer(m_driver, fb, nullptr);
+        // }
 
-        for(const image& each_image : m_swapchain_images){
-            vkDestroyImageView(m_driver, each_image.ImageView, nullptr);
-        }
+        // for(const image& each_image : m_swapchain_images){
+        //     vkDestroyImageView(m_driver, each_image.ImageView, nullptr);
+        // }
 
-        if(m_swapchain_handler != nullptr) {
-            vkDestroySwapchainKHR(m_driver, m_swapchain_handler, nullptr);
-        }
+        // if(m_swapchain_handler != nullptr) {
+        //     vkDestroySwapchainKHR(m_driver, m_swapchain_handler, nullptr);
+        // }
 
-        console_log_trace("finished ~vk_swapchain cleanup destructor!!!");
+        // console_log_warn("finished ~vk_swapchain cleanup destructor!!!");
     }
 
     void vk_swapchain::on_create() {
@@ -181,6 +181,7 @@ namespace vk {
         vkGetSwapchainImagesKHR(m_driver, m_swapchain_handler, &image_count, images.data());
 
         m_swapchain_fences_in_flight.resize(image_count);
+        m_swapchain_images_fences.resize(image_count);
 
         for(uint32_t i = 0; i < images.size(); i++){
             m_swapchain_images[i].Image = images[i];
@@ -282,12 +283,45 @@ namespace vk {
         }
     }
 
+    void vk_swapchain::clean() {
+        console_log_warn("begin ~vk_swapchain cleanup destructor!!!");
+        vkDeviceWaitIdle(m_driver);
+
+        vkDestroyRenderPass(m_driver, m_renderpass, nullptr);
+
+        for(size_t i = 0; i < swapchain_configs::MaxFramesInFlight; i++){
+            vkDestroySemaphore(m_driver, m_swapchain_images_available[i], nullptr);
+            vkDestroySemaphore(m_driver, m_swapchain_rendered_images_completed[i], nullptr);
+            vkDestroyFence(m_driver, m_swapchain_fences_in_flight[i], nullptr);
+        }
+
+        // for(const VkFramebuffer& fb : m_swapchain_framebuffers){
+        //     vkDestroyFramebuffer(m_driver, fb, nullptr);
+        // }
+
+        for(size_t i = 0; i < m_swapchain_framebuffers.size(); i++) {
+            vkDestroyFramebuffer(m_driver, m_swapchain_framebuffers[i], nullptr);
+        }
+
+        // for(const image& each_image : m_swapchain_images){
+        //     vkDestroyImageView(m_driver, each_image.ImageView, nullptr);
+        // }
+        for(size_t i = 0; i < m_swapchain_images.size(); i++){
+            vkDestroyImageView(m_driver, m_swapchain_images[i].ImageView, nullptr);
+        }
+
+        if(m_swapchain_handler != nullptr) {
+            vkDestroySwapchainKHR(m_driver, m_swapchain_handler, nullptr);
+        }
+
+        console_log_warn("finished ~vk_swapchain cleanup destructor!!!");
+    }
+
 
 
 
 
     uint32_t vk_swapchain::read_acquired_image() {
-        vkWaitForFences(m_driver, 1, &m_swapchain_fences_in_flight[m_current_frame], true, std::numeric_limits<uint32_t>::max());
         uint32_t image_index;
 
         vkAcquireNextImageKHR(m_driver, m_swapchain_handler, std::numeric_limits<uint32_t>::max(), m_swapchain_images_available[m_current_frame], VK_NULL_HANDLE, &image_index);
@@ -298,7 +332,13 @@ namespace vk {
     void vk_swapchain::submit_to(const VkCommandBuffer& p_current_command_buffer) {
         
         // if(m_swapchain_fences_in_flight[m_current_frame] != VK_NULL_HANDLE) {
-        vkWaitForFences(m_driver, 1, &m_swapchain_fences_in_flight[m_current_frame], true, std::numeric_limits<uint32_t>::max());
+        // vkDeviceWaitIdle(m_driver);
+        // vkWaitForFences(m_driver, 1, &m_swapchain_fences_in_flight[m_current_frame], true, std::numeric_limits<uint32_t>::max());
+        if(m_swapchain_images_fences[m_current_frame] != VK_NULL_HANDLE) {
+            vkWaitForFences(m_driver, 1, &m_swapchain_images_fences[m_current_frame], true, std::numeric_limits<uint32_t>::max()); 
+        }
+
+        m_swapchain_images_fences[m_current_image_index] = m_swapchain_fences_in_flight[m_current_frame];
         vkQueueWaitIdle(m_driver.get_graphics_queue());
         vkResetFences(m_driver, 1, &m_swapchain_fences_in_flight[m_current_frame]);
 
@@ -322,127 +362,29 @@ namespace vk {
         // if (vkQueueSubmit(m_driver.get_graphics_queue(), 1, &submitInfo, m_swapchain_fences_in_flight[m_current_frame]) != VK_SUCCESS) {
         //     throw std::runtime_error("failed to submit draw command buffer!");
         // }
-        vk_check(vkQueueSubmit(m_driver.get_graphics_queue(), 1, &submitInfo, m_swapchain_fences_in_flight[m_current_frame]), "vkQueueSubmit", __FUNCTION__);
+        // vk_check(vkQueueSubmit(m_driver.get_graphics_queue(), 1, &submitInfo, m_swapchain_fences_in_flight[m_current_frame]), "vkQueueSubmit", __FUNCTION__);
 
-        VkPresentInfoKHR presentInfo{};
-        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        vkResetFences(m_driver, 1, &m_swapchain_fences_in_flight[m_current_frame]);
+        VkResult submit_result = vkQueueSubmit(m_driver.get_graphics_queue(), 1, &submitInfo, m_swapchain_fences_in_flight[m_current_frame]);
 
-        presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = signalSemaphores;
+        if(submit_result == VK_SUCCESS) {
+            VkPresentInfoKHR presentInfo{};
+            presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
-        VkSwapchainKHR swapChains[] = {m_swapchain_handler};
-        presentInfo.swapchainCount = 1;
-        presentInfo.pSwapchains = swapChains;
+            presentInfo.waitSemaphoreCount = 1;
+            presentInfo.pWaitSemaphores = signalSemaphores;
 
-        presentInfo.pImageIndices = &m_current_image_index;
+            VkSwapchainKHR swapChains[] = {m_swapchain_handler};
+            presentInfo.swapchainCount = 1;
+            presentInfo.pSwapchains = swapChains;
 
-        vk_check(vkQueuePresentKHR(m_present_queue, &presentInfo), "vkQueuePresentKHR", __FUNCTION__);
+            presentInfo.pImageIndices = &m_current_image_index;
+
+            vk_check(vkQueuePresentKHR(m_present_queue, &presentInfo), "vkQueuePresentKHR", __FUNCTION__);
+        }
 
         m_current_frame = (m_current_frame + 1) % swapchain_configs::MaxFramesInFlight;
     }
-
-
-
-
-    /*
-    uint32_t vk_swapchain::read_acquired_image() {
-        uint32_t image_index;
-        vk_check(
-          vkWaitForFences(m_driver,
-                          1,
-                          &m_swapchain_fences_in_flight[FrameIndex],
-                          true,
-                          std::numeric_limits<uint32_t>::max()),
-          "vkWaitForFences",
-          __FUNCTION__);
-
-        VkResult res = vkAcquireNextImageKHR(
-          m_driver,
-          m_swapchain_handler,
-          std::numeric_limits<uint64_t>::max(),
-          m_swapchain_images_available[FrameIndex],
-          VK_NULL_HANDLE,
-          &image_index);
-        
-          if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
-            return -3;
-        }
-
-        vk_check(res, "vkAcquireNextImageKHR", __FUNCTION__);
-
-        // FrameIndex = image_index;
-        ImageIndex = image_index;
-        return image_index;
-    }
-
-    void vk_swapchain::submit_to(const VkCommandBuffer& p_current_command_buffer) {
-        if(m_swapchain_fences_images_available[ImageIndex] != VK_NULL_HANDLE) {
-            vkWaitForFences(m_driver, 1, &m_swapchain_fences_in_flight[ImageIndex], true, std::numeric_limits<uint32_t>::max());
-        }
-
-        m_swapchain_fences_images_available[ImageIndex] = m_swapchain_fences_in_flight[FrameIndex];
-
-        VkSubmitInfo submission_info = {
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .pNext = nullptr,
-        };
-        
-        VkSemaphore wait_semaphore[] = {
-            m_swapchain_images_available[FrameIndex]
-        };
-
-        VkPipelineStageFlags wait_stages[] = {
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-        };
-
-        submission_info.waitSemaphoreCount = 1;
-        submission_info.pWaitSemaphores = wait_semaphore;
-        submission_info.pWaitDstStageMask = wait_stages;
-
-        submission_info.commandBufferCount = 1;
-        submission_info.pCommandBuffers = &p_current_command_buffer;
-
-        VkSemaphore signal_sems[] = {
-            m_swapchain_rendered_images_completed[FrameIndex]
-        };
-
-        submission_info.signalSemaphoreCount = 1;
-        submission_info.pSignalSemaphores = signal_sems;
-
-        vkResetFences(m_driver, 1, &m_swapchain_fences_in_flight[FrameIndex]);
-
-        vk_check(vkQueueSubmit(m_driver.get_graphics_queue(), 1, &submission_info, m_swapchain_fences_in_flight[FrameIndex]), "vkQueueSubmit", __FUNCTION__);
-
-        //! @note Now we present our data to the display.
-        VkPresentInfoKHR present_info = {
-            .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-            .waitSemaphoreCount = 1,
-            .pWaitSemaphores = signal_sems,
-        };
-
-        VkSwapchainKHR swapchains_array[] = { m_swapchain_handler };
-        present_info.swapchainCount = 1;
-        present_info.pSwapchains = swapchains_array;
-
-        present_info.pImageIndices = &ImageIndex;
-        if (m_present_queue == VK_NULL_HANDLE) {
-            console_log_error("PresentationQueue is nullptr!!!");
-        }
-
-        auto res = vkQueuePresentKHR(m_present_queue, &present_info);
-        if (res == VK_ERROR_OUT_OF_DATE_KHR) {
-            console_log_trace("VK_ERROR_OUT_OF_DATE_KHR occurrred!!!");
-            return;
-        }
-
-        vk_check(res, "vkQueuePresentKHR", __FUNCTION__);
-
-        FrameIndex = (FrameIndex + 1) % swapchain_configs::MaxFramesInFlight;
-
-        console_log_fatal("FrameIndex = {}", FrameIndex);
-
-    }
-    */
 
     void vk_swapchain::resize(uint32_t p_width, uint32_t p_height) {
         m_swapchain_size.width = p_width;

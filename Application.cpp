@@ -293,7 +293,7 @@ std::vector<VkCommandBuffer> create_command_buffers_vec(const VkDevice& p_driver
  * @note The renderpass to record the current command buffer too
 */
 template<typename UFunction>
-void record_command_buffer(const VkCommandBuffer& p_current_command_buffer, const UFunction& p_callable) {
+void record_commands(const VkCommandBuffer& p_current_command_buffer, const UFunction& p_callable) {
 
     // Begin command buffer recording operation
     VkCommandBufferBeginInfo cmd_buffer_begin_info = {
@@ -335,6 +335,7 @@ int main(){
 
     //! @note 2.) Initiates Vulkan Surface
     main_window.create_window_surface(initiating_vulkan);
+    main_window.center_window();
 
     //! @note 3.) Initialize Vulkan physical and logical drivers
     vk::vk_physical_driver main_physical_device = vk::vk_physical_driver(initiating_vulkan);
@@ -346,8 +347,9 @@ int main(){
     shader_tutorial first_shader = shader_tutorial(main_driver);
     
     //! @note 5.) Creating a render pass for the graphics pipeline
-    vk::vk_renderpass main_swapchain_renderpass = vk::vk_renderpass(main_driver, main_window_swapchain.get_format());
-    first_shader.create_pipeline_shader_stages(main_swapchain_renderpass);
+    // vk::vk_renderpass main_swapchain_renderpass = vk::vk_renderpass(main_driver, main_window_swapchain.get_format());
+    // first_shader.create_pipeline_shader_stages(main_swapchain_renderpass);
+    first_shader.create_pipeline_shader_stages(main_window_swapchain.get_renderpass());
 
     VkPipeline graphics_pipeline = first_shader.get_graphics_pipeline();
 
@@ -367,10 +369,11 @@ int main(){
 
         // Submitting drawing stuff here
         vkResetCommandBuffer(swapchain_command_buffers[frame_index], 0);
-        record_command_buffer(swapchain_command_buffers[frame_index], [&main_swapchain_renderpass, &frame_index, &main_window_swapchain, &graphics_pipeline](const VkCommandBuffer& p_current_command_buffer){
+        record_commands(swapchain_command_buffers[frame_index], [&frame_index, &main_window_swapchain, &graphics_pipeline](const VkCommandBuffer& p_current_command_buffer){
             VkRenderPassBeginInfo renderpass_begin_info = {
                 .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                .renderPass = main_swapchain_renderpass,
+                // .renderPass = main_swapchain_renderpass,
+                .renderPass = main_window_swapchain.get_renderpass(),
                 .framebuffer = main_window_swapchain.read_framebuffer(frame_index),
                 .renderArea.offset = {0, 0},
                 .renderArea.extent = main_window_swapchain.get_extent(),
@@ -412,8 +415,16 @@ int main(){
         glfwPollEvents();
     }
 
-    // Doing cleanup (implicityl by the class's destructor)
-    vkDestroyCommandPool(main_driver, command_pool, nullptr);
-    // first_shader.cleanup();
+    // Doing cleanup
+    console_log_error("Just before destruction!!!");
     // main_swapchain_renderpass.cleanup();
+    main_window_swapchain.clean();
+    vkDestroyCommandPool(main_driver, command_pool, nullptr);
+
+    // delete main_window_swapchain;
+
+
+    // delete logical device
+    // delete physical devices
+    // delete vk instance
 }

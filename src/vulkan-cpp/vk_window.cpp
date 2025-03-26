@@ -18,6 +18,14 @@ namespace vk {
         glfwDestroyWindow(m_window_handler);
     }
 
+    void vk_window::center_window() {
+        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        int width = (mode->width/2) - (m_settings.Width / 2);
+        int height = (mode->height/2) - (m_settings.Height / 2);
+        glfwSetWindowPos(m_window_handler, width, height);
+    }
+
     void vk_window::viewport_resize(int p_width, int p_height) {
         m_settings.Width = p_width;
         m_settings.Height = p_height;
@@ -27,6 +35,13 @@ namespace vk {
         console_log_info("vk_window::create_window_surface begin initialization!");
         vk::vk_check(glfwCreateWindowSurface(p_instance, m_window_handler, nullptr, &m_window_surface), "glfwCreateWindowSurface", __FUNCTION__);
         console_log_info("vk_window::create_window_surface end initialization!!!\n\n");
+    }
+
+    void vk_window::clean() {
+        vkDestroySurfaceKHR(m_instance, m_window_surface, nullptr);
+        vkDestroyInstance(m_instance, nullptr);
+
+        glfwDestroyWindow(m_window_handler);
     }
 
     void vk_window::on_create_window() {}

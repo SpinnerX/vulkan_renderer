@@ -29,6 +29,9 @@ namespace vk {
 
         void submit_to(const VkCommandBuffer& p_current_command_buffer);
 
+
+        void clean();
+
     private:
         //! @note These private functions are for initiating the swapchain first
         void on_create();
@@ -113,6 +116,7 @@ namespace vk {
 
         //! @note Semaphores for when frames rendered are completed
         // std::vector<VkSemaphore> m_swapchain_rendered_images_completed;
+        std::vector<VkFence> m_swapchain_images_fences;
         std::vector<VkFence> m_swapchain_fences_in_flight;
         std::array<VkSemaphore, swapchain_configs::MaxFramesInFlight> m_swapchain_rendered_images_completed;
 

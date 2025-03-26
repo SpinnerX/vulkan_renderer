@@ -37,10 +37,11 @@ namespace vk {
 
     vk_renderpass::~vk_renderpass() {
         // vkDestroyRenderPass(m_driver, m_renderpass_handler, nullptr);
-        // cleanup();
+        cleanup();
     }
 
     void vk_renderpass::cleanup() {
+        // vkDeviceWaitIdle(m_driver);
         vkDestroyRenderPass(m_driver, m_renderpass_handler, nullptr);
     }
 }

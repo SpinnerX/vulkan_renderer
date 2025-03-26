@@ -26,6 +26,11 @@ namespace vk {
         void create_window_surface(const VkInstance& p_instance);
 
 
+        void center_window();
+
+        void clean();
+
+
         static GLFWwindow* get_native_window() { return s_instance->m_window_handler; }
 
         operator GLFWwindow*() { return m_window_handler; }
