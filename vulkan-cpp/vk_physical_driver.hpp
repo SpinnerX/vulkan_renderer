@@ -3,6 +3,11 @@
 #include <vulkan/vulkan.h>
 
 namespace vk {
+    struct surface_properties {
+        VkSurfaceCapabilitiesKHR SurfaceCapabilities;
+        VkSurfaceFormatKHR SurfaceFormat;
+    };
+
     class vk_physical_driver {
         struct queue_family_indices {
             uint32_t Graphics = -1;
@@ -23,6 +28,15 @@ namespace vk {
 
         uint32_t get_presentation_index(const VkSurfaceKHR& p_surface);
 
+        // VkSurfaceCapabilitiesKHR get_surface_capabilities();
+
+        // VkSurfaceFormatKHR get_current_surface_format(const VkSurfaceKHR& p_surface);
+
+        /*
+            Physical Device should provide the surface properties to other contexts of vulkan like the swapchain
+        */
+        surface_properties get_surface_properties(const VkSurfaceKHR& p_surface);
+
 
     private:
         queue_family_indices select_queue_family_indices();
@@ -32,5 +46,6 @@ namespace vk {
         VkPhysicalDevice m_physical_driver = nullptr;
         queue_family_indices m_queue_indices{};
         std::vector<VkQueueFamilyProperties> m_queue_family_properties;
+        surface_properties m_surface_properties{};
     };
 };

@@ -10,7 +10,7 @@ namespace vk {
     public:
         // static uint32_t FrameIndex = 0;
         vk_swapchain() = default;
-        vk_swapchain(const vk_physical_driver& p_physical, const vk_driver& p_driver, const VkSurfaceKHR& p_surface);
+        vk_swapchain(vk_physical_driver& p_physical, const vk_driver& p_driver, const VkSurfaceKHR& p_surface);
         ~vk_swapchain();
 
         void resize(uint32_t p_width, uint32_t p_height);
@@ -22,7 +22,7 @@ namespace vk {
         operator VkRenderPass() { return m_renderpass; }
         operator VkRenderPass() const { return m_renderpass; }
 
-        VkSurfaceFormatKHR get_format() const { return m_surface_format; }
+        VkSurfaceFormatKHR get_format() const { return m_surface_data.SurfaceFormat; }
 
         VkFramebuffer read_framebuffer(uint32_t p_frame_index) const { return m_swapchain_framebuffers[p_frame_index]; }
         VkFramebuffer& read_framebuffer(uint32_t p_frame_index) { return m_swapchain_framebuffers[p_frame_index]; }
@@ -45,13 +45,12 @@ namespace vk {
 
         // Now we create a renderpass.
         //! @note At the time I made this function, I implemented the shader class first beforehand
-        void create_renderpass_for_swapchain();
+        // void create_renderpass_for_swapchain();
 
         // Now we are creating framebuffers
-        void create_swapchain_framebuffers();
+        // void create_swapchain_framebuffers();
 
         // Creating synchronization objects
-        void create_semaphores();
 
     public:
         //! @note Acquire Next Image
@@ -62,7 +61,7 @@ namespace vk {
         /**
          * @note Sets up and prepares our image for swapchain
         */
-        void setup_images();
+        // void setup_images();
 
     private:
         static vk_swapchain* s_instance;
@@ -81,9 +80,8 @@ namespace vk {
         };
 
         // surface properties
-        VkSurfaceCapabilitiesKHR m_surface_capabilities;
         VkExtent2D m_swapchain_size;
-        VkSurfaceFormatKHR m_surface_format;
+        surface_properties m_surface_data{};
 
         // presentation mode
         VkPresentModeKHR m_present_mode;
@@ -119,9 +117,6 @@ namespace vk {
         std::vector<VkFence> m_swapchain_images_fences;
         std::vector<VkFence> m_swapchain_fences_in_flight;
         std::array<VkSemaphore, swapchain_configs::MaxFramesInFlight> m_swapchain_rendered_images_completed;
-
-        // VkFence m_current_image_fence = nullptr;
-
 
         uint32_t m_image_size = 0;
         uint32_t m_current_frame = 0;

@@ -344,87 +344,38 @@ int main(){
     //! @note 4.) Initializing Swapchain
     vk::vk_swapchain main_window_swapchain = vk::vk_swapchain(main_physical_device, main_driver, main_window);
 
-    shader_tutorial first_shader = shader_tutorial(main_driver);
+    // shader_tutorial first_shader = shader_tutorial(main_driver);
     
-    //! @note 5.) Creating a render pass for the graphics pipeline
-    // vk::vk_renderpass main_swapchain_renderpass = vk::vk_renderpass(main_driver, main_window_swapchain.get_format());
-    // first_shader.create_pipeline_shader_stages(main_swapchain_renderpass);
-    first_shader.create_pipeline_shader_stages(main_window_swapchain.get_renderpass());
+    // //! @note 5.) Creating a render pass for the graphics pipeline
+    // // vk::vk_renderpass main_swapchain_renderpass = vk::vk_renderpass(main_driver, main_window_swapchain.get_format());
+    // // first_shader.create_pipeline_shader_stages(main_swapchain_renderpass);
+    // first_shader.create_pipeline_shader_stages(main_window_swapchain.get_renderpass());
 
-    VkPipeline graphics_pipeline = first_shader.get_graphics_pipeline();
+    // VkPipeline graphics_pipeline = first_shader.get_graphics_pipeline();
 
-    //! @note 6.) Create Command Pools, Buffers
-    VkCommandPool command_pool = create_command_pool(main_driver, main_physical_device.get_queue_indices().Graphics);
-    // VkCommandBuffer command_buffer = create_command_buffers(main_driver, command_pool);
-    std::array<VkCommandBuffer, vk::swapchain_configs::MaxFramesInFlight> swapchain_command_buffers;
+    // //! @note 6.) Create Command Pools, Buffers
+    // VkCommandPool command_pool = create_command_pool(main_driver, main_physical_device.get_queue_indices().Graphics);
+    // // VkCommandBuffer command_buffer = create_command_buffers(main_driver, command_pool);
+    // std::array<VkCommandBuffer, vk::swapchain_configs::MaxFramesInFlight> swapchain_command_buffers;
 
-    for(size_t i = 0; i < swapchain_command_buffers.size(); i++) {
-        swapchain_command_buffers[i] = create_command_buffers(main_driver, command_pool);
-    }
+    // for(size_t i = 0; i < swapchain_command_buffers.size(); i++) {
+    //     swapchain_command_buffers[i] = create_command_buffers(main_driver, command_pool);
+    // }
 
-    uint32_t frame_index = 0;
+    // uint32_t frame_index = 0;
 
     while(main_window.is_active()){
-        frame_index = main_window_swapchain.read_acquired_image();
 
-        // Submitting drawing stuff here
-        vkResetCommandBuffer(swapchain_command_buffers[frame_index], 0);
-        record_commands(swapchain_command_buffers[frame_index], [&frame_index, &main_window_swapchain, &graphics_pipeline](const VkCommandBuffer& p_current_command_buffer){
-            VkRenderPassBeginInfo renderpass_begin_info = {
-                .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                // .renderPass = main_swapchain_renderpass,
-                .renderPass = main_window_swapchain.get_renderpass(),
-                .framebuffer = main_window_swapchain.read_framebuffer(frame_index),
-                .renderArea.offset = {0, 0},
-                .renderArea.extent = main_window_swapchain.get_extent(),
-            };
-        
-            VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-            renderpass_begin_info.clearValueCount = 1;
-            renderpass_begin_info.pClearValues = &clearColor;
-        
-            vkCmdBeginRenderPass(p_current_command_buffer, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-    
-            vkCmdBindPipeline(p_current_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
-       
-            VkViewport viewport = {
-                .x = 0.0f,
-                .y = 0.0f,
-                .width = static_cast<float>(main_window_swapchain.get_extent().width),
-                .height = static_cast<float>(main_window_swapchain.get_extent().height),
-                .minDepth = 0.0f,
-                .maxDepth = 1.0f,
-            };
-            vkCmdSetViewport(p_current_command_buffer, 0, 1, &viewport);
-    
-            VkRect2D scissor = {
-                .offset = {0, 0},
-                .extent = main_window_swapchain.get_extent(),
-            };
-    
-            vkCmdSetScissor(p_current_command_buffer, 0, 1, &scissor);
-    
-            vkCmdDraw(p_current_command_buffer, 3, 1, 0, 0);
-    
-            vkCmdEndRenderPass(p_current_command_buffer);
-        });
+        // acquire next image
 
-        main_window_swapchain.submit_to(swapchain_command_buffers[frame_index]);
-        
+        // draw
 
+        // presenting frame
+        
         glfwPollEvents();
     }
 
-    // Doing cleanup
-    console_log_error("Just before destruction!!!");
-    // main_swapchain_renderpass.cleanup();
     main_window_swapchain.clean();
-    vkDestroyCommandPool(main_driver, command_pool, nullptr);
+    main_driver.clean();
 
-    // delete main_window_swapchain;
-
-
-    // delete logical device
-    // delete physical devices
-    // delete vk instance
 }

@@ -45,6 +45,30 @@ namespace vk {
         // vkDestroyDevice(m_driver, nullptr);
     }
 
+    surface_properties vk_physical_driver::get_surface_properties(const VkSurfaceKHR& p_surface) {
+
+        vk_check(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physical_driver, p_surface, &m_surface_properties.SurfaceCapabilities), "vkGetPhysicalDeviceSurfaceCapabilitiesKHR",__FUNCTION__);
+
+        
+        uint32_t format_count = 0;
+        std::vector<VkSurfaceFormatKHR> formats;
+        vk_check(vkGetPhysicalDeviceSurfaceFormatsKHR(m_physical_driver, p_surface, &format_count, nullptr), "vkGetPhysicalDeviceSurfaceFormatsKHR", __FUNCTION__);
+    
+        formats.resize(format_count);
+
+        vk_check(vkGetPhysicalDeviceSurfaceFormatsKHR(m_physical_driver, p_surface, &format_count, formats.data()), "vkGetPhysicalDeviceSurfaceFormatsKHR", __FUNCTION__);
+
+        for (const auto& format : formats) {
+            if (format.format == VK_FORMAT_B8G8R8A8_SRGB && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+                m_surface_properties.SurfaceFormat = format;
+            }
+        }
+
+        m_surface_properties.SurfaceFormat = formats[0];
+
+        return m_surface_properties;
+    }
+
     vk_physical_driver::queue_family_indices vk_physical_driver::select_queue_family_indices() {
         VkPhysicalDeviceMemoryProperties physical_device_memory_properties;
         vkGetPhysicalDeviceMemoryProperties(m_physical_driver,

@@ -58,6 +58,10 @@ namespace vk {
 
 
     vk_driver::~vk_driver(){
+        // vkDestroyDevice(m_driver, nullptr);
+    }
+
+    void vk_driver::clean() {
         vkDestroyDevice(m_driver, nullptr);
     }
 
