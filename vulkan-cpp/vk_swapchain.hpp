@@ -1,6 +1,7 @@
 #pragma once
 #include <vulkan-cpp/vk_driver.hpp>
 #include <array>
+#include <vulkan-cpp/vk_queue.hpp>
 
 namespace vk {
     struct swapchain_configs {
@@ -15,19 +16,51 @@ namespace vk {
 
         void resize(uint32_t p_width, uint32_t p_height);
 
-        static VkExtent2D get_extent() { return s_instance->m_swapchain_size; }
+        
+        void record() {
+            VkClearColorValue clear_color = {1.f, 0.f, 0.f, 0.f};
 
-        static VkRenderPass get_renderpass() { return s_instance->m_renderpass; }
+            VkImageSubresourceRange image_range = {
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1
+            };
 
-        operator VkRenderPass() { return m_renderpass; }
-        operator VkRenderPass() const { return m_renderpass; }
+            for(uint32_t i = 0; i < m_swapchain_command_buffers.size(); i++) {
+                vkResetCommandBuffer(m_swapchain_command_buffers[i], 0);
+                begin_command_buffer(m_swapchain_command_buffers[i], 0);
 
-        VkSurfaceFormatKHR get_format() const { return m_surface_data.SurfaceFormat; }
+                vkCmdClearColorImage(m_swapchain_command_buffers[i], m_swapchain_images[i].Image, VK_IMAGE_LAYOUT_GENERAL, &clear_color, 1, &image_range);
 
-        VkFramebuffer read_framebuffer(uint32_t p_frame_index) const { return m_swapchain_framebuffers[p_frame_index]; }
-        VkFramebuffer& read_framebuffer(uint32_t p_frame_index) { return m_swapchain_framebuffers[p_frame_index]; }
+                end_command_buffer(m_swapchain_command_buffers[i]);
+            }
+        }
 
-        void submit_to(const VkCommandBuffer& p_current_command_buffer);
+        void render_scene() {
+            uint32_t frame_idx = m_swapchain_queue.read_acquire_image();
+
+            m_swapchain_queue.submit_to(m_swapchain_command_buffers[frame_idx], submission_type::Sync);
+
+            m_swapchain_queue.present(frame_idx);
+        }
+
+        // void submit_to(const VkCommandBuffer& p_current_command_buffer);
+
+        /*
+        template<typename UCallable>
+        void submit_to(const UCallable& p_callable){
+            uint32_t image_acquired_index = read_acquired_image();
+
+            // This fetches us the current command buffer we are processing
+            // While also making this be in use when we are submitting tasks to this
+            p_callable(m_swapchain_command_buffers[image_acquired_index]);
+        }
+        */
+
+        //! @note Acquire Next Image
+        uint32_t read_acquired_image();
 
 
         // Used to indicate you want to destroy this swapchain
@@ -36,37 +69,14 @@ namespace vk {
         // Method used for resizing this swapchain based on window resizing events
         //! TODO: Implement this for swapchain recreation
         void recreate() {}
-
+    private:
+        void begin_command_buffer(const VkCommandBuffer& p_command_buffer, VkCommandBufferUsageFlags p_usage_flags);
+        void end_command_buffer(const VkCommandBuffer& p_command_buffer);
     private:
         //! @note These private functions are for initiating the swapchain first
         void on_create();
 
         void select_swapchain_surface_formats();
-
-        void select_presentation_mode();
-
-        void get_valid_extent();
-
-
-        // Now we create a renderpass.
-        //! @note At the time I made this function, I implemented the shader class first beforehand
-        // void create_renderpass_for_swapchain();
-
-        // Now we are creating framebuffers
-        // void create_swapchain_framebuffers();
-
-        // Creating synchronization objects
-
-    public:
-        //! @note Acquire Next Image
-        uint32_t read_acquired_image();
-
-    private:
-        // private functions for initiating the VkImage/VkImageView
-        /**
-         * @note Sets up and prepares our image for swapchain
-        */
-        // void setup_images();
 
     private:
         static vk_swapchain* s_instance;
@@ -84,47 +94,27 @@ namespace vk {
             VkDeviceMemory DeviceMemory;
         };
 
-        // surface properties
+        // properties set from physical and logical devices
         VkExtent2D m_swapchain_size;
         surface_properties m_surface_data{};
-
-        // presentation mode
-        VkPresentModeKHR m_present_mode;
-        uint32_t m_present_index = -1;
         VkQueue m_present_queue;
 
+
+
+        // swapchain internal varioables
+        VkPresentModeKHR m_present_mode;
         VkSwapchainKHR m_swapchain_handler;
 
+        // for now command buffers in swapchain
+        VkCommandPool m_command_pool = nullptr;
+        std::vector<VkCommandBuffer> m_swapchain_command_buffers;
+
         //! @note Setup Images
-        std::array<image, swapchain_configs::MaxFramesInFlight> m_swapchain_images;
+        // std::array<image, swapchain_configs::MaxFramesInFlight> m_swapchain_images;
+        std::vector<image> m_swapchain_images;
 
-        //! @note Setting up Renderpass
-        //! @note This swapchain's renderpass
-        //! @note Main renderpass to submit rendering tasks to this swapchain, specifically
-        VkRenderPass m_renderpass;
+        // swapchain queue
+        vk_queue m_swapchain_queue;
 
-        /**
-         * @note The only structures that needs to be set to frames in flight of the frames we want to process are framebuffers and images
-         * @note The VkFence should be the size of the images available
-         * @note This way because if they are all either MaxFramesInFlight including the fences then the fences will try to check the current scene and signaling it
-         * @note When you onl want to signal 2 frames at a time, so that the frames do not get ahead of the CPU
-        */
-        std::array<VkFramebuffer, swapchain_configs::MaxFramesInFlight> m_swapchain_framebuffers;
-        // std::vector<VkFramebuffer> m_swapchain_framebuffers;
-
-        //! @note Synchronization Objects
-        //! @note Semaphores are for when the frame's available to render to
-        std::array<VkSemaphore, swapchain_configs::MaxFramesInFlight> m_swapchain_images_available;
-        // std::vector<VkSemaphore> m_swapchain_images_available;
-
-        //! @note Semaphores for when frames rendered are completed
-        // std::vector<VkSemaphore> m_swapchain_rendered_images_completed;
-        std::vector<VkFence> m_swapchain_images_fences;
-        std::vector<VkFence> m_swapchain_fences_in_flight;
-        std::array<VkSemaphore, swapchain_configs::MaxFramesInFlight> m_swapchain_rendered_images_completed;
-
-        uint32_t m_image_size = 0;
-        uint32_t m_current_frame = 0;
-        uint32_t m_current_image_index = 0;
     };
 };

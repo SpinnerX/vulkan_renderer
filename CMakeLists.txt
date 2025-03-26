@@ -11,6 +11,7 @@ set(
     ${INCLUDE_DIR}/vk_physical_driver.hpp
     ${INCLUDE_DIR}/vk_driver.hpp
     ${INCLUDE_DIR}/vk_swapchain.hpp
+    ${INCLUDE_DIR}/vk_queue.hpp
     ${INCLUDE_DIR}/vk_renderpass.hpp
     ${INCLUDE_DIR}/helper_functions.hpp
     ${INCLUDE_DIR}/logger.hpp
@@ -24,6 +25,7 @@ set(
     ${SRC_DIR}/vk_physical_driver.cpp
     ${SRC_DIR}/vk_driver.cpp
     ${SRC_DIR}/vk_swapchain.cpp
+    ${SRC_DIR}/vk_queue.cpp
     ${SRC_DIR}/vk_renderpass.cpp
     ${SRC_DIR}/helper_functions.cpp
     ${SRC_DIR}/logger.cpp

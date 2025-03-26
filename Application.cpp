@@ -108,7 +108,10 @@ public:
             .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
             .primitiveRestartEnable = VK_FALSE,
         };
-        VkExtent2D swapchain_extent = vk::vk_swapchain::get_extent();
+        // VkExtent2D swapchain_extent = vk::vk_swapchain::get_extent();
+        //! TODO: Add this in later
+        VkExtent2D swapchain_extent = {};
+        console_log_error("swapchain_extent needs a value because it has been removed!!!\nThis is a reminder if your using this function and calling!!!");
         console_log_trace("W = {}", swapchain_extent.width);
         console_log_trace("H = {}", swapchain_extent.height);
 
@@ -364,17 +367,23 @@ int main(){
 
     // uint32_t frame_index = 0;
 
+    main_window_swapchain.record();
+
     while(main_window.is_active()){
 
-        // acquire next image
+        // acquire next image ( then record)
 
-        // draw
 
-        // presenting frame
+        // draw (after recording)
+
+        // presenting frame (after drawing that frame)
+
+        main_window_swapchain.render_scene();
         
         glfwPollEvents();
     }
 
+    // Lets make sure we destroy these objects in the order they're created
     main_window_swapchain.destroy();
     main_driver.destroy();
 

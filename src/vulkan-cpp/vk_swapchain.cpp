@@ -32,7 +32,39 @@ namespace vk {
         return final_image_count;
     }
 
+    static VkImageView create_image_view(const VkDevice& p_driver, VkImage p_image, VkSurfaceFormatKHR p_surface_format, VkImageAspectFlags p_aspect_flags, VkImageViewType p_view_t, uint32_t p_layer_count, uint32_t p_mip_levels) {
+        VkImageViewCreateInfo image_view_ci = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .image = p_image,
+            .viewType = p_view_t,
+            .format = p_surface_format.format,
+            .components = {
+                .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+                .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+                .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+                .a = VK_COMPONENT_SWIZZLE_IDENTITY
+            },
+            .subresourceRange = {
+                .aspectMask = p_aspect_flags,
+                .baseMipLevel = 0,
+                .levelCount = p_mip_levels,
+                .baseArrayLayer = 0,
+                .layerCount = p_layer_count
+            },
+        };
+
+        VkImageView image_view;
+        vk_check(vkCreateImageView(p_driver, &image_view_ci, nullptr, &image_view), "vkCreateImageView", __FUNCTION__);
+
+        return image_view;
+    }
+
+    static void create_command_buffers() {}
+
     vk_swapchain::vk_swapchain(vk_physical_driver& p_physical, const vk_driver& p_driver, const VkSurfaceKHR& p_surface) : m_driver(p_driver), m_current_surface(p_surface) {
+        console_log_info("vk_swapchain() begin initialization!!!");
         m_surface_data = p_physical.get_surface_properties(p_surface);
 
         m_swapchain_size = m_surface_data.SurfaceCapabilities.currentExtent;
@@ -40,6 +72,10 @@ namespace vk {
         // request what our minimum image count is
         uint32_t request_min_image_count = select_images_size(m_surface_data.SurfaceCapabilities);
 
+        // setting our presentation properties
+        uint32_t present_index = p_physical.get_presentation_index(m_current_surface);
+        console_log_trace("Presentation Index = {}", present_index);
+        m_present_queue = m_driver.get_presentation_queue(present_index);
 
         VkSwapchainCreateInfoKHR swapchain_ci = {
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -50,7 +86,9 @@ namespace vk {
             // use physical device surface formats to getting the right formats in vulkan
             .imageExtent = m_swapchain_size,
             .imageArrayLayers = 1,
-            .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            .imageUsage = (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT),
+            .queueFamilyIndexCount = 1,
+            .pQueueFamilyIndices = &present_index,
             .preTransform = m_surface_data.SurfaceCapabilities.currentTransform,
             .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             .presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR,
@@ -61,22 +99,93 @@ namespace vk {
 
         // querying images we have
 
-        uint32_t count=0;
-        vkGetSwapchainImagesKHR(m_driver, m_swapchain_handler, &count, nullptr);
-        std::vector<VkImage> images(count);
-        vkGetSwapchainImagesKHR(m_driver, m_swapchain_handler, &count, images.data());
+        uint32_t image_count=0;
+        vkGetSwapchainImagesKHR(m_driver, m_swapchain_handler, &image_count, nullptr); // used to get the amount of images
+        std::vector<VkImage> images(image_count);
+        vkGetSwapchainImagesKHR(m_driver, m_swapchain_handler, &image_count, images.data()); // used to store in the images
 
+        // setting images
+        m_swapchain_images.resize(image_count);
+        console_log_trace("swapchain images.size() = {}", m_swapchain_images.size());
+
+        uint32_t layer_count = 1;
+        uint32_t mip_levels = 1;
+        for(uint32_t i = 0; i < m_swapchain_images.size(); i++) {
+            m_swapchain_images[i].Image = images[i];
+            m_swapchain_images[i].ImageView = create_image_view(m_driver, images[i], m_surface_data.SurfaceFormat, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D, layer_count, mip_levels);
+        }
+
+
+        // command pools
+        console_log_info("vk_swapchain begin initializing command pool!!!!");
+        VkCommandPoolCreateInfo command_pool_ci = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .queueFamilyIndex = present_index,
+        };
+
+        vk_check(vkCreateCommandPool(m_driver, &command_pool_ci, nullptr, &m_command_pool), "vkCreateCommandPool", __FUNCTION__);
+        console_log_info("vk_swapchain successfully initialized command pool!!!!\n");
+
+        // command buffers
+        console_log_info("vk_swapchain begin initializing command buffers!!!!");
+
+        m_swapchain_command_buffers.resize(image_count);
+        console_log_trace("command buffers.size() = {}", m_swapchain_command_buffers.size());
+        VkCommandBufferAllocateInfo command_buffer_alloc_info = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .pNext = nullptr,
+            .commandPool = m_command_pool,
+            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            .commandBufferCount = static_cast<uint32_t>(m_swapchain_command_buffers.size())
+        };
+
+        vk_check(vkAllocateCommandBuffers(m_driver, &command_buffer_alloc_info, m_swapchain_command_buffers.data()), "vkAllocateCommandBuffers", __FUNCTION__);
+
+        console_log_info("vk_swapchain successfully initialized command buffers!!!!\n");
+
+
+        // We dont need to specify queue information. This should be provided to by the swapchain
+        // The queue is provided within the swapchain during its initialization phase
+        m_swapchain_queue = vk_queue(m_driver, m_swapchain_handler, m_present_queue);
+
+
+        console_log_info("vk_swapchain() successfully initialized!!!\n\n");
     }
 
     void vk_swapchain::destroy() {
+
+        m_swapchain_queue.destroy();
+
+        vkDestroyCommandPool(m_driver, m_command_pool, nullptr);
+
+        for(uint32_t i = 0; i < m_swapchain_images.size(); i++) {
+            vkDestroyImageView(m_driver, m_swapchain_images[i].ImageView, nullptr);
+        }
+
         vkDestroySwapchainKHR(m_driver, m_swapchain_handler, nullptr);
     }
 
-    uint32_t vk_swapchain::read_acquired_image() {
-        uint32_t image_index;
+    void vk_swapchain::begin_command_buffer(const VkCommandBuffer& p_command_buffer, VkCommandBufferUsageFlags p_usage_flags) {
+        VkCommandBufferBeginInfo command_buffer_begin_info = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .pNext = nullptr,
+            .flags = p_usage_flags,
+            .pInheritanceInfo = nullptr
+        };
 
-        vkAcquireNextImageKHR(m_driver, m_swapchain_handler, std::numeric_limits<uint32_t>::max(), m_swapchain_images_available[m_current_frame], VK_NULL_HANDLE, &image_index);
-        m_current_image_index = image_index;
+        vk_check(vkBeginCommandBuffer(p_command_buffer, &command_buffer_begin_info), "vkBeginCommandBuffer", __FUNCTION__);
+    }
+
+    void vk_swapchain::end_command_buffer(const VkCommandBuffer& p_command_buffer) {
+        vkEndCommandBuffer(p_command_buffer);
+    }
+
+    uint32_t vk_swapchain::read_acquired_image() {
+        uint32_t image_index = 0;
+
+        // vkAcquireNextImageKHR(m_driver, m_swapchain_handler, std::numeric_limits<uint32_t>::max(), m_swapchain_images_available[m_current_frame], VK_NULL_HANDLE, &image_index);
         return image_index;
     }
 

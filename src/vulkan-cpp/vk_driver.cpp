@@ -64,6 +64,13 @@ namespace vk {
         vkDestroyDevice(m_driver, nullptr);
     }
 
+    VkQueue vk_driver::get_presentation_queue(const uint32_t& p_queue_family_index, const uint32_t& p_present_queue_index) {
+        VkQueue presentation_queue;
+        vkGetDeviceQueue(m_driver, p_queue_family_index, p_present_queue_index, &presentation_queue);
+
+        return presentation_queue;
+    }
+
     //! @note Returns -1 if there are no flags available/compatible/valid
     uint32_t vk_driver::select_memory_type(uint32_t p_type_filter, VkMemoryPropertyFlags p_property_flag){
         VkPhysicalDeviceMemoryProperties mem_props;
