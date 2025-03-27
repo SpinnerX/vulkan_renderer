@@ -175,5 +175,7 @@ namespace vk {
         vkDestroyPipeline(m_driver, m_pipeline, nullptr);
     }
 
-    void vk_pipeline::bind(const VkCommandBuffer& p_command_buffer) {}
+    void vk_pipeline::bind(const VkCommandBuffer& p_command_buffer) {
+        vkCmdBindPipeline(p_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+    }
 };

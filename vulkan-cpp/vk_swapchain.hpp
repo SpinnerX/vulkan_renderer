@@ -16,8 +16,8 @@ namespace vk {
 
         void resize(uint32_t p_width, uint32_t p_height);
 
-        
-        void record() {
+        template<typename UFunction>
+        void record(const UFunction& p_callable) {
             VkClearColorValue clear_color = {1.f, 0.f, 0.f, 0.f};
             VkClearValue clear_value = {};
             clear_value.color = clear_color;
@@ -54,7 +54,7 @@ namespace vk {
                 renderpass_begin_info.framebuffer = m_swapchain_framebuffers[i];
 
                 vkCmdBeginRenderPass(m_swapchain_command_buffers[i], &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-
+                p_callable(m_swapchain_command_buffers[i]);
                 vkCmdEndRenderPass(m_swapchain_command_buffers[i]);
                 end_command_buffer(m_swapchain_command_buffers[i]);
             }

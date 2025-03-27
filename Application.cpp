@@ -42,11 +42,36 @@ int main(){
     //! @note 4.) Initializing Swapchain
     vk::vk_swapchain main_window_swapchain = vk::vk_swapchain(main_physical_device, main_driver, main_window);
 
-    // recording clear colors for all swapchain command buffers
-    main_window_swapchain.record();
-
     vk::vk_shader test_shader = vk::vk_shader("shaders/vert.spv", "shaders/frag.spv");
-    vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window, main_window_swapchain.get_renderpass(), {test_shader.get_vertex_module(), test_shader.get_fragment_module()});
+    // vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window, main_window_swapchain.get_renderpass(), {test_shader.get_vertex_module(), test_shader.get_fragment_module()});
+
+    // recording clear colors for all swapchain command buffers
+    main_window_swapchain.record([&main_window_swapchain](const VkCommandBuffer& p_command_buffer){
+        // test_pipeline.bind(p_command_buffer);
+
+        // VkViewport viewport = {
+        //     .x = 0.0f,
+        //     .y = 0.0f,
+        //     .width = static_cast<float>(main_window_swapchain.get_extent().width),
+        //     .height = static_cast<float>(main_window_swapchain.get_extent().height),
+        //     .minDepth = 0.0f,
+        //     .maxDepth = 1.0f,
+        // };
+        // vkCmdSetViewport(p_command_buffer, 0, 1, &viewport);
+
+        // VkRect2D scissor = {
+        //     .offset = {0, 0},
+        //     .extent = main_window_swapchain.get_extent(),
+        // };
+
+        // vkCmdSetScissor(p_command_buffer, 0, 1, &scissor);
+
+        // uint32_t vertex_count = 3;
+        // uint32_t instance_count = 1;
+        // uint32_t first_vertex = 0;
+        // uint32_t first_instance = 0;
+        // vkCmdDraw(p_command_buffer, vertex_count, instance_count, first_vertex, first_instance);
+    });
 
     while(main_window.is_active()){
 
@@ -62,7 +87,11 @@ int main(){
     }
 
     // Lets make sure we destroy these objects in the order they're created
-    test_pipeline.destroy();
+
+    // tell device to wait before destroying everything
+    // doing this to ensure that we destroy them after everrythings done executing
+    vkDeviceWaitIdle(main_driver);
+    // test_pipeline.destroy();
     test_shader.destroy();
     main_window_swapchain.destroy();
     main_driver.destroy();

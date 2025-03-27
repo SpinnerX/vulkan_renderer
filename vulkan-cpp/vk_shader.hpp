@@ -29,10 +29,8 @@ namespace vk {
 
     private:
         vk_driver m_driver;
-        VkShaderModule m_vertex_shader_module;
-        VkShaderModule m_fragment_shader_module;
-        VkPipelineLayout m_graphics_pipeline_layout;
-        VkPipeline m_graphics_pipeline;
+        VkShaderModule m_vertex_shader_module=nullptr;
+        VkShaderModule m_fragment_shader_module=nullptr;
         VkExtent2D m_window_size{};
     };
 };

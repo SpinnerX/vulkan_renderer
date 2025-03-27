@@ -226,7 +226,7 @@ namespace vk {
     void vk_swapchain::destroy() {
 
         // needed to be called to ensure all children objects are executed just before they get destroyed!!
-        vkDeviceWaitIdle(m_driver);
+        // vkDeviceWaitIdle(m_driver);
 
         for(size_t i = 0; i < m_swapchain_framebuffers.size(); i++) {
             vkDestroyFramebuffer(m_driver, m_swapchain_framebuffers[i], nullptr);
