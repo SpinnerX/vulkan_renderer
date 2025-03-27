@@ -26,9 +26,6 @@ namespace vk {
         */
         void submit_to(const VkCommandBuffer& p_command_buffer, submission_type submission_t);
 
-        void submit_async(const VkCommandBuffer& p_command_buffer);
-        void submit_sync(const VkCommandBuffer& p_command_buffer);
-
         void present(uint32_t p_frame_index);
 
         void destroy();

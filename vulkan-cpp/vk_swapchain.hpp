@@ -83,11 +83,14 @@ namespace vk {
 
         void render_scene() {
             // This is needed to ensure that we wait until all commands are executed!
+            /**
+            @note Something to NOTE: IF you receive an error that involves acquired image being retrieved or a semaphore unsignaled sort of issue, make sure to call this queue.wait_idle!
+            */
             m_swapchain_queue.wait_idle();
 
             uint32_t frame_idx = m_swapchain_queue.read_acquire_image();
 
-            m_swapchain_queue.submit_async(m_swapchain_command_buffers[frame_idx]);
+            m_swapchain_queue.submit_to(m_swapchain_command_buffers[frame_idx], submission_type::Async);
 
             m_swapchain_queue.present(frame_idx);
         }
