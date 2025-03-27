@@ -19,6 +19,8 @@ namespace vk {
         
         void record() {
             VkClearColorValue clear_color = {1.f, 0.f, 0.f, 0.f};
+            VkClearValue clear_value = {};
+            clear_value.color = clear_color;
 
             VkImageSubresourceRange image_range = {
                 .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -28,55 +30,34 @@ namespace vk {
                 .layerCount = 1
             };
 
+            VkRenderPassBeginInfo renderpass_begin_info = {
+                .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+                .pNext = nullptr,
+                .renderPass = m_swapchain_renderpass,
+                .renderArea = {
+                    .offset = {
+                        .x = 0,
+                        .y = 0
+                    },
+                    .extent = {
+                        .width = m_swapchain_size.width,
+                        .height = m_swapchain_size.height
+                    },
+                },
+                .clearValueCount = 1,
+                .pClearValues = &clear_value
+            };
+
             for(uint32_t i = 0; i < m_swapchain_command_buffers.size(); i++) {
-                // vkResetCommandBuffer(m_swapchain_command_buffers[i], 0);
-
-                VkImageMemoryBarrier present_to_clear_barrier = {
-                    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                    .pNext = nullptr,
-                    .srcAccessMask = VK_ACCESS_MEMORY_READ_BIT,
-                    .dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-                    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                    .image = m_swapchain_images[i].Image,
-                    .subresourceRange = image_range
-                };
-
-                VkImageMemoryBarrier clear_to_present_barrier = {
-                    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                    .pNext = nullptr,
-                    .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-                    .dstAccessMask = VK_ACCESS_MEMORY_READ_BIT,
-                    .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                    .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                    .image = m_swapchain_images[i].Image,
-                    .subresourceRange = image_range
-                };
-
                 begin_command_buffer(m_swapchain_command_buffers[i], VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
-                vkCmdPipelineBarrier(
-                    m_swapchain_command_buffers[i], VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                    0,
-                    0, nullptr,
-                    0, nullptr,
-                    1, &present_to_clear_barrier
-                );
+                renderpass_begin_info.framebuffer = m_swapchain_framebuffers[i];
 
-                vkCmdClearColorImage(m_swapchain_command_buffers[i], m_swapchain_images[i].Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clear_color, 1, &image_range);
+                vkCmdBeginRenderPass(m_swapchain_command_buffers[i], &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+                
+                // vkCmdClearColorImage(m_swapchain_command_buffers[i], m_swapchain_images[i].Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clear_color, 1, &image_range);
 
-                vkCmdPipelineBarrier(
-                    m_swapchain_command_buffers[i], VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                    0,
-                    0, nullptr,
-                    0, nullptr,
-                    1, &clear_to_present_barrier
-                );
-
+                vkCmdEndRenderPass(m_swapchain_command_buffers[i]);
                 end_command_buffer(m_swapchain_command_buffers[i]);
             }
         }
@@ -95,8 +76,6 @@ namespace vk {
             m_swapchain_queue.present(frame_idx);
         }
 
-        // void submit_to(const VkCommandBuffer& p_current_command_buffer);
-
         /*
         template<typename UCallable>
         void submit_to(const UCallable& p_callable){
@@ -107,6 +86,7 @@ namespace vk {
             p_callable(m_swapchain_command_buffers[image_acquired_index]);
         }
         */
+        // void submit_to(const VkCommandBuffer& p_current_command_buffer);
 
         //! @note Acquire Next Image
         uint32_t read_acquired_image();
@@ -164,6 +144,8 @@ namespace vk {
 
         // swapchain queue
         vk_queue m_swapchain_queue;
-
+        
+        VkRenderPass m_swapchain_renderpass=nullptr;
+        std::vector<VkFramebuffer> m_swapchain_framebuffers;
     };
 };

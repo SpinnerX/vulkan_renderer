@@ -61,6 +61,56 @@ namespace vk {
         return image_view;
     }
 
+    static VkRenderPass create_simple_renderpass(const VkDevice& p_driver, const VkSurfaceFormatKHR& p_surface_format) {
+        VkAttachmentDescription attachment_description = {
+            .flags = 0,
+            .format = p_surface_format.format,
+            .samples = VK_SAMPLE_COUNT_1_BIT,
+            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+            .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+        };
+
+        VkAttachmentReference attachment_ref = {
+            .attachment = 0,
+            .layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+        };
+
+        VkSubpassDescription subpass_description = {
+            .flags = 0,
+            .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+            .inputAttachmentCount = 0,
+            .pInputAttachments = nullptr,
+            .colorAttachmentCount = 1,
+            .pColorAttachments = &attachment_ref,
+            .pResolveAttachments = nullptr,
+            .pDepthStencilAttachment = nullptr,
+            .preserveAttachmentCount = 0,
+            .pPreserveAttachments = nullptr
+        };
+
+        VkRenderPassCreateInfo renderpass_ci = {
+            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .attachmentCount = 1,
+            .pAttachments = &attachment_description,
+            .subpassCount = 1,
+            .pSubpasses = &subpass_description,
+            .dependencyCount = 0,
+            .pDependencies = nullptr
+        };
+
+        VkRenderPass renderpass=nullptr;
+
+        vk_check(vkCreateRenderPass(p_driver, &renderpass_ci, nullptr, &renderpass), "vkCreateRenderPass", __FUNCTION__);
+
+        return renderpass;
+    }
+
     vk_swapchain::vk_swapchain(vk_physical_driver& p_physical, const vk_driver& p_driver, const VkSurfaceKHR& p_surface) : m_driver(p_driver), m_current_surface(p_surface) {
         console_log_info("vk_swapchain() begin initialization!!!");
         m_surface_data = p_physical.get_surface_properties(p_surface);
@@ -148,6 +198,27 @@ namespace vk {
         // The queue is provided within the swapchain during its initialization phase
         m_swapchain_queue = vk_queue(m_driver, m_swapchain_handler, m_present_queue);
 
+        m_swapchain_renderpass = create_simple_renderpass(m_driver, m_surface_data.SurfaceFormat);
+
+        // creating framebuffers
+        m_swapchain_framebuffers.resize(m_swapchain_images.size());
+
+        for(uint32_t i = 0; i < m_swapchain_images.size(); i++) {
+            VkFramebufferCreateInfo framebuffer_ci = {
+                .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .renderPass = m_swapchain_renderpass,
+                .attachmentCount = 1,
+                .pAttachments = &m_swapchain_images[i].ImageView,
+                .width = m_swapchain_size.width,
+                .height = m_swapchain_size.height,
+                .layers = 1
+            };
+
+            vk_check(vkCreateFramebuffer(m_driver, &framebuffer_ci, nullptr, &m_swapchain_framebuffers[i]), "vkCreateFramebuffer", __FUNCTION__);
+        }
+
 
         console_log_info("vk_swapchain() successfully initialized!!!\n\n");
     }
@@ -156,6 +227,12 @@ namespace vk {
 
         // needed to be called to ensure all children objects are executed just before they get destroyed!!
         vkDeviceWaitIdle(m_driver);
+
+        for(size_t i = 0; i < m_swapchain_framebuffers.size(); i++) {
+            vkDestroyFramebuffer(m_driver, m_swapchain_framebuffers[i], nullptr);
+        }
+
+        vkDestroyRenderPass(m_driver, m_swapchain_renderpass, nullptr);
 
         m_swapchain_queue.destroy();
 

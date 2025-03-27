@@ -367,6 +367,7 @@ int main(){
 
     // uint32_t frame_index = 0;
 
+    // recording clear colors for all swapchain command buffers
     main_window_swapchain.record();
 
     while(main_window.is_active()){
@@ -377,7 +378,6 @@ int main(){
         // draw (after recording)
 
         // presenting frame (after drawing that frame)
-
         main_window_swapchain.render_scene();
         
         glfwPollEvents();
