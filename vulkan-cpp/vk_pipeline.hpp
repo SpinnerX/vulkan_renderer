@@ -6,7 +6,7 @@
 namespace vk {
     class vk_pipeline {
     public:
-        vk_pipeline(GLFWwindow* p_window, const VkRenderPass& p_renderpass, const std::array<VkShaderModule, 2>& p_shader_modules);
+        vk_pipeline(GLFWwindow* p_window, const VkRenderPass& p_renderpass, const VkShaderModule& p_vert_module, const VkShaderModule& p_frag_module);
 
         void bind(const VkCommandBuffer& p_command_buffer);
 

@@ -111,23 +111,26 @@ namespace vk {
         return renderpass;
     }
 
-    vk_swapchain::vk_swapchain(vk_physical_driver& p_physical, const vk_driver& p_driver, const VkSurfaceKHR& p_surface) : m_driver(p_driver), m_current_surface(p_surface) {
-        console_log_info("vk_swapchain() begin initialization!!!");
+    vk_swapchain::vk_swapchain(vk_physical_driver& p_physical, const vk_driver& p_driver, const VkSurfaceKHR& p_surface) : m_driver(p_driver), m_physical(p_physical), m_current_surface(p_surface) {
         m_surface_data = p_physical.get_surface_properties(p_surface);
+        on_create();
+    }
 
+    void vk_swapchain::on_create() {
+        console_log_info("vk_swapchain() begin initialization!!!");
         m_swapchain_size = m_surface_data.SurfaceCapabilities.currentExtent;
 
         // request what our minimum image count is
         uint32_t request_min_image_count = select_images_size(m_surface_data.SurfaceCapabilities);
 
         // setting our presentation properties
-        uint32_t present_index = p_physical.get_presentation_index(m_current_surface);
+        uint32_t present_index = m_physical.get_presentation_index(m_current_surface);
         console_log_trace("Presentation Index = {}", present_index);
         m_present_queue = m_driver.get_presentation_queue(present_index);
 
         VkSwapchainCreateInfoKHR swapchain_ci = {
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-            .surface = p_surface,
+            .surface = m_current_surface,
             .minImageCount = request_min_image_count,
             .imageFormat = m_surface_data.SurfaceFormat.format,
             .imageColorSpace = m_surface_data.SurfaceFormat.colorSpace,
@@ -221,6 +224,11 @@ namespace vk {
 
 
         console_log_info("vk_swapchain() successfully initialized!!!\n\n");
+    }
+
+    void vk_swapchain::recreate() {
+        vkDeviceWaitIdle(m_driver);
+        on_create();
     }
 
     void vk_swapchain::destroy() {

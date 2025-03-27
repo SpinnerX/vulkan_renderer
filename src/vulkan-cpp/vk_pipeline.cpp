@@ -5,24 +5,36 @@
 #include <vulkan-cpp/vk_driver.hpp>
 
 namespace vk {
-    vk_pipeline::vk_pipeline(GLFWwindow* p_window, const VkRenderPass& p_renderpass, const std::array<VkShaderModule, 2>& p_shader_modules) {
+    vk_pipeline::vk_pipeline(GLFWwindow* p_window, const VkRenderPass& p_renderpass, const VkShaderModule& p_vert_module, const VkShaderModule& p_frag_module) {
         int width=0;
         int height=0;
         m_driver = vk_driver::driver_context();
 
+        console_log_info("vk_pipeline begin initialization!!!");
+
         glfwGetFramebufferSize(p_window, &width, &height);
+        VkShaderModule vert_module = p_vert_module;
+        VkShaderModule frag_module = p_frag_module;
+
+        if(vert_module != nullptr) {
+            console_log_trace("vertex shader module is valid!!!");
+        }
+
+        if(frag_module != nullptr) {
+            console_log_trace("fragment shader module is valid!!!");
+        }
 
         VkPipelineShaderStageCreateInfo vertex_pipeine_stage_ci = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
             .stage = VK_SHADER_STAGE_VERTEX_BIT,
-            .module = p_shader_modules[0],
+            .module = vert_module,
             .pName = "main"
         };
 
         VkPipelineShaderStageCreateInfo fragment_pipeine_stage_ci = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
             .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-            .module = p_shader_modules[1],
+            .module = frag_module,
             .pName = "main"
         };
 
@@ -43,13 +55,8 @@ namespace vk {
             .primitiveRestartEnable = VK_FALSE,
         };
         // VkExtent2D swapchain_extent = vk::vk_swapchain::get_extent();
-        //! TODO: Add this in later
-        // VkExtent2D swapchain_extent = {};
-        // VkExtent2D swapchain_extent = p_swapchain_extent_size;
         console_log_trace("W = {}, H = {}", width, height);
-        // console_log_error("swapchain_extent needs a value because it has been removed!!!\nThis is a reminder if your using this function and calling!!!");
-        // console_log_trace("W = {}", swapchain_extent.width);
-        // console_log_trace("H = {}", swapchain_extent.height);
+
 
         VkViewport viewport = {
             .x = 0.0f,
@@ -117,10 +124,12 @@ namespace vk {
             .logicOp = VK_LOGIC_OP_COPY, // Optional
             .attachmentCount = 1,
             .pAttachments = &color_blend_attachment,
-            .blendConstants[0] = 0.0f, // Optional
-            .blendConstants[1] = 0.0f, // Optional
-            .blendConstants[2] = 0.0f, // Optional
-            .blendConstants[3] = 0.0f, // Optional
+            // these are optional
+            .blendConstants = {0.f, 0.f, 0.f, 0.f}
+            // .blendConstants[0] = 0.0f, // Optional
+            // .blendConstants[1] = 0.0f, // Optional
+            // .blendConstants[2] = 0.0f, // Optional
+            // .blendConstants[3] = 0.0f, // Optional
         };
 
         //! @note Dynamic State
@@ -163,11 +172,13 @@ namespace vk {
             .layout = m_pipeline_layout,
             .renderPass = p_renderpass,
             .subpass = 0,
-            .basePipelineHandle = VK_NULL_HANDLE,
+            .basePipelineHandle = nullptr,
             .basePipelineIndex = -1
         };
 
-        vk::vk_check(vkCreateGraphicsPipelines(m_driver, VK_NULL_HANDLE, 1, &graphics_pipeline_ci, nullptr, &m_pipeline), "vkCreateGraphicsPipelines", __FUNCTION__);
+        vk::vk_check(vkCreateGraphicsPipelines(m_driver, nullptr, 1, &graphics_pipeline_ci, nullptr, &m_pipeline), "vkCreateGraphicsPipelines", __FUNCTION__);
+
+        console_log_info("vk_pipeline successfully initialized!!!!\n\n");
     }
 
     void vk_pipeline::destroy() {

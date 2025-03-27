@@ -2,6 +2,7 @@
 #include <vulkan-cpp/vk_driver.hpp>
 #include <array>
 #include <vulkan-cpp/vk_queue.hpp>
+#include <vulkan-cpp/logger.hpp>
 
 namespace vk {
     struct swapchain_configs {
@@ -65,6 +66,11 @@ namespace vk {
             /**
             @note Something to NOTE: IF you receive an error that involves acquired image being retrieved or a semaphore unsignaled sort of issue, make sure to call this queue.wait_idle!
             */
+
+            // if(m_swapchain_queue.is_resize() == VK_ERROR_OUT_OF_DATE_KHR) {
+            //     recreate();
+            // }
+
             m_swapchain_queue.wait_idle();
 
             uint32_t frame_idx = m_swapchain_queue.read_acquire_image();
@@ -95,7 +101,7 @@ namespace vk {
 
         // Method used for resizing this swapchain based on window resizing events
         //! TODO: Implement this for swapchain recreation
-        void recreate() {}
+        void recreate();
 
         VkRenderPass get_renderpass() const { return m_swapchain_renderpass; }
         VkExtent2D get_extent() const { return m_swapchain_size; }

@@ -1,52 +1,30 @@
 #include <vulkan-cpp/vk_shader.hpp>
 #include <vulkan-cpp/logger.hpp>
 #include <vulkan-cpp/helper_functions.hpp>
-#include <array>
+#include <fstream>
+#include <fmt/ranges.h>
 
 namespace vk {
 
-    static std::vector<char> read_file(const std::string& p_filename){
-        std::ifstream ins(p_filename, std::ios::ate | std::ios::binary);
-        if(!ins){
-            console_log_fatal("Could not load in file = {}", p_filename);
-            return {};
-        }
-        else{
-            console_log_trace("Successfully Read Shader File = {}", p_filename);
-        }
-    
-        size_t size = (size_t)ins.tellg();
-    
-        std::vector<char> buffer(size);
-        ins.seekg(0);
-        ins.read(buffer.data(), size);
-        ins.close();
-    
-        return buffer;
-    }
-
-    static std::string read_string(const std::string& p_filename) {
+    static std::vector<char> read_file(const std::string& p_filename) {
         std::ifstream ins(p_filename, std::ios::ate | std::ios::binary);
 
         if(!ins.is_open()) {
-            console_log_fatal("Could not load in file = {}", p_filename);
-            return "";
+            console_log_error("Could not open filename = {}", p_filename);
+            return {'a'};
         }
 
-        std::string line="";
-        std::string output="";
-        while(getline(ins, line)) {
-            console_log_warn("Each Line = {}", line);
-            output.append(line);
-            output.append("\n");
-        }
+        size_t fileSize = (size_t) ins.tellg();
+        std::vector<char> output(fileSize);
+        ins.seekg(0);
+        ins.read(output.data(), fileSize);
 
-        ins.close();
+        console_log_trace("output.size() = {}", output.size());
+
         return output;
     }
     
     static VkShaderModule load_shader_module(const VkDevice& p_driver, const std::vector<char>& p_code) {
-        // console_log_trace("Shader Code\n{}", p_code.data());
         VkShaderModuleCreateInfo module_ci = {
             .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
             .codeSize = p_code.size(),
@@ -68,35 +46,19 @@ namespace vk {
             console_log_trace("m_driver is in fact valid!!!!");
         }
 
-        auto vertex_shader = read_string(p_vert_filename);
-        auto fragment_shader = read_string(p_frag_filename);
-
-        console_log_warn("Vert Debug = {}", vertex_shader);
-        console_log_warn("Frag Debug = {}", fragment_shader);
-
-        if(!vertex_shader.empty()) {
-            console_log_trace("{}", vertex_shader);
-        }
-
-        if(!fragment_shader.empty()) {
-            console_log_trace("{}", fragment_shader);
-        }
+        std::vector<char> vertex_shader = read_file(p_vert_filename);
+        std::vector<char> fragment_shader = read_file(p_frag_filename);
 
         // Then we setup the shader module
-        // m_vertex_shader_module = load_shader_module(m_driver, vertex_shader);
-        // m_fragment_shader_module = load_shader_module(m_driver, fragment_shader);
+        m_vertex_shader_module = load_shader_module(m_driver, vertex_shader);
+        m_fragment_shader_module = load_shader_module(m_driver, fragment_shader);
 
         console_log_info("vk_shader successfully loaded shader modules!!!\n\n");
     }
 
     void vk_shader::destroy() {
-        // if(m_vertex_shader_module != nullptr) {
-            vkDestroyShaderModule(m_driver, m_vertex_shader_module, nullptr);
-        // }
-
-        // if(m_fragment_shader_module != nullptr) {
-            vkDestroyShaderModule(m_driver, m_fragment_shader_module, nullptr);
-        // }
+        vkDestroyShaderModule(m_driver, m_vertex_shader_module, nullptr);
+        vkDestroyShaderModule(m_driver, m_fragment_shader_module, nullptr);
     }
 
 
