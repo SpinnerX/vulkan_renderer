@@ -96,6 +96,10 @@ namespace vk {
         // Method used for resizing this swapchain based on window resizing events
         //! TODO: Implement this for swapchain recreation
         void recreate() {}
+
+        VkRenderPass get_renderpass() const { return m_swapchain_renderpass; }
+        VkExtent2D get_extent() const { return m_swapchain_size; }
+
     private:
         void begin_command_buffer(const VkCommandBuffer& p_command_buffer, VkCommandBufferUsageFlags p_usage_flags);
         void end_command_buffer(const VkCommandBuffer& p_command_buffer);

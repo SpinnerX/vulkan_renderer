@@ -13,6 +13,7 @@ set(
     ${INCLUDE_DIR}/vk_swapchain.hpp
     ${INCLUDE_DIR}/vk_queue.hpp
     ${INCLUDE_DIR}/vk_shader.hpp
+    ${INCLUDE_DIR}/vk_pipeline.hpp
     ${INCLUDE_DIR}/vk_renderpass.hpp
     ${INCLUDE_DIR}/helper_functions.hpp
     ${INCLUDE_DIR}/logger.hpp
@@ -28,6 +29,7 @@ set(
     ${SRC_DIR}/vk_swapchain.cpp
     ${SRC_DIR}/vk_queue.cpp
     ${SRC_DIR}/vk_shader.cpp
+    ${SRC_DIR}/vk_pipeline.cpp
     ${SRC_DIR}/vk_renderpass.cpp
     ${SRC_DIR}/helper_functions.cpp
     ${SRC_DIR}/logger.cpp

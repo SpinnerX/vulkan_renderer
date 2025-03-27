@@ -6,6 +6,7 @@
 #include <vulkan-cpp/vk_driver.hpp>
 #include <vulkan-cpp/vk_swapchain.hpp>
 #include <vulkan-cpp/vk_shader.hpp>
+#include <vulkan-cpp/vk_pipeline.hpp>
 
 int main(){
     logger::console_log_manager::initialize_logger_manager();
@@ -44,7 +45,8 @@ int main(){
     // recording clear colors for all swapchain command buffers
     main_window_swapchain.record();
 
-    vk::vk_shader test_shader = vk::vk_shader("Test");
+    vk::vk_shader test_shader = vk::vk_shader("shaders/vert.spv", "shaders/frag.spv");
+    vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window, main_window_swapchain.get_renderpass(), {test_shader.get_vertex_module(), test_shader.get_fragment_module()});
 
     while(main_window.is_active()){
 
@@ -60,6 +62,8 @@ int main(){
     }
 
     // Lets make sure we destroy these objects in the order they're created
+    test_pipeline.destroy();
+    test_shader.destroy();
     main_window_swapchain.destroy();
     main_driver.destroy();
 
