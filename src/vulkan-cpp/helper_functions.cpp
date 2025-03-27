@@ -2,6 +2,28 @@
 #include <vulkan-cpp/logger.hpp>
 
 namespace vk {
+
+    void begin_command_buffer(const VkCommandBuffer& p_command_buffer, VkCommandBufferUsageFlags p_usage_flags) {
+        VkCommandBufferBeginInfo command_buffer_begin_info = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .pNext = nullptr,
+            .flags = p_usage_flags,
+            .pInheritanceInfo = nullptr
+        };
+
+        vk_check(vkBeginCommandBuffer(p_command_buffer, &command_buffer_begin_info), "vkBeginCommandBuffer", __FUNCTION__);
+    }
+
+    void end_command_buffer(const VkCommandBuffer& p_command_buffer) {
+        vkEndCommandBuffer(p_command_buffer);
+    }
+
+
+
+
+
+
+
     void vk_check(const VkResult& result,
         const char* p_tag,
         const char* p_function_name,

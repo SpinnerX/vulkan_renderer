@@ -25,6 +25,8 @@ namespace vk {
 
         queue_family_indices get_queue_indices() const { return m_queue_indices; }
 
+        static vk_physical_driver& physical_driver() { return *s_instance; }
+
 
         uint32_t get_presentation_index(const VkSurfaceKHR& p_surface);
 
@@ -43,6 +45,7 @@ namespace vk {
 
 
     private:
+        static vk_physical_driver* s_instance;
         VkPhysicalDevice m_physical_driver = nullptr;
         queue_family_indices m_queue_indices{};
         std::vector<VkQueueFamilyProperties> m_queue_family_properties;

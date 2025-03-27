@@ -61,6 +61,8 @@ namespace vk {
             }
         }
 
+        vk_queue* current_queue() { return &m_swapchain_queue; }
+
         void render_scene() {
             // This is needed to ensure that we wait until all commands are executed!
             /**
@@ -107,8 +109,8 @@ namespace vk {
         VkExtent2D get_extent() const { return m_swapchain_size; }
 
     private:
-        void begin_command_buffer(const VkCommandBuffer& p_command_buffer, VkCommandBufferUsageFlags p_usage_flags);
-        void end_command_buffer(const VkCommandBuffer& p_command_buffer);
+        // void begin_command_buffer(const VkCommandBuffer& p_command_buffer, VkCommandBufferUsageFlags p_usage_flags);
+        // void end_command_buffer(const VkCommandBuffer& p_command_buffer);
     private:
         //! @note These private functions are for initiating the swapchain first
         void on_create();

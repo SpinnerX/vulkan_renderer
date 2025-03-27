@@ -7,6 +7,7 @@
 #include <vulkan-cpp/vk_swapchain.hpp>
 #include <vulkan-cpp/vk_shader.hpp>
 #include <vulkan-cpp/vk_pipeline.hpp>
+#include <vulkan-cpp/vk_vertex_buffer.hpp>
 
 int main(){
     logger::console_log_manager::initialize_logger_manager();
@@ -45,8 +46,24 @@ int main(){
     vk::vk_shader test_shader = vk::vk_shader("shaders/vert.spv", "shaders/frag.spv");
     vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window, main_window_swapchain.get_renderpass(), test_shader.get_vertex_module(), test_shader.get_fragment_module());
 
+    std::vector<vk::vertex> vertices = {
+        {
+            .Position = {-1.f, -1.f, 0.f},
+            .TexCoords = {0.0f, 0.f}
+        },
+        {
+            .Position = {1.f, -1.f, 0.f},
+            .TexCoords = {0.0f, 1.f}
+        },
+        {
+            .Position = {0.f, -1.f, 0.f},
+            .TexCoords = {1.0f, 1.f}
+        }
+    }; 
+    vk::vk_vertex_buffer test_vertex_buffer = vk::vk_vertex_buffer(vertices);
+
     // recording clear colors for all swapchain command buffers
-    main_window_swapchain.record([&main_window_swapchain, &test_pipeline](const VkCommandBuffer& p_command_buffer){
+    main_window_swapchain.record([&main_window_swapchain, &test_pipeline, &test_vertex_buffer](const VkCommandBuffer& p_command_buffer){
         test_pipeline.bind(p_command_buffer);
 
         VkViewport viewport = {
@@ -70,7 +87,8 @@ int main(){
         uint32_t instance_count = 1;
         uint32_t first_vertex = 0;
         uint32_t first_instance = 0;
-        vkCmdDraw(p_command_buffer, vertex_count, instance_count, first_vertex, first_instance);
+        // vkCmdDraw(p_command_buffer, vertex_count, instance_count, first_vertex, first_instance);
+        test_vertex_buffer.bind(p_command_buffer);
     });
 
     while(main_window.is_active()){
@@ -91,6 +109,7 @@ int main(){
     // tell device to wait before destroying everything
     // doing this to ensure that we destroy them after everrythings done executing
     vkDeviceWaitIdle(main_driver);
+    test_vertex_buffer.destroy();
     test_pipeline.destroy();
     test_shader.destroy();
     main_window_swapchain.destroy();

@@ -253,21 +253,6 @@ namespace vk {
         vkDestroySwapchainKHR(m_driver, m_swapchain_handler, nullptr);
     }
 
-    void vk_swapchain::begin_command_buffer(const VkCommandBuffer& p_command_buffer, VkCommandBufferUsageFlags p_usage_flags) {
-        VkCommandBufferBeginInfo command_buffer_begin_info = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-            .pNext = nullptr,
-            .flags = p_usage_flags,
-            .pInheritanceInfo = nullptr
-        };
-
-        vk_check(vkBeginCommandBuffer(p_command_buffer, &command_buffer_begin_info), "vkBeginCommandBuffer", __FUNCTION__);
-    }
-
-    void vk_swapchain::end_command_buffer(const VkCommandBuffer& p_command_buffer) {
-        vkEndCommandBuffer(p_command_buffer);
-    }
-
     uint32_t vk_swapchain::read_acquired_image() {
         uint32_t image_index = 0;
 

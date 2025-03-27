@@ -3,6 +3,10 @@
 #include <string>
 
 namespace vk {
+    void begin_command_buffer(const VkCommandBuffer& p_command_buffer, VkCommandBufferUsageFlags p_usage_flags);
+
+    void end_command_buffer(const VkCommandBuffer& p_command_buffer);
+
     // const char* vk_to_string(VkResult res);
     //! @note Terminates if the result was unsuccessful!
     //! @note TODO --- We shouldn't std::terminate, look into alternatives.

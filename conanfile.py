@@ -29,7 +29,7 @@ class StarterConanRecipe(ConanFile):
       self.requires("stb/cci.20230920")
       self.requires("spdlog/1.14.1", transitive_headers=True)
       self.requires("spirv-cross/1.4.309.0")
-    #   self.requires("glslang/11.7.0")
+      self.requires("flecs/4.0.0")
 
     def build(self):
         cmake = CMake(self)

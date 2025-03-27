@@ -3,6 +3,7 @@
 #include <vulkan-cpp/helper_functions.hpp>
 
 namespace vk {
+    vk_physical_driver* vk_physical_driver::s_instance = nullptr;
     vk_physical_driver::vk_physical_driver(const VkInstance& p_instance) {
         console_log_info("vk_physical_driver::vk_physical_driver begin initialization!");
         uint32_t deviceCount = 0;
@@ -39,6 +40,7 @@ namespace vk {
         m_queue_indices = select_queue_family_indices();
 
         console_log_info("vk_physical_driver::vk_physical_driver begin initialization!!!\n\n");
+        s_instance = this;
     }
 
     vk_physical_driver::~vk_physical_driver(){
