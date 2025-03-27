@@ -61,8 +61,6 @@ namespace vk {
         return image_view;
     }
 
-    static void create_command_buffers() {}
-
     vk_swapchain::vk_swapchain(vk_physical_driver& p_physical, const vk_driver& p_driver, const VkSurfaceKHR& p_surface) : m_driver(p_driver), m_current_surface(p_surface) {
         console_log_info("vk_swapchain() begin initialization!!!");
         m_surface_data = p_physical.get_surface_properties(p_surface);
@@ -155,6 +153,9 @@ namespace vk {
     }
 
     void vk_swapchain::destroy() {
+
+        // needed to be called to ensure all children objects are executed just before they get destroyed!!
+        vkDeviceWaitIdle(m_driver);
 
         m_swapchain_queue.destroy();
 

@@ -7,6 +7,11 @@ namespace vk {
         Sync = 0,
         Async = 1
     };
+
+    /**
+     * @note vk_queue used for submitting command buffers to
+     * @note This will be utilized by swapchain in the likely scenario we have multiple queue's to submit to
+    */
     class vk_queue {
     public:
         vk_queue() = default;
@@ -20,6 +25,9 @@ namespace vk {
         Specify whether you want to submit to the command buffer in either async or synchronization mode
         */
         void submit_to(const VkCommandBuffer& p_command_buffer, submission_type submission_t);
+
+        void submit_async(const VkCommandBuffer& p_command_buffer);
+        void submit_sync(const VkCommandBuffer& p_command_buffer);
 
         void present(uint32_t p_frame_index);
 

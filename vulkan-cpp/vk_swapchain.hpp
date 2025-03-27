@@ -29,19 +29,65 @@ namespace vk {
             };
 
             for(uint32_t i = 0; i < m_swapchain_command_buffers.size(); i++) {
-                vkResetCommandBuffer(m_swapchain_command_buffers[i], 0);
-                begin_command_buffer(m_swapchain_command_buffers[i], 0);
+                // vkResetCommandBuffer(m_swapchain_command_buffers[i], 0);
 
-                vkCmdClearColorImage(m_swapchain_command_buffers[i], m_swapchain_images[i].Image, VK_IMAGE_LAYOUT_GENERAL, &clear_color, 1, &image_range);
+                VkImageMemoryBarrier present_to_clear_barrier = {
+                    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                    .pNext = nullptr,
+                    .srcAccessMask = VK_ACCESS_MEMORY_READ_BIT,
+                    .dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+                    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    .image = m_swapchain_images[i].Image,
+                    .subresourceRange = image_range
+                };
+
+                VkImageMemoryBarrier clear_to_present_barrier = {
+                    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                    .pNext = nullptr,
+                    .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+                    .dstAccessMask = VK_ACCESS_MEMORY_READ_BIT,
+                    .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    .image = m_swapchain_images[i].Image,
+                    .subresourceRange = image_range
+                };
+
+                begin_command_buffer(m_swapchain_command_buffers[i], VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+
+                vkCmdPipelineBarrier(
+                    m_swapchain_command_buffers[i], VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    0,
+                    0, nullptr,
+                    0, nullptr,
+                    1, &present_to_clear_barrier
+                );
+
+                vkCmdClearColorImage(m_swapchain_command_buffers[i], m_swapchain_images[i].Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clear_color, 1, &image_range);
+
+                vkCmdPipelineBarrier(
+                    m_swapchain_command_buffers[i], VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                    0,
+                    0, nullptr,
+                    0, nullptr,
+                    1, &clear_to_present_barrier
+                );
 
                 end_command_buffer(m_swapchain_command_buffers[i]);
             }
         }
 
         void render_scene() {
+            // This is needed to ensure that we wait until all commands are executed!
+            m_swapchain_queue.wait_idle();
+
             uint32_t frame_idx = m_swapchain_queue.read_acquire_image();
 
-            m_swapchain_queue.submit_to(m_swapchain_command_buffers[frame_idx], submission_type::Sync);
+            m_swapchain_queue.submit_async(m_swapchain_command_buffers[frame_idx]);
 
             m_swapchain_queue.present(frame_idx);
         }
