@@ -54,8 +54,6 @@ namespace vk {
                 renderpass_begin_info.framebuffer = m_swapchain_framebuffers[i];
 
                 vkCmdBeginRenderPass(m_swapchain_command_buffers[i], &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-                
-                // vkCmdClearColorImage(m_swapchain_command_buffers[i], m_swapchain_images[i].Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clear_color, 1, &image_range);
 
                 vkCmdEndRenderPass(m_swapchain_command_buffers[i]);
                 end_command_buffer(m_swapchain_command_buffers[i]);
