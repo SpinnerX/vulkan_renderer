@@ -30,12 +30,15 @@ namespace vk {
         // Now that I think about this, I may as well use this to get our specific queue family from this logical device
         VkQueue get_presentation_queue(const uint32_t& p_present_index, const uint32_t& p_present_queue_index=0);
 
+        static vk_driver& driver_context() { return *s_instance; }
+
         operator VkDevice() const { return m_driver; }
         operator VkDevice() { return m_driver; }
 
         void destroy();
 
     private:
+        static vk_driver* s_instance;
         VkDevice m_driver = nullptr;
         vk_physical_driver m_physical_driver;
         VkQueue m_graphics_queue = nullptr;

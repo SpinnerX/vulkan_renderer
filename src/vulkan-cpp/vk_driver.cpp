@@ -4,6 +4,7 @@
 #include <vulkan-cpp/helper_functions.hpp>
 
 namespace vk {
+    vk_driver* vk_driver::s_instance = nullptr;
     vk_driver::vk_driver(const vk_physical_driver& p_physical) : m_physical_driver(p_physical) {
         console_log_info("vk_driver::vk_driver begin initialization!!!");
         float queue_priority[1] = { 0.0f };
@@ -54,6 +55,8 @@ namespace vk {
 
         vkGetDeviceQueue(m_driver, graphics_index, 0, &m_device_queues.GraphicsQueue);
         console_log_info("vk_driver::vk_driver end initialization!!!\n\n");
+
+        s_instance = this;
     }
 
 

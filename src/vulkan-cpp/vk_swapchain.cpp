@@ -71,12 +71,12 @@ namespace vk {
             .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
             .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
             .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+            .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR 
         };
 
         VkAttachmentReference attachment_ref = {
             .attachment = 0,
-            .layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+            .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL 
         };
 
         VkSubpassDescription subpass_description = {
