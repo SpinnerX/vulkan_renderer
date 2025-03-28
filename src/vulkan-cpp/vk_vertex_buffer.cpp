@@ -5,54 +5,6 @@
 #include <vulkan-cpp/logger.hpp>
 
 namespace vk {
-    buffer_properties create_buffer(uint32_t p_device_size, VkBufferUsageFlags p_usage, VkMemoryPropertyFlags p_property_flags) {
-        vk_driver driver = vk_driver::driver_context();
-
-        if(driver != nullptr) {
-            console_log_warn("driver is still valid!!!");
-        }
-
-        buffer_properties new_buffer{};
-        new_buffer.AllocateDeviceSize = p_device_size;
-
-        VkBufferCreateInfo buffer_ci = {
-            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .size = new_buffer.AllocateDeviceSize, // size in bytes
-            .usage = p_usage,
-            .sharingMode = VK_SHARING_MODE_EXCLUSIVE
-        };
-
-        // 1. creating our buffer
-        vk_check(vkCreateBuffer(driver, &buffer_ci, nullptr, &new_buffer.BufferHandler), "vkCreateBuffer", __FUNCTION__);
-
-        // 2.  getting buffer memory requirements
-        VkMemoryRequirements memory_requirements = {};
-        vkGetBufferMemoryRequirements(driver, new_buffer.BufferHandler, &memory_requirements);
-
-        // 3. get memory type index
-        uint32_t memory_type_index = driver.select_memory_type(memory_requirements.memoryTypeBits, p_property_flags);
-
-        // 4. allocate memory
-        /**
-         * Memory Type Index
-         * - Physical device enumerate all the physical hardware on your machine
-         * 
-        */
-        VkMemoryAllocateInfo memory_alloc_info = {
-            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            .allocationSize = memory_requirements.size,
-            .memoryTypeIndex = memory_type_index
-        };
-
-        vk_check(vkAllocateMemory(driver, &memory_alloc_info, nullptr, &new_buffer.DeviceMemory), "vkAllocateMemory", __FUNCTION__);
-
-        // 5. bind memory
-        vk_check(vkBindBufferMemory(driver, new_buffer.BufferHandler, new_buffer.DeviceMemory, 0), "vkBindBufferMemory", __FUNCTION__);
-
-        return new_buffer;
-    }
 
     /*
     void copy(VkCommandBuffer& p_command_buffer, VkBuffer& p_dst, VkBuffer p_src, uint32_t p_device_size, vk_queue& p_queue) {
@@ -79,6 +31,8 @@ namespace vk {
         VkDeviceSize device_size_bytes = (sizeof(vertex) * p_vertices.size());
 
         // 1.) Creating staging buffer
+        //! @note Validation layers throw an error when VK_BUFFER_USAGE_STORAGE_BUFFER_BIT isn't set for VkBuffer (I bitwise OR this just to silence that validation error for now)
+        //! @note TODO: Need to setup ways for staging buffers to work with the current command buffer being worked on
         VkBufferUsageFlags usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
         VkMemoryPropertyFlags memory_property_flags =   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
         // buffer_properties staging_vertex_buffer = create_buffer(p_vertices.size(), usage, memory_property_flags);

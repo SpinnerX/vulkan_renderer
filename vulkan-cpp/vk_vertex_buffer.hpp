@@ -3,13 +3,9 @@
 #include <vulkan-cpp/vk_queue.hpp>
 #include <span>
 #include <glm/glm.hpp>
+#include <vulkan-cpp/vk_buffer.hpp>
 
 namespace vk {
-    struct buffer_properties {
-        VkBuffer BufferHandler=nullptr;
-        VkDeviceMemory DeviceMemory=nullptr;
-        uint32_t AllocateDeviceSize=0;
-    };
 
     struct vertex {
         glm::vec3 Position;

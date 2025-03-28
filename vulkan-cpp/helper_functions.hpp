@@ -1,11 +1,15 @@
 #pragma once
 #include <vulkan/vulkan_core.h>
 #include <string>
+#include <vulkan-cpp/vk_buffer.hpp>
 
 namespace vk {
     void begin_command_buffer(const VkCommandBuffer& p_command_buffer, VkCommandBufferUsageFlags p_usage_flags);
 
     void end_command_buffer(const VkCommandBuffer& p_command_buffer);
+
+    buffer_properties create_buffer(uint32_t p_device_size, VkBufferUsageFlags p_usage, VkMemoryPropertyFlags p_property_flags);
+
 
     // const char* vk_to_string(VkResult res);
     //! @note Terminates if the result was unsuccessful!
