@@ -49,19 +49,24 @@ int main(){
 
     // adding descriptor sets
 
+    // std::vector<vk::vertex> vertices = {
+    //     {
+    //         .Position = {-1.f, -1.f, 0.f},
+    //         .TexCoords = {0.0f, 0.f}
+    //     },
+    //     {
+    //         .Position = {1.f, -1.f, 0.f},
+    //         .TexCoords = {0.0f, 1.f}
+    //     },
+    //     {
+    //         .Position = {0.f, -1.f, 0.f},
+    //         .TexCoords = {1.0f, 1.f}
+    //     }
+    // };
     std::vector<vk::vertex> vertices = {
-        {
-            .Position = {-1.f, -1.f, 0.f},
-            .TexCoords = {0.0f, 0.f}
-        },
-        {
-            .Position = {1.f, -1.f, 0.f},
-            .TexCoords = {0.0f, 1.f}
-        },
-        {
-            .Position = {0.f, -1.f, 0.f},
-            .TexCoords = {1.0f, 1.f}
-        }
+        vk::vertex({-1.0f, -1.0f, 1.0f},  {0.0f, 0.0f}),	// top left
+        vk::vertex({1.0f, -1.0f, 1.0f},   {0.0f, 1.0f}),	// top right
+        vk::vertex({0.0f,  1.0f, 1.0f},   {1.0f, 1.0f}) 	// bottom middle
     };
     // creating our uniform buffer
     vk::vk_vertex_buffer test_vertex_buffer = vk::vk_vertex_buffer(vertices);

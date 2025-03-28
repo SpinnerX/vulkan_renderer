@@ -7,16 +7,20 @@
 
 namespace vk {
 
+    // struct vertex {
+    //     glm::vec3 Position;
+    //     glm::vec4 Color;
+    //     glm::vec3 Normals;
+    //     glm::vec2 TexCoords;
+
+    //     bool operator==(const vertex& other) const {
+    //         return (Position == other.Position and Color == other.Color and
+    //                 Normals == other.Normals and TexCoords == other.TexCoords);
+    //     }
+    // };
     struct vertex {
         glm::vec3 Position;
-        glm::vec4 Color;
-        glm::vec3 Normals;
-        glm::vec2 TexCoords;
-
-        bool operator==(const vertex& other) const {
-            return (Position == other.Position and Color == other.Color and
-                    Normals == other.Normals and TexCoords == other.TexCoords);
-        }
+        glm::vec2 Uv;
     };
     /*
     
