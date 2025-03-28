@@ -70,10 +70,6 @@ namespace vk {
 
 
 
-
-
-
-
     void vk_check(const VkResult& result,
         const char* p_tag,
         const char* p_function_name,

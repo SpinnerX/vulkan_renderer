@@ -6,16 +6,25 @@
 namespace vk {
     class vk_uniform_buffer {
     public:
-        vk_uniform_buffer(const uint32_t& p_image_size, uint32_t p_size_in_bytes);
+        vk_uniform_buffer() = default;
+        vk_uniform_buffer(uint32_t p_size_in_bytes);
 
         VkBuffer get(uint32_t p_frame_index);
 
-        std::vector<buffer_properties> data() const { return m_uniform_buffers; }
+        void update(const void* p_data, size_t p_size_in_bytes);
+
+        operator VkBuffer() { return m_uniform_buffer_data.BufferHandler; }
+        
+        operator VkBuffer() const { return m_uniform_buffer_data.BufferHandler; }
+
+        // std::vector<buffer_properties> data() const { return m_uniform_buffers; }
 
         void destroy();
 
     private:
         VkDevice m_driver=nullptr;
-        std::vector<buffer_properties> m_uniform_buffers{};
+        buffer_properties m_uniform_buffer_data{};
+        // VkDeviceMemory m_device_memory=nullptr;
+        // std::vector<buffer_properties> m_uniform_buffers{};
     };
 };

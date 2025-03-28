@@ -10,6 +10,8 @@ namespace vk {
 
     buffer_properties create_buffer(uint32_t p_device_size, VkBufferUsageFlags p_usage, VkMemoryPropertyFlags p_property_flags);
 
+    void update(const void* p_data, size_t p_size_in_bytes);
+
 
     // const char* vk_to_string(VkResult res);
     //! @note Terminates if the result was unsuccessful!

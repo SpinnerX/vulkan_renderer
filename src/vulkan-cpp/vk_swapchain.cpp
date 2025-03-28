@@ -253,14 +253,6 @@ namespace vk {
         vkDestroySwapchainKHR(m_driver, m_swapchain_handler, nullptr);
     }
 
-    uint32_t vk_swapchain::read_acquired_image() {
-        uint32_t image_index = 0;
-
-        // vkAcquireNextImageKHR(m_driver, m_swapchain_handler, std::numeric_limits<uint32_t>::max(), m_swapchain_images_available[m_current_frame], VK_NULL_HANDLE, &image_index);
-        m_current_image_index = image_index;
-        return image_index;
-    }
-
     void vk_swapchain::resize(uint32_t p_width, uint32_t p_height) {
         m_swapchain_size.width = p_width;
         m_swapchain_size.height = p_height;

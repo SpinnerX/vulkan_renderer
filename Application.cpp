@@ -67,15 +67,21 @@ int main(){
     vk::vk_vertex_buffer test_vertex_buffer = vk::vk_vertex_buffer(vertices);
 
     // creating uniforms
-    vk::vk_uniform_buffer test_uniforms = vk::vk_uniform_buffer(main_window_swapchain.image_size(), sizeof(camera_data_uniform));
+    // vk::vk_uniform_buffer test_uniforms = vk::vk_uniform_buffer(main_window_swapchain.image_size(), sizeof(camera_data_uniform));
+    std::vector<vk::vk_uniform_buffer> test_uniforms;
+    test_uniforms.resize(main_window_swapchain.image_size());
+
+    for(size_t i = 0; i < test_uniforms.size(); i++) {
+        test_uniforms[i] = vk::vk_uniform_buffer(sizeof(camera_data_uniform));
+    }
 
     // creating descriptor sets
-    vk::vk_descriptor_set test_descriptor_sets = vk::vk_descriptor_set(main_window_swapchain.image_size());
+    vk::vk_descriptor_set test_descriptor_sets = vk::vk_descriptor_set(main_window_swapchain.image_size(), test_uniforms, sizeof(camera_data_uniform));
     
 
-    vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window, main_window_swapchain.get_renderpass(), test_shader.get_vertex_module(), test_shader.get_fragment_module(), test_descriptor_sets, test_vertex_buffer, test_uniforms.data(), sizeof(camera_data_uniform));
+    vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window, main_window_swapchain.get_renderpass(), test_shader.get_vertex_module(), test_shader.get_fragment_module(), test_descriptor_sets, test_vertex_buffer, test_uniforms, sizeof(camera_data_uniform));
 
-    test_descriptor_sets.update_descriptor_sets(test_vertex_buffer);
+    test_descriptor_sets.update_descriptor_sets(test_vertex_buffer, test_uniforms, sizeof(camera_data_uniform));
     // recording clear colors for all swapchain command buffers
     main_window_swapchain.record([&main_window_swapchain, &test_pipeline, &test_vertex_buffer, &test_descriptor_sets](const VkCommandBuffer& p_command_buffer){
         test_pipeline.bind(p_command_buffer);
@@ -106,8 +112,8 @@ int main(){
         uint32_t instance_count = 1;
         uint32_t first_vertex = 0;
         uint32_t first_instance = 0;
-        vkCmdDraw(p_command_buffer, vertex_count, instance_count, first_vertex, first_instance);
         test_vertex_buffer.bind(p_command_buffer);
+        vkCmdDraw(p_command_buffer, vertex_count, instance_count, first_vertex, first_instance);
     });
 
     while(main_window.is_active()){
@@ -117,8 +123,13 @@ int main(){
 
         // draw (after recording)
 
+        main_window_swapchain.update_uniforms([&test_uniforms](const uint32_t& p_frame_index){
+            glm::mat4 mvp = glm::mat4(1.f);
+            test_uniforms[p_frame_index].update(&mvp, sizeof(mvp));
+        });
+
         // presenting frame (after drawing that frame)
-        main_window_swapchain.render_scene();
+        main_window_swapchain.present();
         
         glfwPollEvents();
     }
@@ -129,7 +140,11 @@ int main(){
     // doing this to ensure that we destroy them after everrythings done executing
     vkDeviceWaitIdle(main_driver);
     
-    test_uniforms.destroy();
+    // test_uniforms.destroy();
+    for(size_t i = 0; i < test_uniforms.size(); i++) {
+        test_uniforms[i].destroy();
+    }
+
     test_descriptor_sets.destroy();
     test_vertex_buffer.destroy();
     test_pipeline.destroy();

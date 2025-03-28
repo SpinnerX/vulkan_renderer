@@ -19,7 +19,7 @@ namespace vk {
 
         template<typename UFunction>
         void record(const UFunction& p_callable) {
-            VkClearColorValue clear_color = {1.f, 0.f, 0.f, 0.f};
+            VkClearColorValue clear_color = {0.5f, 0.5f, 0.5f, 0.f};
             VkClearValue clear_value = {};
             clear_value.color = clear_color;
 
@@ -61,9 +61,60 @@ namespace vk {
             }
         }
 
+        template<typename UCallable>
+        void record_command_buffer(const UCallable& p_callable) {
+            VkClearColorValue clear_color = {0.5f, 0.5f, 0.5f, 0.f};
+            VkClearValue clear_value = {};
+            clear_value.color = clear_color;
+
+            VkImageSubresourceRange image_range = {
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1
+            };
+
+            VkRenderPassBeginInfo renderpass_begin_info = {
+                .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+                .pNext = nullptr,
+                .renderPass = m_swapchain_renderpass,
+                .renderArea = {
+                    .offset = {
+                        .x = 0,
+                        .y = 0
+                    },
+                    .extent = {
+                        .width = m_swapchain_size.width,
+                        .height = m_swapchain_size.height
+                    },
+                },
+                .clearValueCount = 1,
+                .pClearValues = &clear_value
+            };
+
+            VkCommandBuffer current_command_buffer = m_swapchain_command_buffers[m_current_image_index];
+            begin_command_buffer(current_command_buffer, VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+
+            renderpass_begin_info.framebuffer = m_swapchain_framebuffers[m_current_image_index];
+
+            vkCmdBeginRenderPass(current_command_buffer, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+            p_callable(current_command_buffer);
+            vkCmdEndRenderPass(current_command_buffer);
+            end_command_buffer(current_command_buffer);
+        }
+
         vk_queue* current_queue() { return &m_swapchain_queue; }
 
-        void render_scene() {
+        //! TODO: Probably want to do this better
+        //! @note In the tutorial he has them just after read_acquire_image's called
+        //! @note I put a variable to keep track of our current frame, this will be used when uniforms are in need to be updated
+        template<typename UCallable>
+        void update_uniforms(const UCallable& p_callable) {
+            p_callable(m_current_image_index);
+        }
+
+        void present() {
             // This is needed to ensure that we wait until all commands are executed!
             /**
             @note Something to NOTE: IF you receive an error that involves acquired image being retrieved or a semaphore unsignaled sort of issue, make sure to call this queue.wait_idle!
@@ -76,6 +127,8 @@ namespace vk {
             m_swapchain_queue.wait_idle();
 
             uint32_t frame_idx = m_swapchain_queue.read_acquire_image();
+
+            m_current_image_index = frame_idx;
 
             m_swapchain_queue.submit_to(m_swapchain_command_buffers[frame_idx], submission_type::Async);
 
@@ -93,9 +146,6 @@ namespace vk {
         }
         */
         // void submit_to(const VkCommandBuffer& p_current_command_buffer);
-
-        //! @note Acquire Next Image
-        uint32_t read_acquired_image();
 
         uint32_t image_size() const { return m_swapchain_images.size(); }
 

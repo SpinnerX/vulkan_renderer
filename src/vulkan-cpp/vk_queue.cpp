@@ -75,7 +75,6 @@ namespace vk {
     uint32_t vk_queue::read_acquire_image() {
         uint32_t image_acquired;
         vk_check(vkAcquireNextImageKHR(m_driver, m_swapchain_handler, UINT64_MAX, m_present_completed_semaphore, nullptr, &image_acquired), "vkAcquireNextImageKHR", __FUNCTION__);
-        
         return image_acquired;
     }
     

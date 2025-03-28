@@ -65,7 +65,6 @@ namespace vk {
         VkBuffer buffers[] = { m_vertex_data.BufferHandler};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(p_command_buffer, 0, 1, buffers, offsets);
-
     }
 
     void vk_vertex_buffer::destroy() {

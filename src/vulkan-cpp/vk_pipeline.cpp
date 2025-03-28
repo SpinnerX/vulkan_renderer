@@ -5,7 +5,7 @@
 #include <vulkan-cpp/vk_driver.hpp>
 
 namespace vk {
-    vk_pipeline::vk_pipeline(GLFWwindow* p_window, const VkRenderPass& p_renderpass, const VkShaderModule& p_vert_module, const VkShaderModule& p_frag_module, const vk_descriptor_set& p_descriptor_sets, const vk_vertex_buffer& p_vertex_buffer, const std::vector<buffer_properties>& p_buffer_data, uint32_t p_size_in_bytes) {
+    vk_pipeline::vk_pipeline(GLFWwindow* p_window, const VkRenderPass& p_renderpass, const VkShaderModule& p_vert_module, const VkShaderModule& p_frag_module, const vk_descriptor_set& p_descriptor_sets, const vk_vertex_buffer& p_vertex_buffer, const std::vector<vk_uniform_buffer>& p_buffer_data, uint32_t p_size_in_bytes) {
         int width=0;
         int height=0;
         m_driver = vk_driver::driver_context();
@@ -147,10 +147,6 @@ namespace vk {
 
         VkPipelineLayoutCreateInfo pipeline_layout_ci = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .setLayoutCount = 0, // Optional
-            .pSetLayouts = nullptr, // Optional
-            .pushConstantRangeCount = 0, // Optional
-            .pPushConstantRanges = nullptr, // Optional
         };
 
         VkDescriptorSetLayout layout = p_descriptor_sets.get_layout();

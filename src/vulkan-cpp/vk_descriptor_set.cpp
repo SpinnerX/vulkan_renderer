@@ -4,11 +4,11 @@
 #include <vulkan-cpp/logger.hpp>
 
 namespace vk {
-    vk_descriptor_set::vk_descriptor_set(uint32_t p_num_images) : m_num_images(p_num_images) {
+    vk_descriptor_set::vk_descriptor_set(uint32_t p_num_images, const std::vector<vk_uniform_buffer>& p_uniform_buffers, uint32_t p_data_size_bytes) : m_num_images(p_num_images) {
         m_driver = vk_driver::driver_context();
 
         create_descriptor_pool();
-        create_descriptor_set_layout();
+        create_descriptor_set_layout(p_uniform_buffers, p_data_size_bytes);
         allocate_descriptor_sets();
     }
 
@@ -28,7 +28,7 @@ namespace vk {
         console_log_trace("successfully pool descriptor sets initialization!!");
     }
 
-    void vk_descriptor_set::create_descriptor_set_layout() {
+    void vk_descriptor_set::create_descriptor_set_layout(const std::vector<vk_uniform_buffer>& p_uniform_buffers, uint32_t p_data_size_bytes) {
         std::vector<VkDescriptorSetLayoutBinding> layout_bindings;
 
         VkDescriptorSetLayoutBinding vertex_shader_layout_binding = {
@@ -39,6 +39,21 @@ namespace vk {
         };
 
         layout_bindings.push_back(vertex_shader_layout_binding);
+
+        VkDescriptorSetLayoutBinding uniform_matrices = {
+            .binding = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = 1,
+            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
+        };
+        console_log_trace("size = {}", p_uniform_buffers.size());
+        if(p_uniform_buffers.size() > 0) {
+            console_log_trace("Do you reach here???");
+
+            layout_bindings.push_back(uniform_matrices);
+        }
+
+        console_log_trace("layout_bindings.size() = {}", layout_bindings.size());
 
         // VkDescriptorSetLayoutBinding fragment_shader_layout_binding = {
         //     .binding = 0,
@@ -74,17 +89,19 @@ namespace vk {
         vk_check(vkAllocateDescriptorSets(m_driver, &descriptor_set_alloc_info, m_descriptor_sets.data()), "vkAllocateDescriptorSets", __FUNCTION__);
     }
 
-    void vk_descriptor_set::update_descriptor_sets(const vk_vertex_buffer& p_vertex_buffer) {
+    void vk_descriptor_set::update_descriptor_sets(const vk_vertex_buffer& p_vertex_buffer, const std::vector<vk_uniform_buffer>& p_uniform_buffer, uint32_t p_uniform_data_size_in_bytes) {
         VkDescriptorBufferInfo descriptor_buffer_info = {
             .buffer = p_vertex_buffer,
             .offset = 0,
-            .range = p_vertex_buffer.size()
+            .range = (VkDeviceSize)p_vertex_buffer.size()
         };
 
         std::vector<VkWriteDescriptorSet> write_descriptor_sets;
 
         for(size_t i = 0; i < m_num_images; i++) {
-            const VkWriteDescriptorSet write_descriptor_set = {
+            
+            // (dstBinding should be 0)
+            VkWriteDescriptorSet write_descriptor_set = {
                 .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                 .pNext = nullptr,
                 .dstSet = m_descriptor_sets[i],
@@ -96,6 +113,28 @@ namespace vk {
             };
 
             write_descriptor_sets.push_back(write_descriptor_set);
+
+            if(p_uniform_buffer.size() > 0) {
+                VkDescriptorBufferInfo uniform_info = {
+                    .buffer = p_uniform_buffer[i],
+                    .offset = 0,
+                    .range = (VkDeviceSize)p_uniform_data_size_in_bytes
+                };
+
+                // (dstBinding should be 1)
+                VkWriteDescriptorSet write_descriptor_set = {
+                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .pNext = nullptr,
+                    .dstSet = m_descriptor_sets[i],
+                    .dstBinding = 1,
+                    .dstArrayElement = 0,
+                    .descriptorCount = 1,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .pBufferInfo = &uniform_info
+                };
+    
+                write_descriptor_sets.push_back(write_descriptor_set);
+            }
         }
 
 
