@@ -11,6 +11,9 @@
 #include <vulkan-cpp/vk_uniform_buffer.hpp>
 #include <vulkan-cpp/uniforms.hpp>
 
+#include <glm/glm.hpp>
+#include <glm/ext.hpp>
+
 int main(){
     logger::console_log_manager::initialize_logger_manager();
 
@@ -48,21 +51,6 @@ int main(){
     vk::vk_shader test_shader = vk::vk_shader("shaders/vert.spv", "shaders/frag.spv");
 
     // adding descriptor sets
-
-    // std::vector<vk::vertex> vertices = {
-    //     {
-    //         .Position = {-1.f, -1.f, 0.f},
-    //         .TexCoords = {0.0f, 0.f}
-    //     },
-    //     {
-    //         .Position = {1.f, -1.f, 0.f},
-    //         .TexCoords = {0.0f, 1.f}
-    //     },
-    //     {
-    //         .Position = {0.f, -1.f, 0.f},
-    //         .TexCoords = {1.0f, 1.f}
-    //     }
-    // };
     std::vector<vk::vertex> vertices = {
         vk::vertex({-1.0f, -1.0f, 1.0f},  {0.0f, 0.0f}),	// top left
         vk::vertex({1.0f, -1.0f, 1.0f},   {0.0f, 1.0f}),	// top right
@@ -129,8 +117,12 @@ int main(){
         // draw (after recording)
 
         main_window_swapchain.update_uniforms([&test_uniforms](const uint32_t& p_frame_index){
-            glm::mat4 mvp = glm::mat4(1.f);
-            test_uniforms[p_frame_index].update(&mvp, sizeof(mvp));
+            static float angle = 0.0f;
+            glm::mat4 rotation = glm::mat4(1.f);
+            rotation = glm::rotate(rotation, glm::radians(angle), glm::normalize(glm::vec3(0.f, 0.f, 1.f)));
+            angle += 0.001f;
+
+            test_uniforms[p_frame_index].update(&rotation, sizeof(rotation));
         });
 
         // presenting frame (after drawing that frame)
