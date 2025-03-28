@@ -257,6 +257,7 @@ namespace vk {
         uint32_t image_index = 0;
 
         // vkAcquireNextImageKHR(m_driver, m_swapchain_handler, std::numeric_limits<uint32_t>::max(), m_swapchain_images_available[m_current_frame], VK_NULL_HANDLE, &image_index);
+        m_current_image_index = image_index;
         return image_index;
     }
 

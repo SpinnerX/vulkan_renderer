@@ -73,14 +73,16 @@ namespace vk {
     }
         */
 
+    //! @note In SimpleMesh(in tutorial) only contains vertex buffer and vertex buffer size in bytes
     vk_vertex_buffer::vk_vertex_buffer(const std::span<vertex>& p_vertices) {
         m_driver = vk_driver::driver_context();
+        VkDeviceSize device_size_bytes = (sizeof(vertex) * p_vertices.size());
 
         // 1.) Creating staging buffer
-        VkBufferUsageFlags usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        VkBufferUsageFlags usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
         VkMemoryPropertyFlags memory_property_flags =   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
         // buffer_properties staging_vertex_buffer = create_buffer(p_vertices.size(), usage, memory_property_flags);
-        m_vertex_data = create_buffer(p_vertices.size(), usage, memory_property_flags);
+        m_vertex_data = create_buffer(device_size_bytes, usage, memory_property_flags);
         
         // 2. Mapping memory of stage buffer
         void* mapped = nullptr;
@@ -89,7 +91,7 @@ namespace vk {
         vk_check(vkMapMemory(m_driver, m_vertex_data.DeviceMemory, offset, m_vertex_data.AllocateDeviceSize, flags, &mapped), "vkMapMemory", __FUNCTION__);
 
         // 3. copy vertices of staging buffer
-        memcpy(mapped, p_vertices.data(), p_vertices.size());
+        memcpy(mapped, p_vertices.data(), device_size_bytes);
 
         // 4. unmap/release memory
         vkUnmapMemory(m_driver, m_vertex_data.DeviceMemory);

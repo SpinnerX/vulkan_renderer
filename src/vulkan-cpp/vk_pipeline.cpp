@@ -5,7 +5,7 @@
 #include <vulkan-cpp/vk_driver.hpp>
 
 namespace vk {
-    vk_pipeline::vk_pipeline(GLFWwindow* p_window, const VkRenderPass& p_renderpass, const VkShaderModule& p_vert_module, const VkShaderModule& p_frag_module) {
+    vk_pipeline::vk_pipeline(GLFWwindow* p_window, const VkRenderPass& p_renderpass, const VkShaderModule& p_vert_module, const VkShaderModule& p_frag_module, const vk_descriptor_set& p_descriptor_sets, const vk_vertex_buffer& p_vertex_buffer) {
         int width=0;
         int height=0;
         m_driver = vk_driver::driver_context();
@@ -152,6 +152,21 @@ namespace vk {
             .pushConstantRangeCount = 0, // Optional
             .pPushConstantRanges = nullptr, // Optional
         };
+
+        VkDescriptorSetLayout layout = p_descriptor_sets.get_layout();
+
+        if(layout == nullptr) {
+            console_log_error("Descriptor Set Layout IS NULLPTR!!!!!");
+        }
+
+        if(layout != nullptr and p_vertex_buffer != nullptr) {
+            pipeline_layout_ci.setLayoutCount = 1;
+            pipeline_layout_ci.pSetLayouts = &layout;
+        }
+        else {
+            pipeline_layout_ci.setLayoutCount = 0;
+            pipeline_layout_ci.pSetLayouts = nullptr;
+        }
 
         vk::vk_check(vkCreatePipelineLayout(m_driver, &pipeline_layout_ci, nullptr, &m_pipeline_layout), "vkCreatePipelineLayout", __FUNCTION__);
 

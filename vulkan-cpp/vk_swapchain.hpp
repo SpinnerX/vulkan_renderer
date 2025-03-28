@@ -97,6 +97,8 @@ namespace vk {
         //! @note Acquire Next Image
         uint32_t read_acquired_image();
 
+        uint32_t image_size() const { return m_swapchain_images.size(); }
+
 
         // Used to indicate you want to destroy this swapchain
         void destroy();
@@ -107,6 +109,8 @@ namespace vk {
 
         VkRenderPass get_renderpass() const { return m_swapchain_renderpass; }
         VkExtent2D get_extent() const { return m_swapchain_size; }
+
+        uint32_t current_frame() const { return m_current_image_index; }
 
     private:
         // void begin_command_buffer(const VkCommandBuffer& p_command_buffer, VkCommandBufferUsageFlags p_usage_flags);
@@ -157,5 +161,8 @@ namespace vk {
         
         VkRenderPass m_swapchain_renderpass=nullptr;
         std::vector<VkFramebuffer> m_swapchain_framebuffers;
+
+        // just to know which image to fetch
+        uint32_t m_current_image_index=0;
     };
 };

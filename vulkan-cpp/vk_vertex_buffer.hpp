@@ -26,6 +26,8 @@ namespace vk {
     
         Mesh Class
             - Contains vertex and index buffers
+            - As soon we get textures, one thing to consider is allowing staging buffers be used
+            - Using staging buffers to ensure CPU can get offloaded to the GPU
     */
     class vk_vertex_buffer {
     public:
@@ -38,6 +40,12 @@ namespace vk {
         void bind(const VkCommandBuffer& p_command_buffer);
 
         void destroy();
+
+        operator VkBuffer() { return m_vertex_data.BufferHandler; }
+
+        operator VkBuffer() const { return m_vertex_data.BufferHandler; }
+
+        uint32_t size() const { return m_vertex_data.AllocateDeviceSize; }
 
     private:
         VkDevice m_driver=nullptr;

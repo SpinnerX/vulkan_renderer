@@ -44,7 +44,8 @@ int main(){
     vk::vk_swapchain main_window_swapchain = vk::vk_swapchain(main_physical_device, main_driver, main_window);
 
     vk::vk_shader test_shader = vk::vk_shader("shaders/vert.spv", "shaders/frag.spv");
-    vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window, main_window_swapchain.get_renderpass(), test_shader.get_vertex_module(), test_shader.get_fragment_module());
+
+    // adding descriptor sets
 
     std::vector<vk::vertex> vertices = {
         {
@@ -59,12 +60,22 @@ int main(){
             .Position = {0.f, -1.f, 0.f},
             .TexCoords = {1.0f, 1.f}
         }
-    }; 
+    };
     vk::vk_vertex_buffer test_vertex_buffer = vk::vk_vertex_buffer(vertices);
 
+    vk::vk_descriptor_set descriptor_sets = vk::vk_descriptor_set(main_window_swapchain.image_size());
+
+    vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window, main_window_swapchain.get_renderpass(), test_shader.get_vertex_module(), test_shader.get_fragment_module(), descriptor_sets, test_vertex_buffer);
+
+    descriptor_sets.update_descriptor_sets(test_vertex_buffer);
     // recording clear colors for all swapchain command buffers
-    main_window_swapchain.record([&main_window_swapchain, &test_pipeline, &test_vertex_buffer](const VkCommandBuffer& p_command_buffer){
+    main_window_swapchain.record([&main_window_swapchain, &test_pipeline, &test_vertex_buffer, &descriptor_sets](const VkCommandBuffer& p_command_buffer){
         test_pipeline.bind(p_command_buffer);
+
+        if(descriptor_sets.descriptors_count() > 0) {
+            VkDescriptorSet desc_set = descriptor_sets.get(main_window_swapchain.current_frame());
+            vkCmdBindDescriptorSets(p_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, test_pipeline.get_layout(), 0, 1, &desc_set, 0, nullptr);
+        }
 
         VkViewport viewport = {
             .x = 0.0f,
@@ -87,7 +98,7 @@ int main(){
         uint32_t instance_count = 1;
         uint32_t first_vertex = 0;
         uint32_t first_instance = 0;
-        // vkCmdDraw(p_command_buffer, vertex_count, instance_count, first_vertex, first_instance);
+        vkCmdDraw(p_command_buffer, vertex_count, instance_count, first_vertex, first_instance);
         test_vertex_buffer.bind(p_command_buffer);
     });
 
@@ -109,6 +120,7 @@ int main(){
     // tell device to wait before destroying everything
     // doing this to ensure that we destroy them after everrythings done executing
     vkDeviceWaitIdle(main_driver);
+    descriptor_sets.destroy();
     test_vertex_buffer.destroy();
     test_pipeline.destroy();
     test_shader.destroy();
