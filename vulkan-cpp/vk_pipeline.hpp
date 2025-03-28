@@ -7,7 +7,7 @@
 namespace vk {
     class vk_pipeline {
     public:
-        vk_pipeline(GLFWwindow* p_window, const VkRenderPass& p_renderpass, const VkShaderModule& p_vert_module, const VkShaderModule& p_frag_module, const vk_descriptor_set& p_descriptor_sets, const vk_vertex_buffer& p_vertex_buffer);
+        vk_pipeline(GLFWwindow* p_window, const VkRenderPass& p_renderpass, const VkShaderModule& p_vert_module, const VkShaderModule& p_frag_module, const vk_descriptor_set& p_descriptor_sets, const vk_vertex_buffer& p_vertex_buffer, const std::vector<buffer_properties>& p_buffer_data, uint32_t p_size_in_bytes);
 
         void bind(const VkCommandBuffer& p_command_buffer);
 

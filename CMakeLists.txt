@@ -17,6 +17,7 @@ set(
     ${INCLUDE_DIR}/vk_pipeline.hpp
 
     ${INCLUDE_DIR}/vk_descriptor_set.hpp
+    ${INCLUDE_DIR}/vk_uniform_buffer.hpp
 
     ${INCLUDE_DIR}/vk_vertex_buffer.hpp
     ${INCLUDE_DIR}/vk_renderpass.hpp
@@ -37,6 +38,7 @@ set(
     ${SRC_DIR}/vk_shader.cpp
     ${SRC_DIR}/vk_pipeline.cpp
     ${SRC_DIR}/vk_descriptor_set.cpp
+    ${SRC_DIR}/vk_uniform_buffer.cpp
 
     ${SRC_DIR}/vk_vertex_buffer.cpp
     

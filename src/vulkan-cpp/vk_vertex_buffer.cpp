@@ -69,11 +69,6 @@ namespace vk {
     }
 
     void vk_vertex_buffer::destroy() {
-        // vkDestroyBuffer(m_driver, m_vertex_buffer_handler, nullptr);
-        if(m_vertex_data.BufferHandler != nullptr) {
-            console_log_warn("vertex buffer handler not nullptr!!!");
-        }
-
         vkFreeMemory(m_driver, m_vertex_data.DeviceMemory, nullptr);
         vkDestroyBuffer(m_driver, m_vertex_data.BufferHandler, nullptr);
         m_vertex_data.AllocateDeviceSize = 0;
