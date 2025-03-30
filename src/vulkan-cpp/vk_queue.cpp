@@ -1,5 +1,6 @@
 #include <vulkan-cpp/vk_queue.hpp>
 #include <vulkan-cpp/helper_functions.hpp>
+#include <vulkan-cpp/logger.hpp>
 
 namespace vk {
     static VkSemaphore create_semaphore(const VkDevice& p_driver) {
@@ -22,9 +23,11 @@ namespace vk {
     }
 
     void vk_queue::submit_to(const VkCommandBuffer& p_command_buffer, submission_type submission_t) {
-        VkPipelineStageFlags wait_flags = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+        VkPipelineStageFlags wait_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        // console_log_error("Debug #0 -- Tracked Here");
         VkSubmitInfo submit_info = {};
         if(submission_t == submission_type::Async) {
+            // console_log_warn("Submission Type == Async!!!");
             submit_info = {
                 .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
                 .pNext = nullptr,
@@ -35,7 +38,8 @@ namespace vk {
                 .pCommandBuffers = &p_command_buffer,
                 .signalSemaphoreCount = 1,
                 .pSignalSemaphores = &m_render_completed_semaphore
-            };   
+            };
+            // console_log_error("Debug #2 -- Tracked Here If Statement Async");   
         }
         else {
             submit_info = {
@@ -51,7 +55,8 @@ namespace vk {
             };
         }
 
-        vk_check(vkQueueSubmit(m_queue, 1, &submit_info, nullptr), "vkQueueSubmit", __FUNCTION__);
+        VkResult res = vkQueueSubmit(m_queue, 1, &submit_info, nullptr);
+        vk_check(res, "vkQueueSubmit", __FUNCTION__);
     }
 
     void vk_queue::present(uint32_t p_frame_index) {
@@ -68,7 +73,6 @@ namespace vk {
     }
 
     void vk_queue::wait_idle() {
-        // vkDeviceWaitIdle(m_driver);
         vkQueueWaitIdle(m_queue);
     }
 

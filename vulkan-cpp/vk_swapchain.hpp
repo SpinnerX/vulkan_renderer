@@ -2,7 +2,9 @@
 #include <vulkan-cpp/vk_driver.hpp>
 #include <array>
 #include <vulkan-cpp/vk_queue.hpp>
+#include <deque>
 #include <vulkan-cpp/logger.hpp>
+#include <vulkan-cpp/vk_command_buffer.hpp>
 
 namespace vk {
     struct swapchain_configs {
@@ -15,13 +17,17 @@ namespace vk {
         vk_swapchain(vk_physical_driver& p_physical, const vk_driver& p_driver, const VkSurfaceKHR& p_surface);
         ~vk_swapchain() {}
 
+        void set_background_color(const std::array<float, 4>& p_color) {
+            m_color = {p_color[0], p_color[1], p_color[2], p_color[3]};
+        }
+
         void resize(uint32_t p_width, uint32_t p_height);
 
         template<typename UFunction>
         void record(const UFunction& p_callable) {
-            VkClearColorValue clear_color = {0.5f, 0.5f, 0.5f, 0.f};
+            console_log_info("vk_swapchain::record Begin recording!!!");
             VkClearValue clear_value = {};
-            clear_value.color = clear_color;
+            clear_value.color = m_color;
 
             VkImageSubresourceRange image_range = {
                 .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -50,58 +56,19 @@ namespace vk {
             };
 
             for(uint32_t i = 0; i < m_swapchain_command_buffers.size(); i++) {
-                begin_command_buffer(m_swapchain_command_buffers[i], VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+                // begin_command_buffer(m_swapchain_command_buffers[i], VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+                m_swapchain_command_buffers[i].begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
                 renderpass_begin_info.framebuffer = m_swapchain_framebuffers[i];
 
                 vkCmdBeginRenderPass(m_swapchain_command_buffers[i], &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-                p_callable(m_swapchain_command_buffers[i]);
+                p_callable(m_swapchain_command_buffers[i].handle());
                 vkCmdEndRenderPass(m_swapchain_command_buffers[i]);
-                end_command_buffer(m_swapchain_command_buffers[i]);
+                // end_command_buffer(m_swapchain_command_buffers[i]);
+                m_swapchain_command_buffers[i].end();
             }
-        }
 
-        template<typename UCallable>
-        void record_command_buffer(const UCallable& p_callable) {
-            VkClearColorValue clear_color = {0.5f, 0.5f, 0.5f, 0.f};
-            VkClearValue clear_value = {};
-            clear_value.color = clear_color;
-
-            VkImageSubresourceRange image_range = {
-                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                .baseMipLevel = 0,
-                .levelCount = 1,
-                .baseArrayLayer = 0,
-                .layerCount = 1
-            };
-
-            VkRenderPassBeginInfo renderpass_begin_info = {
-                .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                .pNext = nullptr,
-                .renderPass = m_swapchain_renderpass,
-                .renderArea = {
-                    .offset = {
-                        .x = 0,
-                        .y = 0
-                    },
-                    .extent = {
-                        .width = m_swapchain_size.width,
-                        .height = m_swapchain_size.height
-                    },
-                },
-                .clearValueCount = 1,
-                .pClearValues = &clear_value
-            };
-
-            VkCommandBuffer current_command_buffer = m_swapchain_command_buffers[m_current_image_index];
-            begin_command_buffer(current_command_buffer, VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
-
-            renderpass_begin_info.framebuffer = m_swapchain_framebuffers[m_current_image_index];
-
-            vkCmdBeginRenderPass(current_command_buffer, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-            p_callable(current_command_buffer);
-            vkCmdEndRenderPass(current_command_buffer);
-            end_command_buffer(current_command_buffer);
+            console_log_info("vk_swapchain::record finished recording successfully!!!");
         }
 
         vk_queue* current_queue() { return &m_swapchain_queue; }
@@ -130,7 +97,7 @@ namespace vk {
 
             m_current_image_index = frame_idx;
 
-            m_swapchain_queue.submit_to(m_swapchain_command_buffers[frame_idx], submission_type::Async);
+            m_swapchain_queue.submit_to(m_swapchain_command_buffers[frame_idx].handle(), submission_type::Async);
 
             m_swapchain_queue.present(frame_idx);
         }
@@ -158,18 +125,28 @@ namespace vk {
         void recreate();
 
         VkRenderPass get_renderpass() const { return m_swapchain_renderpass; }
+
         VkExtent2D get_extent() const { return m_swapchain_size; }
 
         uint32_t current_frame() const { return m_current_image_index; }
 
-    private:
-        // void begin_command_buffer(const VkCommandBuffer& p_command_buffer, VkCommandBufferUsageFlags p_usage_flags);
-        // void end_command_buffer(const VkCommandBuffer& p_command_buffer);
+        static VkSurfaceKHR get_surface() { return s_instance->m_current_surface; }
+
+
+        // Lets have textures use this????
+        //! @note vk_texture should be able to call vk_swapchain::current_active_comand_buffer() whenever we need to deal with transition_image_layout
+        //! @note vk_texture will essentially be usedf to 
+        VkCommandBuffer current_active_comand_buffer() const { return m_swapchain_command_buffers[m_current_image_index].handle(); }
+
     private:
         //! @note These private functions are for initiating the swapchain first
         void on_create();
 
         void select_swapchain_surface_formats();
+
+    private:
+        // change swapchain background color
+        VkClearColorValue m_color = {0.5f, 0.5f, 0.5f, 0.f};
 
     private:
         static vk_swapchain* s_instance;
@@ -192,15 +169,17 @@ namespace vk {
         surface_properties m_surface_data{};
         VkQueue m_present_queue;
 
-
+        // submit stuff
+        std::deque<std::function<void(VkCommandBuffer)>> m_deletion_stuff;
 
         // swapchain internal varioables
         VkPresentModeKHR m_present_mode;
         VkSwapchainKHR m_swapchain_handler;
 
         // for now command buffers in swapchain
-        VkCommandPool m_command_pool = nullptr;
-        std::vector<VkCommandBuffer> m_swapchain_command_buffers;
+        // VkCommandPool m_command_pool = nullptr;
+        // std::vector<VkCommandBuffer> m_swapchain_command_buffers;
+        std::vector<vk_command_buffer> m_swapchain_command_buffers;
 
         //! @note Setup Images
         // std::array<image, swapchain_configs::MaxFramesInFlight> m_swapchain_images;

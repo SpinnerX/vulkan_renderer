@@ -7,7 +7,8 @@
 
 namespace vk {
     const std::vector<const char*> validation_layers = {
-        "VK_LAYER_KHRONOS_validation"
+        "VK_LAYER_KHRONOS_validation",
+        "VK_LAYER_KHRONOS_synchronization2"
     };
     
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
@@ -52,6 +53,27 @@ namespace vk {
         create_info.ppEnabledExtensionNames = extensions.data();
 
         
+        // printing out available validation layers
+        uint32_t layer_count;
+        std::vector<VkLayerProperties> available_validation_layers;
+        vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
+
+        available_validation_layers.resize(layer_count);
+        vkEnumerateInstanceLayerProperties(&layer_count, available_validation_layers.data());
+
+        console_log_trace("================================================");
+        console_log_trace("\tValidation Layers Available");
+        console_log_trace("================================================");
+        for(VkLayerProperties properties : available_validation_layers) {
+            console_log_trace("Validation Layer:\t\t{}", properties.layerName);
+            console_log_trace("Description\t\t{}", properties.description);
+            console_log_trace("Version\t\t\t{}", (int)properties.specVersion);
+        }
+        console_log_trace("================================================");
+
+
+
+
         // by default we enable validation layers used for debugging!
         create_info.enabledLayerCount = static_cast<uint32_t>(validation_layers.size());
         create_info.ppEnabledLayerNames = validation_layers.data();

@@ -4,13 +4,21 @@
 #include <vulkan-cpp/vk_buffer.hpp>
 
 namespace vk {
+
+    VkCommandPool create_single_command_pool();
+    VkCommandBuffer create_single_command_buffer(const VkCommandPool& p_command_pool);
+
+    VkCommandBufferBeginInfo commend_buffer_begin_info(const VkCommandBufferUsageFlags& p_usage);
+
     void begin_command_buffer(const VkCommandBuffer& p_command_buffer, VkCommandBufferUsageFlags p_usage_flags);
 
     void end_command_buffer(const VkCommandBuffer& p_command_buffer);
 
     buffer_properties create_buffer(uint32_t p_device_size, VkBufferUsageFlags p_usage, VkMemoryPropertyFlags p_property_flags);
 
-    void update(const void* p_data, size_t p_size_in_bytes);
+    // void update(const void* p_data, size_t p_size_in_bytes);
+
+    void write(const buffer_properties& p_buffer, const void* p_data, size_t p_size_in_bytes);
 
 
     // const char* vk_to_string(VkResult res);

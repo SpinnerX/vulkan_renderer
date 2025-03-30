@@ -169,14 +169,14 @@ namespace vk {
 
         // command pools
         console_log_info("vk_swapchain begin initializing command pool!!!!");
-        VkCommandPoolCreateInfo command_pool_ci = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .queueFamilyIndex = present_index,
-        };
+        // VkCommandPoolCreateInfo command_pool_ci = {
+        //     .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        //     .pNext = nullptr,
+        //     .flags = 0,
+        //     .queueFamilyIndex = present_index,
+        // };
 
-        vk_check(vkCreateCommandPool(m_driver, &command_pool_ci, nullptr, &m_command_pool), "vkCreateCommandPool", __FUNCTION__);
+        // vk_check(vkCreateCommandPool(m_driver, &command_pool_ci, nullptr, &m_command_pool), "vkCreateCommandPool", __FUNCTION__);
         console_log_info("vk_swapchain successfully initialized command pool!!!!\n");
 
         // command buffers
@@ -184,15 +184,25 @@ namespace vk {
 
         m_swapchain_command_buffers.resize(image_count);
         console_log_trace("command buffers.size() = {}", m_swapchain_command_buffers.size());
-        VkCommandBufferAllocateInfo command_buffer_alloc_info = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            .pNext = nullptr,
-            .commandPool = m_command_pool,
-            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .commandBufferCount = static_cast<uint32_t>(m_swapchain_command_buffers.size())
-        };
+        // VkCommandBufferAllocateInfo command_buffer_alloc_info = {
+        //     .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        //     .pNext = nullptr,
+        //     .commandPool = m_command_pool,
+        //     .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        //     .commandBufferCount = static_cast<uint32_t>(m_swapchain_command_buffers.size())
+        // };
 
-        vk_check(vkAllocateCommandBuffers(m_driver, &command_buffer_alloc_info, m_swapchain_command_buffers.data()), "vkAllocateCommandBuffers", __FUNCTION__);
+        // vk_check(vkAllocateCommandBuffers(m_driver, &command_buffer_alloc_info, m_swapchain_command_buffers.data()), "vkAllocateCommandBuffers", __FUNCTION__);
+
+        for(size_t i = 0; i < m_swapchain_command_buffers.size(); i++) {
+            command_buffer_properties properties = {
+                present_index,
+                command_buffer_levels::Primary,
+                (VkCommandPoolCreateFlagBits)0
+            };
+
+            m_swapchain_command_buffers[i] = vk_command_buffer(properties);
+        }
 
         console_log_info("vk_swapchain successfully initialized command buffers!!!!\n");
 
@@ -244,7 +254,10 @@ namespace vk {
 
         m_swapchain_queue.destroy();
 
-        vkDestroyCommandPool(m_driver, m_command_pool, nullptr);
+        // vkDestroyCommandPool(m_driver, m_command_pool, nullptr);
+        for(size_t i = 0; i < m_swapchain_command_buffers.size(); i++) {
+            m_swapchain_command_buffers[i].destroy();
+        }
 
         for(uint32_t i = 0; i < m_swapchain_images.size(); i++) {
             vkDestroyImageView(m_driver, m_swapchain_images[i].ImageView, nullptr);

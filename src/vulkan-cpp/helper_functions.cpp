@@ -4,6 +4,51 @@
 
 namespace vk {
 
+    VkCommandBufferBeginInfo commend_buffer_begin_info(const VkCommandBufferUsageFlags& p_usage) {
+        VkCommandBufferBeginInfo begin_info = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .pNext = nullptr,
+            .flags = p_usage,
+            .pInheritanceInfo = nullptr
+        };
+
+        return begin_info;
+    }
+
+    VkCommandPool create_single_command_pool() {
+        VkDevice driver = vk_driver::driver_context();
+        vk_physical_driver physical = vk_physical_driver::physical_driver();
+        uint32_t graphics_queue_index = physical.get_queue_indices().Graphics;
+        VkCommandPoolCreateInfo pool_ci = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .queueFamilyIndex = graphics_queue_index
+        };
+
+        VkCommandPool command_pool=nullptr;
+        vk_check(vkCreateCommandPool(driver, &pool_ci, nullptr, &command_pool), "vkCreateCommandPool", __FUNCTION__);
+
+        return command_pool;
+    }
+
+    VkCommandBuffer create_single_command_buffer(const VkCommandPool& p_command_pool) {
+        VkDevice driver = vk_driver::driver_context();
+
+        VkCommandBufferAllocateInfo command_buffer_alloc_info = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .pNext = NULL,
+            .commandPool = p_command_pool,
+            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            .commandBufferCount = 1
+        };
+
+        VkCommandBuffer command_buffer=nullptr;
+        vk_check(vkAllocateCommandBuffers(driver, &command_buffer_alloc_info, &command_buffer), "vkAllocateCommandBuffers", __FUNCTION__);
+
+        return command_buffer;
+    }
+
     void begin_command_buffer(const VkCommandBuffer& p_command_buffer, VkCommandBufferUsageFlags p_usage_flags) {
         VkCommandBufferBeginInfo command_buffer_begin_info = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -68,7 +113,13 @@ namespace vk {
         return new_buffer;
     }
 
-
+    void write(const buffer_properties& p_buffer, const void* p_data, size_t p_size_in_bytes) {
+        VkDevice driver = vk_driver::driver_context();
+        void* mapped = nullptr;
+        vk_check(vkMapMemory(driver, p_buffer.DeviceMemory, 0, p_size_in_bytes, 0, &mapped), "vkMapMemory", __FUNCTION__);
+        memcpy(mapped, p_data, p_size_in_bytes);
+        vkUnmapMemory(driver, p_buffer.DeviceMemory);
+    }
 
     void vk_check(const VkResult& result,
         const char* p_tag,

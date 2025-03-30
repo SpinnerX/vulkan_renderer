@@ -29,6 +29,10 @@ namespace vk {
         void present(uint32_t p_frame_index);
 
         void destroy();
+
+        operator VkQueue() { return m_queue; }
+        
+        operator VkQueue() const { return m_queue; }
     
     private:
 

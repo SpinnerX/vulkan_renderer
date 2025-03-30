@@ -10,6 +10,7 @@
 #include <vulkan-cpp/vk_vertex_buffer.hpp>
 #include <vulkan-cpp/vk_uniform_buffer.hpp>
 #include <vulkan-cpp/uniforms.hpp>
+#include <vulkan-cpp/vk_texture.hpp>
 
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
@@ -47,6 +48,7 @@ int main(){
 
     //! @note 4.) Initializing Swapchain
     vk::vk_swapchain main_window_swapchain = vk::vk_swapchain(main_physical_device, main_driver, main_window);
+    main_window_swapchain.set_background_color({0.f, 1.f, 0.f, 1.f});
 
     vk::vk_shader test_shader = vk::vk_shader("shaders/vert.spv", "shaders/frag.spv");
 
@@ -56,8 +58,20 @@ int main(){
         vk::vertex({1.0f, -1.0f, 1.0f},   {0.0f, 1.0f}),	// top right
         vk::vertex({0.0f,  1.0f, 1.0f},   {1.0f, 1.0f}) 	// bottom middle
     };
+
+    // std::vector<vk::vertex> vertices = {
+    //     vk::vertex({-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}),	// Bottom left
+    //     vk::vertex({-1.0f, 1.0f, 0.0f},  {0.0f, 1.0f}), // Top left
+    //     vk::vertex({1.0f,  1.0f, 0.0f},  {1.0f, 1.0f}), // Top right
+    //     vk::vertex({-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}), // Bottom left
+    //     vk::vertex({1.0f, 1.0f, 0.0f},   {1.0f, 1.0f}), // Top right
+    //     vk::vertex({1.0f,  -1.0f, 0.0f}, {1.0f, 0.0f})  // Bottom right
+    // };
+
     // creating our uniform buffer
     vk::vk_vertex_buffer test_vertex_buffer = vk::vk_vertex_buffer(vertices);
+
+    console_log_fatal("test_texture loaded!!!");
 
     // creating uniforms
     // vk::vk_uniform_buffer test_uniforms = vk::vk_uniform_buffer(main_window_swapchain.image_size(), sizeof(camera_data_uniform));
@@ -68,17 +82,21 @@ int main(){
         test_uniforms[i] = vk::vk_uniform_buffer(sizeof(camera_data_uniform));
     }
 
+    // creating/Loading and using textures
+    vk::vk_texture test_texture("textures/texture.jpeg");
+
     // creating descriptor sets
-    vk::vk_descriptor_set test_descriptor_sets = vk::vk_descriptor_set(main_window_swapchain.image_size(), test_uniforms, sizeof(camera_data_uniform));
-    
+    vk::vk_descriptor_set test_descriptor_sets = vk::vk_descriptor_set(main_window_swapchain.image_size(), test_uniforms, sizeof(camera_data_uniform), &test_texture);
 
     vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window, main_window_swapchain.get_renderpass(), test_shader.get_vertex_module(), test_shader.get_fragment_module(), test_descriptor_sets, test_vertex_buffer, test_uniforms, sizeof(camera_data_uniform));
 
-    test_descriptor_sets.update_descriptor_sets(test_vertex_buffer, test_uniforms, sizeof(camera_data_uniform));
+    // updating descriptor sets
+    test_descriptor_sets.update_descriptor_sets(test_vertex_buffer, test_uniforms, sizeof(camera_data_uniform), &test_texture);
+
+
     // recording clear colors for all swapchain command buffers
     main_window_swapchain.record([&main_window_swapchain, &test_pipeline, &test_vertex_buffer, &test_descriptor_sets](const VkCommandBuffer& p_command_buffer){
         test_pipeline.bind(p_command_buffer);
-
         if(test_descriptor_sets.descriptors_count() > 0) {
             VkDescriptorSet desc_set = test_descriptor_sets.get(main_window_swapchain.current_frame());
             vkCmdBindDescriptorSets(p_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, test_pipeline.get_layout(), 0, 1, &desc_set, 0, nullptr);
@@ -100,8 +118,9 @@ int main(){
         };
 
         vkCmdSetScissor(p_command_buffer, 0, 1, &scissor);
-
+        
         uint32_t vertex_count = 3;
+        // uint32_t vertex_count = 6;
         uint32_t instance_count = 1;
         uint32_t first_vertex = 0;
         uint32_t first_instance = 0;
@@ -116,6 +135,7 @@ int main(){
 
         // draw (after recording)
 
+        //! TODO: Could be relocated. All this needs to know is the current frame to update the uniforms
         main_window_swapchain.update_uniforms([&test_uniforms](const uint32_t& p_frame_index){
             static float angle = 0.0f;
             glm::mat4 rotation = glm::mat4(1.f);
@@ -135,7 +155,10 @@ int main(){
 
     // tell device to wait before destroying everything
     // doing this to ensure that we destroy them after everrythings done executing
+    // needed to be called to ensure all children objects are executed just before they get destroyed!!
     vkDeviceWaitIdle(main_driver);
+
+    test_texture.destroy();
     
     // test_uniforms.destroy();
     for(size_t i = 0; i < test_uniforms.size(); i++) {
