@@ -65,10 +65,12 @@ namespace vk {
     class vk_descriptor_set {
     public:
         vk_descriptor_set() = default;
-        vk_descriptor_set(uint32_t p_num_images, const std::span<vk_uniform_buffer>& p_uniform_buffers, vk_texture* p_texture);
         vk_descriptor_set(uint32_t p_descriptor_count, const std::span<vk_descriptor_set_properties>& p_layouts);
 
+        //! @note Does cleanup for descriptor set
         void destroy();
+
+        void bind(const VkCommandBuffer& p_command_buffer, uint32_t p_frame_index, const VkPipelineLayout& p_pipeline_layout);
 
         void update_descriptor_sets(const vk_vertex_buffer& p_vertex_buffer, const std::span<vk_uniform_buffer>& p_uniform_buffer, vk_texture* p_texture);
 
@@ -80,14 +82,6 @@ namespace vk {
         size_t descriptors_count() const { return m_descriptor_sets.size(); }
 
         VkDescriptorSet get(uint32_t p_index) const { return m_descriptor_sets[p_index]; }
-
-
-    private:
-        void create_descriptor_pool();
-
-        void create_descriptor_set_layout(const std::span<vk_uniform_buffer>& p_uniform_buffers, vk_texture* p_texture);
-
-        void allocate_descriptor_sets();
 
     private:
         uint32_t m_descriptor_count=0;

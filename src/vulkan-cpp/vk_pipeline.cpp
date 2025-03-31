@@ -3,16 +3,18 @@
 #include <vulkan-cpp/helper_functions.hpp>
 #include <vulkan-cpp/logger.hpp>
 #include <vulkan-cpp/vk_driver.hpp>
+#include <vulkan-cpp/vk_window.hpp>
 
 namespace vk {
-    vk_pipeline::vk_pipeline(GLFWwindow* p_window, const VkRenderPass& p_renderpass, const vk_shader& p_shader_src, const vk_descriptor_set& p_descriptor_sets) {
+    vk_pipeline::vk_pipeline(const VkRenderPass& p_renderpass, const vk_shader& p_shader_src, const VkDescriptorSetLayout& p_descriptor_sets) {
         int width=0;
         int height=0;
         m_driver = vk_driver::driver_context();
+        GLFWwindow* handle = vk_window::native_window();
 
         console_log_info("vk_pipeline begin initialization!!!");
 
-        glfwGetFramebufferSize(p_window, &width, &height);
+        glfwGetFramebufferSize(handle, &width, &height);
         VkShaderModule vert_module = p_shader_src.get_vertex_module();
         VkShaderModule frag_module = p_shader_src.get_fragment_module();
 
@@ -149,7 +151,7 @@ namespace vk {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         };
 
-        VkDescriptorSetLayout layout = p_descriptor_sets.get_layout();
+        VkDescriptorSetLayout layout = p_descriptor_sets;
 
         if(layout == nullptr) {
             console_log_error("Descriptor Set Layout IS NULLPTR!!!!!");

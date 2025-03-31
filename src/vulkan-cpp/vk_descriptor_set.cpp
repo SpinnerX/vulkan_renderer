@@ -25,35 +25,27 @@ namespace vk {
     }
 
 
-
-
-
-    vk_descriptor_set::vk_descriptor_set(uint32_t p_num_images, const std::span<vk_uniform_buffer>& p_uniform_buffers, vk_texture* p_texture) : m_descriptor_count(p_num_images) {
-        m_driver = vk_driver::driver_context();
-
-        // This part can be don at construction
-        create_descriptor_pool();
-
-        // This part can be done via a separate operation from descriptor pool
-        /*
-        
-            1. Describes the binding, type, shader stage of the layout(binding = N) vertex attribute types
-
-        */
-        create_descriptor_set_layout(p_uniform_buffers, p_texture);
-        allocate_descriptor_sets();
-    }
-
     vk_descriptor_set::vk_descriptor_set(uint32_t p_descriptor_count, const std::span<vk_descriptor_set_properties>& p_layouts) : m_descriptor_count(p_descriptor_count) {
         m_driver = vk_driver::driver_context();
-        create_descriptor_pool();
+
+        console_log_trace("begin pool descriptor sets initialization!!");
+        VkDescriptorPoolCreateInfo desc_pool_ci = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .maxSets = m_descriptor_count,
+            .poolSizeCount = 0,
+            .pPoolSizes = nullptr
+        };
+
+        vk_check(vkCreateDescriptorPool(m_driver, &desc_pool_ci, nullptr, &m_descriptor_pool), "vkCreateDescriptorPool", __FUNCTION__);
+
+        console_log_trace("successfully pool descriptor sets initialization!!");
 
 
         // automate -- setting up descriptor set layouts
         std::vector<VkDescriptorSetLayoutBinding> layout_bindings;
         for(const auto& layout : p_layouts) {
-            // VkDescriptorType Type = to_descriptor_set_type(layout.Type);
-            // VkShaderStageFlags Stage = to_vk_shader_stage(layout.Stage);
 
             VkDescriptorSetLayoutBinding descriptor_set_layout_binding = {
                 .binding = (uint32_t)layout.Binding,
@@ -92,106 +84,11 @@ namespace vk {
         vk_check(vkAllocateDescriptorSets(m_driver, &descriptor_set_alloc_info, m_descriptor_sets.data()), "vkAllocateDescriptorSets", __FUNCTION__);
     }
 
+    void vk_descriptor_set::bind(const VkCommandBuffer& p_command_buffer, uint32_t p_frame_index, const VkPipelineLayout& p_pipeline_layout) {
 
-
-    void vk_descriptor_set::create_descriptor_pool() {
-        console_log_trace("begin pool descriptor sets initialization!!");
-        VkDescriptorPoolCreateInfo desc_pool_ci = {
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .maxSets = m_descriptor_count,
-            .poolSizeCount = 0,
-            .pPoolSizes = nullptr
-        };
-
-        vk_check(vkCreateDescriptorPool(m_driver, &desc_pool_ci, nullptr, &m_descriptor_pool), "vkCreateDescriptorPool", __FUNCTION__);
-
-        console_log_trace("successfully pool descriptor sets initialization!!");
-    }
-
-    void vk_descriptor_set::create_descriptor_set_layout(const std::span<vk_uniform_buffer>& p_uniform_buffers, vk_texture* p_texture) {
-        std::vector<VkDescriptorSetLayoutBinding> layout_bindings;
-        
-        /*
-
-        binding = 0
-        type = storage_buffer
-        stage = VERTEX
-
-        binding = 1
-        type = uniform_buffer
-        stage = VERTEX
-
-        // NOTE: Since this is a texture we need to figure out a way to specify this texture descriptor set without needing to actually check the type itself
-        // NOTE (something to think about): Another idea is simply every uniform essentially deals with their own sets of descriptor sets. Especially when we have to specify things like layout bindings, etc
-        binding = 2
-        type = image_and_sampler
-        stage = FRAGMENT
-        
-        */
-        VkDescriptorSetLayoutBinding vertex_shader_layout_binding = {
-            .binding = 0,
-            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-            .descriptorCount = 1,
-            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-        };
-
-        layout_bindings.push_back(vertex_shader_layout_binding);
-
-        VkDescriptorSetLayoutBinding uniform_matrices = {
-            .binding = 1,
-            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = 1,
-            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
-        };
-
-        VkDescriptorSetLayoutBinding texture_descriptor_set = {
-            .binding = 2,
-            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .descriptorCount = 1,
-            .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
-        };
-
-        console_log_trace("size = {}", p_uniform_buffers.size());
-        if(p_uniform_buffers.size() > 0) {
-            console_log_trace("Do you reach here???");
-
-            layout_bindings.push_back(uniform_matrices);
+        if(m_descriptor_sets.size() > 0) {
+            vkCmdBindDescriptorSets(p_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, p_pipeline_layout, 0, 1, &m_descriptor_sets[p_frame_index], 0, nullptr);
         }
-
-        if(p_texture != nullptr) {
-            console_log_fatal("Texture is NOT NULL (from descriptors) !!");
-            layout_bindings.push_back(texture_descriptor_set);
-        }
-
-        console_log_trace("layout_bindings.size() = {}", layout_bindings.size());
-
-        VkDescriptorSetLayoutCreateInfo descriptor_set_layout_ci = {
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .bindingCount = static_cast<uint32_t>(layout_bindings.size()),
-            .pBindings = layout_bindings.data()
-        };
-
-        vk_check(vkCreateDescriptorSetLayout(m_driver, &descriptor_set_layout_ci, nullptr, &m_descriptor_set_layout), "vkCreateDescriptorSetLayout", __FUNCTION__);
-    }
-
-    void vk_descriptor_set::allocate_descriptor_sets() {
-        std::vector<VkDescriptorSetLayout> layouts(m_descriptor_count, m_descriptor_set_layout);
-
-        VkDescriptorSetAllocateInfo descriptor_set_alloc_info = {
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-            .pNext = nullptr,
-            .descriptorPool = m_descriptor_pool,
-            .descriptorSetCount = m_descriptor_count,
-            .pSetLayouts = layouts.data()
-        };
-
-        m_descriptor_sets.resize(m_descriptor_count);
-
-        vk_check(vkAllocateDescriptorSets(m_driver, &descriptor_set_alloc_info, m_descriptor_sets.data()), "vkAllocateDescriptorSets", __FUNCTION__);
     }
 
     void vk_descriptor_set::update_descriptor_sets(const vk_vertex_buffer& p_vertex_buffer, const std::span<vk_uniform_buffer>& p_uniform_buffer, vk_texture* p_texture) {

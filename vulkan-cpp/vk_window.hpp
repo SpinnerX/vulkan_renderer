@@ -30,8 +30,7 @@ namespace vk {
 
         void clean();
 
-
-        static GLFWwindow* get_native_window() { return s_instance->m_window_handler; }
+        static GLFWwindow* native_window() { return s_instance->m_window_handler; }
 
         operator GLFWwindow*() { return m_window_handler; }
         operator GLFWwindow*() const { return m_window_handler; }
