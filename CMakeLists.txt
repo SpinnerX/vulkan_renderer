@@ -25,6 +25,9 @@ set(
     ${INCLUDE_DIR}/vk_index_buffer.hpp
     ${INCLUDE_DIR}/vk_renderpass.hpp
     ${INCLUDE_DIR}/helper_functions.hpp
+
+    ${INCLUDE_DIR}/vk_imgui.hpp
+
     ${INCLUDE_DIR}/logger.hpp
     renderer/mesh.hpp
     renderer/first_person_camera.hpp
@@ -51,6 +54,8 @@ set(
     ${SRC_DIR}/vk_vertex_buffer.cpp
     ${SRC_DIR}/vk_index_buffer.cpp
 
+    ${SRC_DIR}/vk_imgui.cpp
+
     src/renderer/mesh.cpp
     src/renderer/first_person_camera.cpp
     
@@ -76,6 +81,7 @@ build_application(
     Vulkan
     flecs
     tinyobjloader
+    imguidocking
 
     LINK_PACKAGES
     glfw
@@ -88,6 +94,7 @@ build_application(
     Vulkan::Vulkan
     flecs::flecs_static
     tinyobjloader::tinyobjloader
+    imguidocking::imguidocking
 )
 
 generate_compile_commands()

@@ -1,3 +1,5 @@
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
 #include <vulkan/vulkan_core.h>
 #include <fmt/core.h>
 #include <vulkan-cpp/logger.hpp>
@@ -11,11 +13,94 @@
 #include <vulkan-cpp/vk_uniform_buffer.hpp>
 #include <vulkan-cpp/uniforms.hpp>
 #include <vulkan-cpp/vk_texture.hpp>
-#include <renderer/first_person_camera.hpp>
 #include <vulkan-cpp/vk_descriptor_set.hpp>
-#include <glm/glm.hpp>
-#include <glm/ext.hpp>
+#include <imgui.h>
+#include <vulkan-cpp/vk_imgui.hpp>
 
+#include <tiny_obj_loader.h>
+
+
+namespace std {
+    template<> struct hash<vk::vertex> {
+        size_t operator()(vk::vertex const& vertex) const {
+            return ((hash<glm::vec3>()(vertex.Position) ^ (hash<glm::vec3>()(vertex.Color) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.Uv) << 1);
+        }
+    };
+}
+
+vk::mesh load(const std::string& p_filename) {
+    vk::mesh return_mesh;
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+    std::string warn, err;
+
+    //! @note If we return the constructor then we can check if the mesh
+    //! loaded successfully
+    //! @note We also receive hints if the loading is successful!
+    //! @note Return default constructor automatically returns false means
+    //! that mesh will return the boolean as false because it wasnt
+    //! successful
+    if (!tinyobj::LoadObj(
+            &attrib, &shapes, &materials, &warn, &err, p_filename.c_str())) {
+        console_log_warn("Could not load model from path {}", p_filename);
+    }
+    else {
+        console_log_info("Model Loaded = {}", p_filename);
+    }
+
+    std::vector<vk::vertex> vertices;
+    // std::vector<uint32_t> indices;
+    std::vector<uint32_t> indices;
+    std::unordered_map<vk::vertex, uint32_t> unique_vertices{};
+
+    for (const auto& shape : shapes) {
+        for (const auto& index : shape.mesh.indices) {
+            vk::vertex vertex{};
+
+            if (index.vertex_index >= 0) {
+                vertex.Position = {
+                    attrib.vertices[3 * index.vertex_index + 0],
+                    attrib.vertices[3 * index.vertex_index + 1],
+                    attrib.vertices[3 * index.vertex_index + 2]
+                };
+
+                vertex.Color = {
+                    attrib.colors[3 * index.vertex_index + 0],
+                    attrib.colors[3 * index.vertex_index + 1],
+                    attrib.colors[3 * index.vertex_index + 2]
+                };
+            }
+
+            if (index.normal_index >= 0) {
+                vertex.Normals = {
+                    attrib.normals[3 * index.normal_index + 0],
+                    attrib.normals[3 * index.normal_index + 1],
+                    attrib.normals[3 * index.normal_index + 2]
+                };
+            }
+
+            if (index.texcoord_index >= 0) {
+                vertex.Uv = {
+                    attrib.texcoords[2 * index.texcoord_index + 0],
+                    attrib.texcoords[2 * index.texcoord_index + 1]
+                };
+            }
+
+            // vertices.push_back(vertex);
+            if (unique_vertices.contains(vertex) == 0) {
+                unique_vertices[vertex] =
+                    static_cast<uint32_t>(vertices.size());
+                vertices.push_back(vertex);
+            }
+
+            indices.push_back(unique_vertices[vertex]);
+        }
+    }
+
+    return_mesh = vk::mesh(vertices, indices);
+    return return_mesh;
+}
 
 int main(){
     logger::console_log_manager::initialize_logger_manager();
@@ -53,13 +138,14 @@ int main(){
     main_window_swapchain.set_background_color({0.f, 1.f, 0.f, 1.f});
 
     vk::vk_shader test_shader = vk::vk_shader("shaders/vert.spv", "shaders/frag.spv");
+    // vk::vk_shader test_shader = vk::vk_shader("shader_useful_directory/geometry/vert.spv", "shader_useful_directory/geometry/frag.spv");
 
     // adding descriptor sets
-    std::vector<vk::vertex> vertices = {
-        vk::vertex({-1.0f, -1.0f, 1.0f},  {0.0f, 0.0f}),	// top left
-        vk::vertex({1.0f, -1.0f, 1.0f},   {0.0f, 1.0f}),	// top right
-        vk::vertex({0.0f,  1.0f, 1.0f},   {1.0f, 1.0f}) 	// bottom middle
-    };
+    // std::vector<vk::vertex> vertices = {
+    //     vk::vertex({-1.0f, -1.0f, 1.0f},  {0.0f, 0.0f}),	// top left
+    //     vk::vertex({1.0f, -1.0f, 1.0f},   {0.0f, 1.0f}),	// top right
+    //     vk::vertex({0.0f,  1.0f, 1.0f},   {1.0f, 1.0f}) 	// bottom middle
+    // };
 
     // std::vector<vk::vertex> vertices = {
     //     vk::vertex({-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}),	// Bottom left
@@ -69,9 +155,30 @@ int main(){
     //     vk::vertex({1.0f, 1.0f, 0.0f},   {1.0f, 1.0f}), // Top right
     //     vk::vertex({1.0f,  -1.0f, 0.0f}, {1.0f, 0.0f})  // Bottom right
     // };
+    // std::vector<vk::vertex> vertices = {
+    //     vk::vertex({1.0f, 0.0f, 0.0f}, {-0.5f, -0.5f}),
+    //     vk::vertex({0.0f, 1.0f, 0.0f}, {0.5f, -0.5f}),
+    //     vk::vertex({0.0f, 0.0f, 1.0f}, {0.5f, 0.5f}),
+    //     vk::vertex({1.0f, 1.0f, 1.0f}, {-0.5f, 0.5f})
+    // };
+
+    // // std::vector<uint32_t> indices = {0, 1, 2, 2, 3, 0};
+    // std::vector<uint32_t> indices = {
+    //     0, 1, 2, 2, 3, 1,
+    // };
 
     // creating our uniform buffer
-    vk::vk_vertex_buffer test_vertex_buffer = vk::vk_vertex_buffer(vertices);
+    // vk::vk_vertex_buffer test_vertex_buffer = vk::vk_vertex_buffer(vertices);
+    // vk::vk_index_buffer test_index_buffer = vk::vk_index_buffer(indices);
+
+
+
+    // vk::vk_vertex_buffer test_vertex_buffer = vk::vk_vertex_buffer();
+    // vk::vk_index_buffer test_index_buffer = vk::vk_index_buffer();
+
+    vk::mesh new_mesh = load("models/viking_room.obj");
+    vk::vk_vertex_buffer test_vertex_buffer = new_mesh.get_vertex();
+    vk::vk_index_buffer test_index_buffer = new_mesh.get_index();
 
     // creating uniforms
     std::vector<vk::vk_uniform_buffer> test_uniforms;
@@ -91,58 +198,78 @@ int main(){
     uint32_t image_count = main_window_swapchain.image_size();
 
     //! @note Now without needing to manually set the layout bindings manually, this will set up the descriptor sets automatically
+    // this descriptor set layout is for shaders/shader.*
     std::vector<vk::vk_descriptor_set_properties> layouts = {
         {"in_Vertices", 0, vk::descriptor_type::STORAGE_BUFFER, vk::shader_stage::VERTEX},
         {"ubo", 1, vk::descriptor_type::UNIFORM_BUFFER, vk::shader_stage::VERTEX},
         {"texSampler", 2, vk::descriptor_type::IMAGE_AND_SAMPLER, vk::shader_stage::FRAGMENT}
     };
 
+    // This is descriptors for shader_useful_directory/geometry/shader.* shaders
+    // std::vector<vk::vk_descriptor_set_properties> layouts = {
+    //     {"inPosition", 0, vk::descriptor_type::UNIFORM_BUFFER, vk::shader_stage::VERTEX},
+    //     {"inPosition", 1, vk::descriptor_type::IMAGE_AND_SAMPLER, vk::shader_stage::FRAGMENT},
+    // };
+
     vk::vk_descriptor_set test_descriptor_sets = vk::vk_descriptor_set(image_count, layouts);
     // vk::vk_descriptor_set test_descriptor_sets = vk::vk_descriptor_set(main_window_swapchain.image_size(), test_uniforms);
+    std::vector<vk::pipeline_vertex_attributes> vertex_attributes = {
+        {.Name = "isPos", .Binding = 0, .Location = 0, .Format = VK_FORMAT_R32G32B32_SFLOAT, .Offset = offsetof(vk::vertex, Position)}
+    };
 
     // setting up vulkan pipeline
-    vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window_swapchain.get_renderpass(), test_shader, test_descriptor_sets.get_layout());
+    vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window_swapchain.get_renderpass(), test_shader, test_descriptor_sets.get_layout(), {});
+
+    // vk::vk_pipeline test_pipeline2 = vk::vk_pipeline(main_window_swapchain.get_renderpass(), test_shader, test_descriptor_sets.get_layout());
 
     // Loading and using textures
+    // vk::vk_texture test_texture("models/viking_room.png");
     vk::vk_texture test_texture("textures/bricks.jpg");
 
     // updating descriptor sets
+    /*
+        API For writing uniforms to the shader
+            - mesh contains index and vertex buffers
+            - test_uniforms passes all of our camera data
+            - passing in our texture
+        update_descriptor_sets(mesh, test_uniforms)
+    */
     test_descriptor_sets.update_descriptor_sets(test_vertex_buffer, test_uniforms, &test_texture);
 
 
 
     // recording clear colors for all swapchain command buffers
-    main_window_swapchain.record([&main_window_swapchain, &test_pipeline, &test_vertex_buffer, &test_descriptor_sets](const VkCommandBuffer& p_command_buffer){
+    main_window_swapchain.record([&main_window_swapchain, &test_pipeline, &test_vertex_buffer, &test_index_buffer, &test_descriptor_sets](const VkCommandBuffer& p_command_buffer){
         test_pipeline.bind(p_command_buffer);
+
         test_descriptor_sets.bind(p_command_buffer, main_window_swapchain.current_frame(), test_pipeline.get_layout());
 
 
-        VkViewport viewport = {
-            .x = 0.0f,
-            .y = 0.0f,
-            .width = static_cast<float>(main_window_swapchain.get_extent().width),
-            .height = static_cast<float>(main_window_swapchain.get_extent().height),
-            .minDepth = 0.0f,
-            .maxDepth = 1.0f,
-        };
-        vkCmdSetViewport(p_command_buffer, 0, 1, &viewport);
-
-        VkRect2D scissor = {
-            .offset = {0, 0},
-            .extent = main_window_swapchain.get_extent(),
-        };
-
-        vkCmdSetScissor(p_command_buffer, 0, 1, &scissor);
-
         test_vertex_buffer.bind(p_command_buffer);
-        test_vertex_buffer.draw(p_command_buffer);
+        test_index_buffer.bind(p_command_buffer);
+
+        // test_vertex_buffer.draw(p_command_buffer);
+
+        if(test_index_buffer.has_indices()) {
+            test_index_buffer.draw(p_command_buffer);   
+        }
+        else {
+            test_vertex_buffer.draw(p_command_buffer);
+        }
     });
+
+    // vk::vk_imgui test_imgui = vk::vk_imgui();
+    // VkRenderPass rp = main_window_swapchain.get_renderpass();
+    // test_imgui.initialize(initiating_vulkan, main_physical_device, main_window_swapchain);
 
     while(main_window.is_active()){
         float dt = (float)glfwGetTime();
 
         // acquire next image ( then record)
+        // test_imgui.begin();
 
+        // ImGui::Button("Test");
+        // test_imgui.end();
 
         // draw (after recording)
 
@@ -181,6 +308,7 @@ int main(){
     }
 
     test_descriptor_sets.destroy();
+    test_index_buffer.destroy();
     test_vertex_buffer.destroy();
     test_pipeline.destroy();
     test_shader.destroy();

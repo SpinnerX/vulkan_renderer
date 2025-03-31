@@ -6,7 +6,7 @@
 #include <vulkan-cpp/vk_window.hpp>
 
 namespace vk {
-    vk_pipeline::vk_pipeline(const VkRenderPass& p_renderpass, const vk_shader& p_shader_src, const VkDescriptorSetLayout& p_descriptor_sets) {
+    vk_pipeline::vk_pipeline(const VkRenderPass& p_renderpass, const vk_shader& p_shader_src, const VkDescriptorSetLayout& p_descriptor_sets, const std::span<pipeline_vertex_attributes>& p_vertex_attributes) {
         int width=0;
         int height=0;
         m_driver = vk_driver::driver_context();
@@ -43,14 +43,53 @@ namespace vk {
         std::array<VkPipelineShaderStageCreateInfo, 2> shader_stages = { vertex_pipeine_stage_ci, fragment_pipeine_stage_ci};
 
 
+        // This is used for vertex attributes
+        // std::vector<VkVertexInputAttributeDescription> attributes = {
+
+        // };
+        // std::array<VkVertexInputAttributeDescription, 3> attributes;
+        // // VkVertexInputAttributeDescription attr_0 = {
+        // //     .location = 0,
+        // //     .binding = 0,
+        // //     .format = VK_FORMAT_R32G32B32_SFLOAT,
+        // //     .offset = offsetof(vertex, Position)
+        // // };
+
+        // attributes[0].binding = 0;
+        // attributes[0].location = 0;
+        // attributes[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+        // attributes[0].offset = offsetof(vertex, Position);
+
+        // attributes[1].binding = 0;
+        // attributes[1].location = 1;
+        // attributes[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        // attributes[1].offset = offsetof(vertex, Color);
+
+        // attributes[2].binding = 0;
+        // attributes[2].location = 2;
+        // attributes[2].format = VK_FORMAT_R32G32_SFLOAT;
+        // attributes[2].offset = offsetof(vertex, Uv);
+
+
+        // VkVertexInputBindingDescription bindingDescription{};
+        // bindingDescription.binding = 0;
+        // bindingDescription.stride = sizeof(vertex);
+        // bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+        
+
+
         VkPipelineVertexInputStateCreateInfo vertex_input_info = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+            // .vertexBindingDescriptionCount = 1,
+            // .pVertexBindingDescriptions = &bindingDescription, // Optional
             .vertexBindingDescriptionCount = 0,
             .pVertexBindingDescriptions = nullptr, // Optional
+            // .vertexAttributeDescriptionCount = static_cast<uint32_t>(attributes.size()),
+            // .pVertexAttributeDescriptions = attributes.data(), // Optional
             .vertexAttributeDescriptionCount = 0,
-            .pVertexAttributeDescriptions = nullptr, // Optional
+            .pVertexAttributeDescriptions = nullptr
         };
-
+        
         VkPipelineInputAssemblyStateCreateInfo inputAssembly = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
             .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,

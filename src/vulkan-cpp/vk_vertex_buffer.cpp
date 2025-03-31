@@ -15,6 +15,7 @@ namespace vk {
         // 1.) Creating staging buffer
         //! @note Validation layers throw an error when VK_BUFFER_USAGE_STORAGE_BUFFER_BIT isn't set for VkBuffer (I bitwise OR this just to silence that validation error for now)
         //! @note TODO: Need to setup ways for staging buffers to work with the current command buffer being worked on
+        //! @note VK_BUFFER_USAGE_STORAGE_BUFFER_BIT is required for vertex buffer by descriptor set
         VkBufferUsageFlags usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
         VkMemoryPropertyFlags memory_property_flags =   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
         // buffer_properties staging_vertex_buffer = create_buffer(p_vertices.size(), usage, memory_property_flags);

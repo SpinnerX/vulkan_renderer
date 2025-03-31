@@ -5,6 +5,7 @@
 #include <vulkan-cpp/vk_vertex_buffer.hpp>
 #include <vulkan-cpp/vk_uniform_buffer.hpp>
 #include <vulkan-cpp/vk_texture.hpp>
+#include <renderer/mesh.hpp>
 
 namespace vk {
     /*
@@ -41,6 +42,8 @@ namespace vk {
         FRAGMENT=1
     };
 
+    
+
 
     /*
     
@@ -74,6 +77,9 @@ namespace vk {
 
         void update_descriptor_sets(const vk_vertex_buffer& p_vertex_buffer, const std::span<vk_uniform_buffer>& p_uniform_buffer, vk_texture* p_texture);
 
+        // We need a way for us to define what kind of data we are passing through
+        void update_mesh_descriptors(const mesh& p_mesh, const std::span<vk_uniform_buffer>& p_uniform_buffer, vk_texture* p_texture);
+
         // void write_to_descriptor_set();
 
         VkDescriptorPool get_pool() const { return m_descriptor_pool; }
@@ -89,6 +95,7 @@ namespace vk {
 
         VkDescriptorPool m_descriptor_pool=nullptr;
         VkDescriptorSetLayout m_descriptor_set_layout=nullptr;
+        // std::vector<
         std::vector<VkDescriptorSet> m_descriptor_sets;
     };
 };

@@ -179,6 +179,15 @@ namespace vk {
         vkUpdateDescriptorSets(m_driver, static_cast<uint32_t>(write_descriptor_sets.size()), write_descriptor_sets.data(), 0, nullptr);
     }
 
+
+    void vk_descriptor_set::update_mesh_descriptors(const mesh& p_mesh, const std::span<vk_uniform_buffer>& p_uniform_buffer, vk_texture* p_texture) {
+        
+        for(size_t i = 0; i < m_descriptor_count; i++) {
+            
+        }
+    }
+
+
     void vk_descriptor_set::destroy() {
         vkDestroyDescriptorPool(m_driver, m_descriptor_pool, nullptr);
         vkDestroyDescriptorSetLayout(m_driver, m_descriptor_set_layout, nullptr);

@@ -58,6 +58,22 @@ namespace vk {
             for(uint32_t i = 0; i < m_swapchain_command_buffers.size(); i++) {
                 // begin_command_buffer(m_swapchain_command_buffers[i], VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
                 m_swapchain_command_buffers[i].begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+                VkViewport viewport = {
+                    .x = 0.0f,
+                    .y = 0.0f,
+                    .width = static_cast<float>(m_swapchain_size.width),
+                    .height = static_cast<float>(m_swapchain_size.height),
+                    .minDepth = 0.0f,
+                    .maxDepth = 1.0f,
+                };
+                vkCmdSetViewport(m_swapchain_command_buffers[i].handle(), 0, 1, &viewport);
+        
+                VkRect2D scissor = {
+                    .offset = {0, 0},
+                    .extent = m_swapchain_size,
+                };
+        
+                vkCmdSetScissor(m_swapchain_command_buffers[i].handle(), 0, 1, &scissor);
 
                 renderpass_begin_info.framebuffer = m_swapchain_framebuffers[i];
 
@@ -137,6 +153,17 @@ namespace vk {
         //! @note vk_texture should be able to call vk_swapchain::current_active_comand_buffer() whenever we need to deal with transition_image_layout
         //! @note vk_texture will essentially be usedf to 
         VkCommandBuffer current_active_comand_buffer() const { return m_swapchain_command_buffers[m_current_image_index].handle(); }
+
+        static surface_properties data() { return s_instance->m_surface_data; }
+
+        static uint32_t image_count() { return s_instance->m_swapchain_images.size(); }
+
+        static VkRenderPass swapchain_renderpass() {
+            console_log_trace("Orig Rp = {}", (void*)s_instance->m_swapchain_renderpass);
+            return s_instance->m_swapchain_renderpass;
+        }
+
+        static VkCommandBuffer current_active_buffer() { return s_instance->m_swapchain_command_buffers[s_instance->m_current_image_index].handle(); }
 
     private:
         //! @note These private functions are for initiating the swapchain first

@@ -11,6 +11,10 @@ namespace vk {
 
         void destroy() {}
 
+        operator VkRenderPass() const { return m_renderpass_handler; }
+
+        operator VkRenderPass() { return m_renderpass_handler; }
+
     private:
         VkRenderPass m_renderpass_handler=nullptr;
     };
