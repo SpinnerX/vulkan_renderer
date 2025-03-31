@@ -22,9 +22,12 @@ set(
     ${INCLUDE_DIR}/vk_command_buffer.hpp
 
     ${INCLUDE_DIR}/vk_vertex_buffer.hpp
+    ${INCLUDE_DIR}/vk_index_buffer.hpp
     ${INCLUDE_DIR}/vk_renderpass.hpp
     ${INCLUDE_DIR}/helper_functions.hpp
     ${INCLUDE_DIR}/logger.hpp
+    renderer/mesh.hpp
+    renderer/first_person_camera.hpp
 )
 
 set(
@@ -46,6 +49,10 @@ set(
     ${SRC_DIR}/vk_texture.cpp
 
     ${SRC_DIR}/vk_vertex_buffer.cpp
+    ${SRC_DIR}/vk_index_buffer.cpp
+
+    src/renderer/mesh.cpp
+    src/renderer/first_person_camera.cpp
     
     ${SRC_DIR}/vk_renderpass.cpp
     ${SRC_DIR}/helper_functions.cpp
@@ -68,6 +75,7 @@ build_application(
     stb
     Vulkan
     flecs
+    tinyobjloader
 
     LINK_PACKAGES
     glfw
@@ -79,6 +87,7 @@ build_application(
     stb::stb
     Vulkan::Vulkan
     flecs::flecs_static
+    tinyobjloader::tinyobjloader
 )
 
 generate_compile_commands()

@@ -30,6 +30,7 @@ class StarterConanRecipe(ConanFile):
       self.requires("spdlog/1.14.1", transitive_headers=True)
       self.requires("spirv-cross/1.4.309.0")
       self.requires("flecs/4.0.0")
+      self.requires("tinyobjloader/2.0.0-rc10")
 
     def build(self):
         cmake = CMake(self)

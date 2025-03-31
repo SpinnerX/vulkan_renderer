@@ -4,11 +4,12 @@
 #include <GLFW/glfw3.h>
 #include <vulkan-cpp/vk_descriptor_set.hpp>
 #include <vulkan-cpp/vk_uniform_buffer.hpp>
+#include <vulkan-cpp/vk_shader.hpp>
 
 namespace vk {
     class vk_pipeline {
     public:
-        vk_pipeline(GLFWwindow* p_window, const VkRenderPass& p_renderpass, const VkShaderModule& p_vert_module, const VkShaderModule& p_frag_module, const vk_descriptor_set& p_descriptor_sets, const vk_vertex_buffer& p_vertex_buffer, const std::vector<vk_uniform_buffer>& p_buffer_data, uint32_t p_size_in_bytes);
+        vk_pipeline(GLFWwindow* p_window, const VkRenderPass& p_renderpass, const vk_shader& p_shader_src, const vk_descriptor_set& p_descriptor_sets);
 
         void bind(const VkCommandBuffer& p_command_buffer);
 

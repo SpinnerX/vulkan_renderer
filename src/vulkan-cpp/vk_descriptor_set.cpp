@@ -5,7 +5,7 @@
 
 namespace vk {
 
-    VkDescriptorType descriptor_set_type(const descriptor_type& p_type) {
+    VkDescriptorType to_descriptor_set_type(const descriptor_type& p_type) {
         switch (p_type){
         case descriptor_type::STORAGE_BUFFER: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         case descriptor_type::UNIFORM_BUFFER: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -15,15 +15,84 @@ namespace vk {
         console_log_error("descriptor set type specified is invalid!!!");
     }
 
+    VkShaderStageFlags to_vk_shader_stage(const shader_stage& p_stage) {
+        switch (p_stage){
+        case shader_stage::VERTEX: return VK_SHADER_STAGE_VERTEX_BIT;
+        case shader_stage::FRAGMENT: return VK_SHADER_STAGE_FRAGMENT_BIT;
+        }
+
+        console_log_error("vulkan shader stage that you specified was invalid!!!");
+    }
 
 
-    vk_descriptor_set::vk_descriptor_set(uint32_t p_num_images, const std::vector<vk_uniform_buffer>& p_uniform_buffers, uint32_t p_data_size_bytes, vk_texture* p_texture) : m_num_images(p_num_images) {
+
+
+
+    vk_descriptor_set::vk_descriptor_set(uint32_t p_num_images, const std::span<vk_uniform_buffer>& p_uniform_buffers, vk_texture* p_texture) : m_descriptor_count(p_num_images) {
         m_driver = vk_driver::driver_context();
 
+        // This part can be don at construction
         create_descriptor_pool();
-        create_descriptor_set_layout(p_uniform_buffers, p_data_size_bytes, p_texture);
+
+        // This part can be done via a separate operation from descriptor pool
+        /*
+        
+            1. Describes the binding, type, shader stage of the layout(binding = N) vertex attribute types
+
+        */
+        create_descriptor_set_layout(p_uniform_buffers, p_texture);
         allocate_descriptor_sets();
     }
+
+    vk_descriptor_set::vk_descriptor_set(uint32_t p_descriptor_count, const std::span<vk_descriptor_set_properties>& p_layouts) : m_descriptor_count(p_descriptor_count) {
+        m_driver = vk_driver::driver_context();
+        create_descriptor_pool();
+
+
+        // automate -- setting up descriptor set layouts
+        std::vector<VkDescriptorSetLayoutBinding> layout_bindings;
+        for(const auto& layout : p_layouts) {
+            // VkDescriptorType Type = to_descriptor_set_type(layout.Type);
+            // VkShaderStageFlags Stage = to_vk_shader_stage(layout.Stage);
+
+            VkDescriptorSetLayoutBinding descriptor_set_layout_binding = {
+                .binding = (uint32_t)layout.Binding,
+                .descriptorType = to_descriptor_set_type(layout.Type),
+                .descriptorCount = 1,
+                .stageFlags = to_vk_shader_stage(layout.Stage)
+            };
+
+            layout_bindings.push_back(descriptor_set_layout_binding);
+        }
+
+        VkDescriptorSetLayoutCreateInfo descriptor_set_layout_ci = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .bindingCount = static_cast<uint32_t>(layout_bindings.size()),
+            .pBindings = layout_bindings.data()
+        };
+
+        vk_check(vkCreateDescriptorSetLayout(m_driver, &descriptor_set_layout_ci, nullptr, &m_descriptor_set_layout), "vkCreateDescriptorSetLayout", __FUNCTION__);
+
+
+        // Now that we setup the layouts we can just setup now start allocating based on our layout setup
+        std::vector<VkDescriptorSetLayout> layouts(m_descriptor_count, m_descriptor_set_layout);
+
+        VkDescriptorSetAllocateInfo descriptor_set_alloc_info = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .pNext = nullptr,
+            .descriptorPool = m_descriptor_pool,
+            .descriptorSetCount = m_descriptor_count,
+            .pSetLayouts = layouts.data()
+        };
+
+        m_descriptor_sets.resize(m_descriptor_count);
+
+        vk_check(vkAllocateDescriptorSets(m_driver, &descriptor_set_alloc_info, m_descriptor_sets.data()), "vkAllocateDescriptorSets", __FUNCTION__);
+    }
+
+
 
     void vk_descriptor_set::create_descriptor_pool() {
         console_log_trace("begin pool descriptor sets initialization!!");
@@ -31,7 +100,7 @@ namespace vk {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
             .pNext = nullptr,
             .flags = 0,
-            .maxSets = m_num_images,
+            .maxSets = m_descriptor_count,
             .poolSizeCount = 0,
             .pPoolSizes = nullptr
         };
@@ -41,9 +110,26 @@ namespace vk {
         console_log_trace("successfully pool descriptor sets initialization!!");
     }
 
-    void vk_descriptor_set::create_descriptor_set_layout(const std::vector<vk_uniform_buffer>& p_uniform_buffers, uint32_t p_data_size_bytes, vk_texture* p_texture) {
+    void vk_descriptor_set::create_descriptor_set_layout(const std::span<vk_uniform_buffer>& p_uniform_buffers, vk_texture* p_texture) {
         std::vector<VkDescriptorSetLayoutBinding> layout_bindings;
+        
+        /*
 
+        binding = 0
+        type = storage_buffer
+        stage = VERTEX
+
+        binding = 1
+        type = uniform_buffer
+        stage = VERTEX
+
+        // NOTE: Since this is a texture we need to figure out a way to specify this texture descriptor set without needing to actually check the type itself
+        // NOTE (something to think about): Another idea is simply every uniform essentially deals with their own sets of descriptor sets. Especially when we have to specify things like layout bindings, etc
+        binding = 2
+        type = image_and_sampler
+        stage = FRAGMENT
+        
+        */
         VkDescriptorSetLayoutBinding vertex_shader_layout_binding = {
             .binding = 0,
             .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -93,22 +179,22 @@ namespace vk {
     }
 
     void vk_descriptor_set::allocate_descriptor_sets() {
-        std::vector<VkDescriptorSetLayout> layouts(m_num_images, m_descriptor_set_layout);
+        std::vector<VkDescriptorSetLayout> layouts(m_descriptor_count, m_descriptor_set_layout);
 
         VkDescriptorSetAllocateInfo descriptor_set_alloc_info = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
             .pNext = nullptr,
             .descriptorPool = m_descriptor_pool,
-            .descriptorSetCount = m_num_images,
+            .descriptorSetCount = m_descriptor_count,
             .pSetLayouts = layouts.data()
         };
 
-        m_descriptor_sets.resize(m_num_images);
+        m_descriptor_sets.resize(m_descriptor_count);
 
         vk_check(vkAllocateDescriptorSets(m_driver, &descriptor_set_alloc_info, m_descriptor_sets.data()), "vkAllocateDescriptorSets", __FUNCTION__);
     }
 
-    void vk_descriptor_set::update_descriptor_sets(const vk_vertex_buffer& p_vertex_buffer, const std::vector<vk_uniform_buffer>& p_uniform_buffer, uint32_t p_uniform_data_size_in_bytes, vk_texture* p_texture) {
+    void vk_descriptor_set::update_descriptor_sets(const vk_vertex_buffer& p_vertex_buffer, const std::span<vk_uniform_buffer>& p_uniform_buffer, vk_texture* p_texture) {
         VkDescriptorBufferInfo descriptor_buffer_info = {
             .buffer = p_vertex_buffer,
             .offset = 0,
@@ -136,7 +222,7 @@ namespace vk {
 
         std::vector<VkWriteDescriptorSet> write_descriptor_sets;
 
-        for(size_t i = 0; i < m_num_images; i++) {
+        for(size_t i = 0; i < m_descriptor_count; i++) {
             
             // (dstBinding should be 0)
             VkWriteDescriptorSet write_descriptor_set = {
@@ -156,7 +242,7 @@ namespace vk {
                 VkDescriptorBufferInfo uniform_info = {
                     .buffer = p_uniform_buffer[i],
                     .offset = 0,
-                    .range = (VkDeviceSize)p_uniform_data_size_in_bytes
+                    .range = (VkDeviceSize)p_uniform_buffer.size_bytes()
                 };
 
                 // (dstBinding should be 1)

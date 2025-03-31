@@ -46,13 +46,15 @@ namespace vk {
     
         Used to construct what our descriptor set layout is going to be
             - Without having us manually describe each descriptor set layout without the verbosity of descriptor sets
+            - Used for specifying descriptor set layouts
     */
     struct vk_descriptor_set_properties {
-        vk_descriptor_set_properties(const std::string& p_name, const descriptor_type& p_type, const shader_stage& p_stage, bool p_has_samplers=false) : Name(p_name), Type(p_type), Stage(p_stage), HasSamplers(p_has_samplers) {}
+        vk_descriptor_set_properties(const std::string& p_name, const uint32_t p_layout_binding, const descriptor_type& p_type, const shader_stage& p_stage, bool p_has_samplers=false) : Name(p_name), Binding(p_layout_binding), Type(p_type), Stage(p_stage), HasSamplers(p_has_samplers) {}
 
 
 
         std::string Name="Undefined";
+        uint32_t Binding=-1;
         descriptor_type Type;
         shader_stage Stage;
         bool HasSamplers=false;
@@ -63,11 +65,14 @@ namespace vk {
     class vk_descriptor_set {
     public:
         vk_descriptor_set() = default;
-        vk_descriptor_set(uint32_t p_num_images, const std::vector<vk_uniform_buffer>& p_uniform_buffers, uint32_t p_data_size_bytes, vk_texture* p_texture);
+        vk_descriptor_set(uint32_t p_num_images, const std::span<vk_uniform_buffer>& p_uniform_buffers, vk_texture* p_texture);
+        vk_descriptor_set(uint32_t p_descriptor_count, const std::span<vk_descriptor_set_properties>& p_layouts);
 
         void destroy();
 
-        void update_descriptor_sets(const vk_vertex_buffer& p_vertex_buffer, const std::vector<vk_uniform_buffer>& p_uniform_buffer, uint32_t p_uniform_data_size_in_bytes, vk_texture* p_texture);
+        void update_descriptor_sets(const vk_vertex_buffer& p_vertex_buffer, const std::span<vk_uniform_buffer>& p_uniform_buffer, vk_texture* p_texture);
+
+        // void write_to_descriptor_set();
 
         VkDescriptorPool get_pool() const { return m_descriptor_pool; }
         VkDescriptorSetLayout get_layout() const { return m_descriptor_set_layout; }
@@ -80,12 +85,12 @@ namespace vk {
     private:
         void create_descriptor_pool();
 
-        void create_descriptor_set_layout(const std::vector<vk_uniform_buffer>& p_uniform_buffers, uint32_t p_data_size_bytes, vk_texture* p_texture);
+        void create_descriptor_set_layout(const std::span<vk_uniform_buffer>& p_uniform_buffers, vk_texture* p_texture);
 
         void allocate_descriptor_sets();
 
     private:
-        uint32_t m_num_images=0;
+        uint32_t m_descriptor_count=0;
         VkDevice m_driver=nullptr;
 
         VkDescriptorPool m_descriptor_pool=nullptr;

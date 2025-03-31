@@ -121,6 +121,33 @@ namespace vk {
         vkUnmapMemory(driver, p_buffer.DeviceMemory);
     }
 
+    void write(const buffer_properties& p_buffer, const std::span<uint32_t>& p_in_buffer) {
+        VkDeviceSize buffer_size = p_in_buffer.size_bytes();
+        VkDevice driver = vk_driver::driver_context();
+        void* mapped = nullptr;
+        vk_check(vkMapMemory(driver, p_buffer.DeviceMemory, 0, buffer_size, 0, &mapped), "vkMapMemory", __FUNCTION__);
+        memcpy(mapped, p_in_buffer.data(), buffer_size);
+        vkUnmapMemory(driver, p_buffer.DeviceMemory);
+    }
+
+    void write(const buffer_properties& p_buffer, const std::span<float>& p_in_buffer) {
+        VkDeviceSize buffer_size = p_in_buffer.size_bytes(); // does equivalent to doing sizeof(p_in_buffer[0]) * p_in_buffer.size();
+        VkDevice driver = vk_driver::driver_context();
+        void* mapped = nullptr;
+        vk_check(vkMapMemory(driver, p_buffer.DeviceMemory, 0, buffer_size, 0, &mapped), "vkMapMemory", __FUNCTION__);
+        memcpy(mapped, p_in_buffer.data(), buffer_size);
+        vkUnmapMemory(driver, p_buffer.DeviceMemory);
+    }
+
+    void write(const buffer_properties& p_buffer, const std::span<vertex>& p_in_buffer) {
+        VkDeviceSize buffer_size = p_in_buffer.size_bytes(); // does equivalent to doing sizeof(p_in_buffer[0]) * p_in_buffer.size();
+        VkDevice driver = vk_driver::driver_context();
+        void* mapped = nullptr;
+        vk_check(vkMapMemory(driver, p_buffer.DeviceMemory, 0, buffer_size, 0, &mapped), "vkMapMemory", __FUNCTION__);
+        memcpy(mapped, p_in_buffer.data(), buffer_size);
+        vkUnmapMemory(driver, p_buffer.DeviceMemory);
+    }
+
     void vk_check(const VkResult& result,
         const char* p_tag,
         const char* p_function_name,

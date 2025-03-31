@@ -2,6 +2,7 @@
 #include <vulkan/vulkan_core.h>
 #include <string>
 #include <vulkan-cpp/vk_buffer.hpp>
+#include <span>
 
 namespace vk {
 
@@ -16,9 +17,15 @@ namespace vk {
 
     buffer_properties create_buffer(uint32_t p_device_size, VkBufferUsageFlags p_usage, VkMemoryPropertyFlags p_property_flags);
 
-    // void update(const void* p_data, size_t p_size_in_bytes);
-
+    // Use is for vkMap/vkUnmap data of bytes yourself
     void write(const buffer_properties& p_buffer, const void* p_data, size_t p_size_in_bytes);
+
+    // Main use of this would be to vkMap/vkUnmap uint32_t (for indices) and floats (for vertices) data
+    void write(const buffer_properties& p_buffer, const std::span<uint32_t>& p_in_buffer);
+
+    void write(const buffer_properties& p_buffer, const std::span<float>& p_in_buffer);
+
+    void write(const buffer_properties& p_buffer, const std::span<vertex>& p_in_buffer);
 
 
     // const char* vk_to_string(VkResult res);

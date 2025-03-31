@@ -18,10 +18,6 @@ namespace vk {
     //                 Normals == other.Normals and TexCoords == other.TexCoords);
     //     }
     // };
-    struct vertex {
-        glm::vec3 Position;
-        glm::vec2 Uv;
-    };
     /*
     
         Mesh Class
@@ -39,6 +35,12 @@ namespace vk {
 
         void bind(const VkCommandBuffer& p_command_buffer);
 
+        void draw(const VkCommandBuffer& p_command_buffer);
+
+        size_t count() const { return m_vertices_count; }
+        
+        size_t size_bytes() const { return m_vertices_byte_size_count; }
+
         void destroy();
 
         operator VkBuffer() { return m_vertex_data.BufferHandler; }
@@ -49,6 +51,8 @@ namespace vk {
 
     private:
         VkDevice m_driver=nullptr;
+        uint32_t m_vertices_count=0;
+        uint32_t m_vertices_byte_size_count=0;
         buffer_properties m_vertex_data{};
     };
 };

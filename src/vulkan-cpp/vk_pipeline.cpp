@@ -5,7 +5,7 @@
 #include <vulkan-cpp/vk_driver.hpp>
 
 namespace vk {
-    vk_pipeline::vk_pipeline(GLFWwindow* p_window, const VkRenderPass& p_renderpass, const VkShaderModule& p_vert_module, const VkShaderModule& p_frag_module, const vk_descriptor_set& p_descriptor_sets, const vk_vertex_buffer& p_vertex_buffer, const std::vector<vk_uniform_buffer>& p_buffer_data, uint32_t p_size_in_bytes) {
+    vk_pipeline::vk_pipeline(GLFWwindow* p_window, const VkRenderPass& p_renderpass, const vk_shader& p_shader_src, const vk_descriptor_set& p_descriptor_sets) {
         int width=0;
         int height=0;
         m_driver = vk_driver::driver_context();
@@ -13,8 +13,8 @@ namespace vk {
         console_log_info("vk_pipeline begin initialization!!!");
 
         glfwGetFramebufferSize(p_window, &width, &height);
-        VkShaderModule vert_module = p_vert_module;
-        VkShaderModule frag_module = p_frag_module;
+        VkShaderModule vert_module = p_shader_src.get_vertex_module();
+        VkShaderModule frag_module = p_shader_src.get_fragment_module();
 
         if(vert_module != nullptr) {
             console_log_trace("vertex shader module is valid!!!");
@@ -155,7 +155,7 @@ namespace vk {
             console_log_error("Descriptor Set Layout IS NULLPTR!!!!!");
         }
 
-        if(layout != nullptr and p_vertex_buffer != nullptr) {
+        if(layout != nullptr) {
             pipeline_layout_ci.setLayoutCount = 1;
             pipeline_layout_ci.pSetLayouts = &layout;
         }

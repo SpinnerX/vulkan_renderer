@@ -94,8 +94,7 @@ layout (binding = 1) readonly uniform UniformBuffer { mat4 WVP; } ubo;
 
 layout(location = 0) out vec2 texCoord;
 
-void main() 
-{
+void main() {
 	VertexData vtx = in_Vertices.data[gl_VertexIndex];
 
 	vec3 pos = vec3(vtx.x, vtx.y, vtx.z);

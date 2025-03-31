@@ -6,29 +6,11 @@
 
 namespace vk {
 
-    /*
-    void copy(VkCommandBuffer& p_command_buffer, VkBuffer& p_dst, VkBuffer p_src, uint32_t p_device_size, vk_queue& p_queue) {
-        begin_command_buffer(p_command_buffer, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-
-        VkBufferCopy buffer_copy = {
-            .srcOffset = 0,
-            .dstOffset = 0,
-            .size = p_device_size
-        };
-
-        vkCmdCopyBuffer(p_command_buffer, p_src, p_dst, 1, &buffer_copy);
-
-        vkEndCommandBuffer(p_command_buffer);
-
-        p_queue.submit_to(p_command_buffer, submission_type::Sync);
-        p_queue.wait_idle();
-    }
-        */
-
     //! @note In SimpleMesh(in tutorial) only contains vertex buffer and vertex buffer size in bytes
     vk_vertex_buffer::vk_vertex_buffer(const std::span<vertex>& p_vertices) {
         m_driver = vk_driver::driver_context();
-        VkDeviceSize device_size_bytes = (sizeof(vertex) * p_vertices.size());
+        m_vertices_count = static_cast<uint32_t>(p_vertices.size());
+        m_vertices_byte_size_count = p_vertices.size_bytes();
 
         // 1.) Creating staging buffer
         //! @note Validation layers throw an error when VK_BUFFER_USAGE_STORAGE_BUFFER_BIT isn't set for VkBuffer (I bitwise OR this just to silence that validation error for now)
@@ -36,26 +18,10 @@ namespace vk {
         VkBufferUsageFlags usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
         VkMemoryPropertyFlags memory_property_flags =   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
         // buffer_properties staging_vertex_buffer = create_buffer(p_vertices.size(), usage, memory_property_flags);
-        m_vertex_data = create_buffer(device_size_bytes, usage, memory_property_flags);
+        m_vertex_data = create_buffer(m_vertices_byte_size_count, usage, memory_property_flags);
         
-        // 2. Mapping memory of stage buffer
-        void* mapped = nullptr;
-        uint32_t offset = 0;
-        VkMemoryMapFlags flags = 0;
-        vk_check(vkMapMemory(m_driver, m_vertex_data.DeviceMemory, offset, m_vertex_data.AllocateDeviceSize, flags, &mapped), "vkMapMemory", __FUNCTION__);
-
-        // 3. copy vertices of staging buffer
-        memcpy(mapped, p_vertices.data(), device_size_bytes);
-
-        // 4. unmap/release memory
-        vkUnmapMemory(m_driver, m_vertex_data.DeviceMemory);
-
-        // 5. creating actual final buffer
-        // VkBufferUsageFlags usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-        // VkMemoryPropertyFlags memory_property_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-        // m_vertex_data = create_buffer(p_vertices.size(), usage, memory_property_flags);
-
-        // 6. copy staging buffer to final buffer
+        // 2. Mapping memory of vertex buffer (vkMap/vkUnmap operation)
+        write(m_vertex_data, p_vertices);
     }
 
     void vk_vertex_buffer::copy(const VkCommandBuffer& p_command_buffer) {
@@ -65,6 +31,10 @@ namespace vk {
         VkBuffer buffers[] = { m_vertex_data.BufferHandler};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(p_command_buffer, 0, 1, buffers, offsets);
+    }
+
+    void vk_vertex_buffer::draw(const VkCommandBuffer& p_command_buffer) {
+        vkCmdDraw(p_command_buffer, m_vertices_count, 1, 0, 0);
     }
 
     void vk_vertex_buffer::destroy() {
