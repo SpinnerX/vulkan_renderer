@@ -91,56 +91,10 @@ namespace vk {
         }
     }
 
-    void vk_descriptor_set::update_descriptor_sets(const vk_vertex_buffer& p_vertex_buffer, const std::span<vk_uniform_buffer>& p_uniform_buffer, vk_texture* p_texture) {
-        VkDescriptorBufferInfo descriptor_buffer_info = {
-            .buffer = p_vertex_buffer,
-            .offset = 0,
-            .range = (VkDeviceSize)p_vertex_buffer.size()
-        };
-
-        VkDescriptorImageInfo texture_descriptor_image_info;
-
-        if(p_texture != nullptr) {
-            console_log_fatal("p_texture != nullptr and so we add texture_descriptor_image_info!!!");
-            if(p_texture->image_view() != nullptr) {
-                console_log_trace("image_view NOT NULL!!!");
-            }
-
-            if(p_texture->sampler() != nullptr) {
-                console_log_trace("sampler NOT NULL!!!");
-            }
-
-            texture_descriptor_image_info = {
-                .sampler = p_texture->sampler(),
-                .imageView = p_texture->image_view(),
-                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-            };
-        }
-
+    void vk_descriptor_set::update_uniforms(const std::span<vk_uniform_buffer>& p_uniform_buffer) {
+        
         std::vector<VkWriteDescriptorSet> write_descriptor_sets;
-
-        /*
-            NOTE -- Something that I need to add
-            - Ways of abstracting singular VkWriteDescriptorSets
-            - Since there are only two ways of writing descriptors either BUFFERS or IMAGE_AND_SAMPLER types!
-        */
-
         for(size_t i = 0; i < m_descriptor_count; i++) {
-            
-            // (dstBinding should be 0)
-            VkWriteDescriptorSet write_descriptor_set = {
-                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .pNext = nullptr,
-                .dstSet = m_descriptor_sets[i],
-                .dstBinding = 0,
-                .dstArrayElement = 0,
-                .descriptorCount = 1,
-                .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                .pBufferInfo = &descriptor_buffer_info
-            };
-
-            write_descriptor_sets.push_back(write_descriptor_set);
-
             if(p_uniform_buffer.size() > 0) {
                 VkDescriptorBufferInfo uniform_info = {
                     .buffer = p_uniform_buffer[i],
@@ -162,7 +116,64 @@ namespace vk {
     
                 write_descriptor_sets.push_back(write_descriptor_set);
             }
+        }
 
+        // Apply our texture to all descriptor sets
+        // for(size_t i = 0; i < m_descriptor_count; i++) {
+        //     write_descriptor_set.dstSet = m_descriptor_sets[i];
+        // }
+
+        vkUpdateDescriptorSets(m_driver, static_cast<uint32_t>(write_descriptor_sets.size()), write_descriptor_sets.data(), 0, nullptr);
+    }
+
+    void vk_descriptor_set::update_vertex(const vk_vertex_buffer& p_vertex_buffer) {
+        std::vector<VkWriteDescriptorSet> write_descriptor_sets;
+        VkDescriptorBufferInfo descriptor_buffer_info = {
+            .buffer = p_vertex_buffer,
+            .offset = 0,
+            .range = (VkDeviceSize)p_vertex_buffer.size()
+        };
+
+        for(size_t i = 0; i < m_descriptor_count; i++) {
+            VkWriteDescriptorSet vertex_buffer_write_descriptor_set = {
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .pNext = nullptr,
+                .dstSet = m_descriptor_sets[i],
+                .dstBinding = 0,
+                .dstArrayElement = 0,
+                .descriptorCount = 1,
+                .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                .pBufferInfo = &descriptor_buffer_info
+            };
+            write_descriptor_sets.push_back(vertex_buffer_write_descriptor_set);
+        }
+
+        vkUpdateDescriptorSets(m_driver, static_cast<uint32_t>(write_descriptor_sets.size()), write_descriptor_sets.data(), 0, nullptr);
+    }
+
+    void vk_descriptor_set::update_texture(const vk_texture* p_texture) {
+        std::vector<VkWriteDescriptorSet> write_descriptor_sets;
+        VkDescriptorImageInfo texture_descriptor_image_info;
+
+        if(p_texture != nullptr) {
+            console_log_fatal("p_texture != nullptr and so we add texture_descriptor_image_info!!!");
+            if(p_texture->image_view() != nullptr) {
+                console_log_trace("image_view NOT NULL!!!");
+            }
+
+            if(p_texture->sampler() != nullptr) {
+                console_log_trace("sampler NOT NULL!!!");
+            }
+
+            texture_descriptor_image_info = {
+                .sampler = p_texture->sampler(),
+                .imageView = p_texture->image_view(),
+                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+            };
+        }
+
+        // Apply our texture to all descriptor sets
+        for(size_t i = 0; i < m_descriptor_count; i++) {
             VkWriteDescriptorSet texture_descriptor_set = {
                 .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                 .dstSet = m_descriptor_sets[i],
@@ -175,22 +186,16 @@ namespace vk {
 
             if(p_texture != nullptr) {
                 console_log_trace("Loading writing descriptor sets for textures!!!");
-
+    
                 write_descriptor_sets.push_back(texture_descriptor_set);
             }
         }
 
-        console_log_trace("DESCRIPTOR SETS WRITING SIZE = {}", write_descriptor_sets.size());
-
         vkUpdateDescriptorSets(m_driver, static_cast<uint32_t>(write_descriptor_sets.size()), write_descriptor_sets.data(), 0, nullptr);
     }
 
-
-    void vk_descriptor_set::update_mesh_descriptors(const mesh& p_mesh, const std::span<vk_uniform_buffer>& p_uniform_buffer, vk_texture* p_texture) {
-        
-        for(size_t i = 0; i < m_descriptor_count; i++) {
-            
-        }
+    void vk_descriptor_set::update_write_descriptors() {
+        // vkUpdateDescriptorSets(m_driver, static_cast<uint32_t>(m_write_descriptor_sets.size()), m_write_descriptor_sets.data(), 0, nullptr);
     }
 
 

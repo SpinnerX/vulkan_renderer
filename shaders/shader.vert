@@ -101,6 +101,5 @@ void main() {
 
 	// gl_Position = ubo.Model * ubo.Projection * ubo.View * vec4(pos, 1.0);
 	gl_Position = ubo.MVP * vec4(pos, 1.0);
-
 	texCoord = vec2(vtx.u, vtx.v);
 }

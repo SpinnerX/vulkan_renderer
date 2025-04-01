@@ -241,8 +241,18 @@ int main(){
             - test_uniforms passes all of our camera data
             - passing in our texture
         update_descriptor_sets(mesh, test_uniforms)
+
+        This call should be updated to doing this:
+
+        Using vk_descriptor_set used as a single descriptor set rather then supporting multiple. That is something that the vk_descriptor_set_manager should do
+
+        descriptor_set[i].update_descriptor_set(uniform_buffer[i]);
     */
-    test_descriptor_sets.update_descriptor_sets(test_vertex_buffer, test_uniforms, &test_texture);
+    // test_descriptor_sets.update_descriptor_sets(test_vertex_buffer, test_uniforms, &test_texture);
+    test_descriptor_sets.update_uniforms(test_uniforms);
+    test_descriptor_sets.update_texture(&test_texture);
+    test_descriptor_sets.update_vertex(test_vertex_buffer);
+    // test_descriptor_sets.update_write_descriptors();
 
 
 

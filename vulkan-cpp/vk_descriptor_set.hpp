@@ -42,6 +42,24 @@ namespace vk {
         FRAGMENT=1
     };
 
+
+    /*
+
+        For now lets just supply write descriptor sets as a std::span<vk_descriptor_set> and const vk_descriptor_set& p_descriptor_set
+
+        std::span<vk_descriptor_set> can be used for things such as using entire uniforms that gets appled throughout all processed images
+
+        vk_descriptor_set can be updated for individual descriptors associating to specific uniforms
+    
+    
+    */
+
+    enum write_descriptor_type : uint8_t{
+        WRITE_STORAGE_BUFFER = 0,
+        WRITE_UNIFORM_BUFFER = 1,
+        TEXTURE_IMAGE_AND_SAMPLER=2
+    };
+
     
 
 
@@ -64,6 +82,28 @@ namespace vk {
     };
 
 
+    struct write_descriptor_sets {
+        std::string Name="Undefined";
+
+    };
+
+    /*
+    
+        descriptor_set[i].update_descriptor_set(uniform_buffer[i]);
+
+        Lets also rewrite this to support multiple descriptor_set layouts
+        Abstraction for vk_descriptor_set_layout
+
+
+
+        API Idea
+
+        If I wanted to do this m_shader.set("position", glm::vec3());
+            - I would need a set of descriptor sets
+            - Associating a name with the specific descriptor sets we want to update
+
+    
+    */
 
     class vk_descriptor_set {
     public:
@@ -75,10 +115,14 @@ namespace vk {
 
         void bind(const VkCommandBuffer& p_command_buffer, uint32_t p_frame_index, const VkPipelineLayout& p_pipeline_layout);
 
-        void update_descriptor_sets(const vk_vertex_buffer& p_vertex_buffer, const std::span<vk_uniform_buffer>& p_uniform_buffer, vk_texture* p_texture);
+        // Updating specific groups of descriptor sets
+        //! @note Reason these are getting called for every descriptor set
+        //! @note Its because they need to be applied when doing camera transforms, etc.
+        void update_uniforms(const std::span<vk_uniform_buffer>& p_uniform_buffer);
+        void update_vertex(const vk_vertex_buffer& p_vertex_buffer);
+        void update_texture(const vk_texture* p_texture);
 
-        // We need a way for us to define what kind of data we are passing through
-        void update_mesh_descriptors(const mesh& p_mesh, const std::span<vk_uniform_buffer>& p_uniform_buffer, vk_texture* p_texture);
+        void update_write_descriptors();
 
         // void write_to_descriptor_set();
 
@@ -97,5 +141,6 @@ namespace vk {
         VkDescriptorSetLayout m_descriptor_set_layout=nullptr;
         // std::vector<
         std::vector<VkDescriptorSet> m_descriptor_sets;
+        // std::vector<VkWriteDescriptorSet> m_write_descriptor_sets;
     };
 };
