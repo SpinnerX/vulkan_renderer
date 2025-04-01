@@ -209,6 +209,20 @@ namespace vk {
             // .blendConstants[3] = 0.0f, // Optional
         };
 
+        // Enable depth-stencil state
+        VkPipelineDepthStencilStateCreateInfo pipeline_deth_stencil_state_ci = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+            .depthTestEnable = true,
+            .depthWriteEnable = true,
+            .depthCompareOp = VK_COMPARE_OP_LESS,
+            .depthBoundsTestEnable = false,
+            .stencilTestEnable = false,
+            .front = {},
+            .back = {},
+            .minDepthBounds = 0.0f,
+            .maxDepthBounds = 1.0f
+        };
+
         //! @note Dynamic State
         //! @note -- pipeline states needs to be baked into the pipeline state
         std::array<VkDynamicState, 2> dynamic_states = {
@@ -254,7 +268,8 @@ namespace vk {
             .pViewportState = &viewportState,
             .pRasterizationState = &rasterizer_ci,
             .pMultisampleState = &multisampling_ci,
-            .pDepthStencilState = nullptr, // Optional
+            // .pDepthStencilState = nullptr, // Optional
+            .pDepthStencilState = &pipeline_deth_stencil_state_ci,
             .pColorBlendState = &color_blending_ci,
             .pDynamicState = &dynamic_state_ci,
             .layout = m_pipeline_layout,

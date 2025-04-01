@@ -61,8 +61,39 @@ namespace vk {
         return image_view;
     }
 
+    static VkImageView create_image_view(const VkImage& p_image, VkFormat Format, VkImageAspectFlags AspectFlags) {
+        vk_driver driver = vk_driver::driver_context();
+        VkImageViewCreateInfo ViewInfo ={
+            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .pNext = NULL,
+            .flags = 0,
+            .image = p_image,
+            .viewType = VK_IMAGE_VIEW_TYPE_2D,
+            .format = Format,
+            .components = {
+                .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+                .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+                .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+                .a = VK_COMPONENT_SWIZZLE_IDENTITY
+            },
+            .subresourceRange = {
+                .aspectMask = AspectFlags,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1
+            }
+        };
+
+        VkImageView ImageView=nullptr;
+        VkResult res = vkCreateImageView(driver, &ViewInfo, nullptr, &ImageView);
+        vk_check(res, "vkCreateImageView", __FUNCTION__);
+        return ImageView;
+    }
+
     static VkRenderPass create_simple_renderpass(const VkDevice& p_driver, const VkSurfaceFormatKHR& p_surface_format) {
-        VkAttachmentDescription attachment_description = {
+        VkFormat depth_format = vk_driver::depth_format();
+        VkAttachmentDescription color_attachment_description = {
             .flags = 0,
             .format = p_surface_format.format,
             .samples = VK_SAMPLE_COUNT_1_BIT,
@@ -74,9 +105,26 @@ namespace vk {
             .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR 
         };
 
-        VkAttachmentReference attachment_ref = {
+        VkAttachmentDescription depth_attachment_description = {
+            .flags = 0,
+            .format = depth_format,
+            .samples = VK_SAMPLE_COUNT_1_BIT,
+            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+            .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+        };
+
+        VkAttachmentReference color_attachment_ref = {
             .attachment = 0,
             .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL 
+        };
+
+        VkAttachmentReference depth_attachment_reference = {
+            .attachment = 1,
+            .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
         };
 
         VkSubpassDescription subpass_description = {
@@ -85,19 +133,25 @@ namespace vk {
             .inputAttachmentCount = 0,
             .pInputAttachments = nullptr,
             .colorAttachmentCount = 1,
-            .pColorAttachments = &attachment_ref,
+            .pColorAttachments = &color_attachment_ref,
             .pResolveAttachments = nullptr,
-            .pDepthStencilAttachment = nullptr,
+            .pDepthStencilAttachment = &depth_attachment_reference, // enable depth buffering
             .preserveAttachmentCount = 0,
             .pPreserveAttachments = nullptr
         };
+
+        std::vector<VkAttachmentDescription> attachments;
+        attachments.push_back(color_attachment_description);
+        attachments.push_back(depth_attachment_description);
 
         VkRenderPassCreateInfo renderpass_ci = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
             .pNext = nullptr,
             .flags = 0,
-            .attachmentCount = 1,
-            .pAttachments = &attachment_description,
+            // .attachmentCount = 1,
+            // .pAttachments = &attachment_description,
+            .attachmentCount = static_cast<uint32_t>(attachments.size()),
+            .pAttachments = attachments.data(),
             .subpassCount = 1,
             .pSubpasses = &subpass_description,
             .dependencyCount = 0,
@@ -109,6 +163,59 @@ namespace vk {
         vk_check(vkCreateRenderPass(p_driver, &renderpass_ci, nullptr, &renderpass), "vkCreateRenderPass", __FUNCTION__);
 
         return renderpass;
+    }
+
+    static texture_properties create_image(uint32_t ImageWidth, uint32_t ImageHeight, VkFormat p_texture_format, VkImageUsageFlags UsageFlags, VkMemoryPropertyFlagBits PropertyFlags) {
+        vk_driver driver = vk_driver::driver_context();
+        texture_properties image;
+
+        VkImageCreateInfo ImageInfo = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .imageType = VK_IMAGE_TYPE_2D,
+            .format = p_texture_format,
+            .extent = VkExtent3D {.width = ImageWidth, .height = ImageHeight, .depth = 1 },
+            .mipLevels = 1,
+            .arrayLayers = 1,
+            .samples = VK_SAMPLE_COUNT_1_BIT,
+            .tiling = VK_IMAGE_TILING_OPTIMAL,
+            .usage = UsageFlags,
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+            .queueFamilyIndexCount = 0,
+            .pQueueFamilyIndices = nullptr,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        };
+    
+        // Step #1: create the image object
+        VkResult res = vkCreateImage(driver, &ImageInfo, NULL, &image.Image);
+        vk_check(res, "vkCreateImage", __FUNCTION__);
+    
+        // Step 2: get the buffer memory requirements
+        VkMemoryRequirements memory_requirements = { 0 };
+        vkGetImageMemoryRequirements(driver, image.Image, &memory_requirements);
+        // printf("Image requires %d bytes\n", (int)MemReqs.size);
+    
+        // Step 3: get the memory type index
+        uint32_t memory_type_index = driver.select_memory_type(memory_requirements.memoryTypeBits, PropertyFlags);
+        printf("Memory type index %d\n", memory_type_index);
+    
+        // Step 4: allocate memory
+        VkMemoryAllocateInfo MemAllocInfo = {
+            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            .pNext = NULL,
+            .allocationSize = memory_requirements.size,
+            .memoryTypeIndex = memory_type_index
+        };
+    
+        res = vkAllocateMemory(driver, &MemAllocInfo, NULL, &image.DeviceMemory);
+        vk_check(res, "vkAllocateMemory failed", __FUNCTION__);
+    
+        // Step 5: bind memory
+        res = vkBindImageMemory(driver, image.Image, image.DeviceMemory, 0);
+        vk_check(res, "vkBindBufferMemory", __FUNCTION__);
+
+        return image;
     }
 
     vk_swapchain::vk_swapchain(vk_physical_driver& p_physical, const vk_driver& p_driver, const VkSurfaceKHR& p_surface) : m_driver(p_driver), m_physical(p_physical), m_current_surface(p_surface) {
@@ -155,44 +262,34 @@ namespace vk {
         std::vector<VkImage> images(image_count);
         vkGetSwapchainImagesKHR(m_driver, m_swapchain_handler, &image_count, images.data()); // used to store in the images
 
-        // setting images
+        // Creating Images
         m_swapchain_images.resize(image_count);
-        console_log_trace("swapchain images.size() = {}", m_swapchain_images.size());
+        m_swapchain_depth_images.resize(image_count);
 
+        console_log_trace("swapchain images.size() = {}", m_swapchain_images.size());
+        VkFormat depth_format = m_driver.depth_format();
         uint32_t layer_count = 1;
         uint32_t mip_levels = 1;
         for(uint32_t i = 0; i < m_swapchain_images.size(); i++) {
             m_swapchain_images[i].Image = images[i];
             m_swapchain_images[i].ImageView = create_image_view(m_driver, images[i], m_surface_data.SurfaceFormat, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D, layer_count, mip_levels);
+
+            // Creating Depth Images for depth buffering
+            VkImageUsageFlagBits usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            VkMemoryPropertyFlagBits property_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+            // Creates our images
+            m_swapchain_depth_images[i] = create_image(m_swapchain_size.width, m_swapchain_size.height, depth_format, usage, property_flags);
+            m_swapchain_depth_images[i].ImageView = create_image_view(m_swapchain_depth_images[i].Image, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT);
+
         }
 
 
-        // command pools
-        console_log_info("vk_swapchain begin initializing command pool!!!!");
-        // VkCommandPoolCreateInfo command_pool_ci = {
-        //     .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-        //     .pNext = nullptr,
-        //     .flags = 0,
-        //     .queueFamilyIndex = present_index,
-        // };
-
-        // vk_check(vkCreateCommandPool(m_driver, &command_pool_ci, nullptr, &m_command_pool), "vkCreateCommandPool", __FUNCTION__);
-        console_log_info("vk_swapchain successfully initialized command pool!!!!\n");
 
         // command buffers
         console_log_info("vk_swapchain begin initializing command buffers!!!!");
 
         m_swapchain_command_buffers.resize(image_count);
         console_log_trace("command buffers.size() = {}", m_swapchain_command_buffers.size());
-        // VkCommandBufferAllocateInfo command_buffer_alloc_info = {
-        //     .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        //     .pNext = nullptr,
-        //     .commandPool = m_command_pool,
-        //     .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        //     .commandBufferCount = static_cast<uint32_t>(m_swapchain_command_buffers.size())
-        // };
-
-        // vk_check(vkAllocateCommandBuffers(m_driver, &command_buffer_alloc_info, m_swapchain_command_buffers.data()), "vkAllocateCommandBuffers", __FUNCTION__);
 
         for(size_t i = 0; i < m_swapchain_command_buffers.size(); i++) {
             command_buffer_properties properties = {
@@ -217,13 +314,19 @@ namespace vk {
         m_swapchain_framebuffers.resize(m_swapchain_images.size());
 
         for(uint32_t i = 0; i < m_swapchain_images.size(); i++) {
+            std::vector<VkImageView> image_view_attachments;
+            image_view_attachments.push_back(m_swapchain_images[i].ImageView);
+            image_view_attachments.push_back(m_swapchain_depth_images[i].ImageView);
+
             VkFramebufferCreateInfo framebuffer_ci = {
                 .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
                 .renderPass = m_swapchain_renderpass,
-                .attachmentCount = 1,
-                .pAttachments = &m_swapchain_images[i].ImageView,
+                // .attachmentCount = 1,
+                // .pAttachments = &m_swapchain_images[i].ImageView,
+                .attachmentCount = static_cast<uint32_t>(image_view_attachments.size()),
+                .pAttachments = image_view_attachments.data(),
                 .width = m_swapchain_size.width,
                 .height = m_swapchain_size.height,
                 .layers = 1
@@ -257,6 +360,12 @@ namespace vk {
         // vkDestroyCommandPool(m_driver, m_command_pool, nullptr);
         for(size_t i = 0; i < m_swapchain_command_buffers.size(); i++) {
             m_swapchain_command_buffers[i].destroy();
+        }
+
+        for(uint32_t i = 0; i < m_swapchain_depth_images.size(); i++) {
+            vkDestroyImageView(m_driver, m_swapchain_depth_images[i].ImageView, nullptr);
+            vkDestroyImage(m_driver, m_swapchain_depth_images[i].Image, nullptr);
+            vkFreeMemory(m_driver, m_swapchain_depth_images[i].DeviceMemory, nullptr);
         }
 
         for(uint32_t i = 0; i < m_swapchain_images.size(); i++) {

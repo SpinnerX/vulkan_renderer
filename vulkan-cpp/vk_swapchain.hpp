@@ -4,6 +4,7 @@
 #include <vulkan-cpp/vk_queue.hpp>
 #include <deque>
 #include <vulkan-cpp/logger.hpp>
+#include <vulkan-cpp/vk_buffer.hpp>
 #include <vulkan-cpp/vk_command_buffer.hpp>
 
 namespace vk {
@@ -26,16 +27,19 @@ namespace vk {
         template<typename UFunction>
         void record(const UFunction& p_callable) {
             console_log_info("vk_swapchain::record Begin recording!!!");
-            VkClearValue clear_value = {};
-            clear_value.color = m_color;
+            // VkClearValue clear_value = {};
+            // clear_value.color = m_color;
+            std::array<VkClearValue, 2> clear_values = {};
+            clear_values[0].color = m_color;
+            clear_values[1].depthStencil = {1.0f, 0};
 
-            VkImageSubresourceRange image_range = {
-                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                .baseMipLevel = 0,
-                .levelCount = 1,
-                .baseArrayLayer = 0,
-                .layerCount = 1
-            };
+            // VkImageSubresourceRange image_range = {
+            //     .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            //     .baseMipLevel = 0,
+            //     .levelCount = 1,
+            //     .baseArrayLayer = 0,
+            //     .layerCount = 1
+            // };
 
             VkRenderPassBeginInfo renderpass_begin_info = {
                 .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
@@ -51,12 +55,13 @@ namespace vk {
                         .height = m_swapchain_size.height
                     },
                 },
-                .clearValueCount = 1,
-                .pClearValues = &clear_value
+                // .clearValueCount = 1,
+                // .pClearValues = &clear_value
+                .clearValueCount = static_cast<uint32_t>(clear_values.size()),
+                .pClearValues = clear_values.data()
             };
 
             for(uint32_t i = 0; i < m_swapchain_command_buffers.size(); i++) {
-                // begin_command_buffer(m_swapchain_command_buffers[i], VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
                 m_swapchain_command_buffers[i].begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
                 VkViewport viewport = {
                     .x = 0.0f,
@@ -80,7 +85,6 @@ namespace vk {
                 vkCmdBeginRenderPass(m_swapchain_command_buffers[i], &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
                 p_callable(m_swapchain_command_buffers[i].handle());
                 vkCmdEndRenderPass(m_swapchain_command_buffers[i]);
-                // end_command_buffer(m_swapchain_command_buffers[i]);
                 m_swapchain_command_buffers[i].end();
             }
 
@@ -211,6 +215,7 @@ namespace vk {
         //! @note Setup Images
         // std::array<image, swapchain_configs::MaxFramesInFlight> m_swapchain_images;
         std::vector<image> m_swapchain_images;
+        std::vector<texture_properties> m_swapchain_depth_images;
 
         // swapchain queue
         vk_queue m_swapchain_queue;

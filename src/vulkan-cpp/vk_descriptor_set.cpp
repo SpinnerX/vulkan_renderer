@@ -118,11 +118,6 @@ namespace vk {
             }
         }
 
-        // Apply our texture to all descriptor sets
-        // for(size_t i = 0; i < m_descriptor_count; i++) {
-        //     write_descriptor_set.dstSet = m_descriptor_sets[i];
-        // }
-
         vkUpdateDescriptorSets(m_driver, static_cast<uint32_t>(write_descriptor_sets.size()), write_descriptor_sets.data(), 0, nullptr);
     }
 
@@ -193,11 +188,6 @@ namespace vk {
 
         vkUpdateDescriptorSets(m_driver, static_cast<uint32_t>(write_descriptor_sets.size()), write_descriptor_sets.data(), 0, nullptr);
     }
-
-    void vk_descriptor_set::update_write_descriptors() {
-        // vkUpdateDescriptorSets(m_driver, static_cast<uint32_t>(m_write_descriptor_sets.size()), m_write_descriptor_sets.data(), 0, nullptr);
-    }
-
 
     void vk_descriptor_set::destroy() {
         vkDestroyDescriptorPool(m_driver, m_descriptor_pool, nullptr);

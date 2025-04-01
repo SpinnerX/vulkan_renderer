@@ -35,6 +35,8 @@ namespace vk {
         operator VkDevice() const { return m_driver; }
         operator VkDevice() { return m_driver; }
 
+        static VkFormat depth_format();
+
         void destroy();
 
     private:

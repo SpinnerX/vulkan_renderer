@@ -4,9 +4,40 @@
 #include <vulkan-cpp/helper_functions.hpp>
 
 namespace vk {
+
+    static VkFormat search_supported_depth_format(const VkPhysicalDevice& p_physical, const std::span<VkFormat>& p_formats, VkImageTiling p_tiling, VkFormatFeatureFlags p_feature_flag) {
+        VkFormat format;
+
+        for(size_t i = 0; i < p_formats.size(); i++) {
+            VkFormat current_format = p_formats[i];
+            VkFormatProperties format_properties;
+            vkGetPhysicalDeviceFormatProperties(p_physical, current_format, &format_properties);
+
+            if((p_tiling == VK_IMAGE_TILING_LINEAR) and (format_properties.linearTilingFeatures & p_feature_flag)) {
+                format = current_format;
+            }
+            else if (p_tiling == VK_IMAGE_TILING_OPTIMAL and format_properties.optimalTilingFeatures & p_feature_flag) {
+                format = current_format;
+            }
+        }
+
+        return format;
+    }
+
+    static VkFormat search_depth_format(const VkPhysicalDevice& p_physical) {
+        std::vector<VkFormat> candidate_formats = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT};
+
+        VkFormat format = search_supported_depth_format(p_physical, candidate_formats, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+        return format;
+    } 
+
+    static VkFormat s_depth_format_selected;
+
     vk_driver* vk_driver::s_instance = nullptr;
     vk_driver::vk_driver(const vk_physical_driver& p_physical) : m_physical_driver(p_physical) {
         console_log_info("vk_driver::vk_driver begin initialization!!!");
+
+        s_depth_format_selected = search_depth_format(p_physical);
         float queue_priority[1] = { 0.0f };
         /*
 
@@ -57,6 +88,10 @@ namespace vk {
         console_log_info("vk_driver::vk_driver end initialization!!!\n\n");
 
         s_instance = this;
+    }
+
+    VkFormat vk_driver::depth_format() {
+        return s_depth_format_selected;
     }
 
 

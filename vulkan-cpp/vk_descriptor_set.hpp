@@ -122,10 +122,6 @@ namespace vk {
         void update_vertex(const vk_vertex_buffer& p_vertex_buffer);
         void update_texture(const vk_texture* p_texture);
 
-        void update_write_descriptors();
-
-        // void write_to_descriptor_set();
-
         VkDescriptorPool get_pool() const { return m_descriptor_pool; }
         VkDescriptorSetLayout get_layout() const { return m_descriptor_set_layout; }
 
@@ -136,11 +132,8 @@ namespace vk {
     private:
         uint32_t m_descriptor_count=0;
         VkDevice m_driver=nullptr;
-
         VkDescriptorPool m_descriptor_pool=nullptr;
         VkDescriptorSetLayout m_descriptor_set_layout=nullptr;
-        // std::vector<
         std::vector<VkDescriptorSet> m_descriptor_sets;
-        // std::vector<VkWriteDescriptorSet> m_write_descriptor_sets;
     };
 };
