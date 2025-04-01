@@ -165,7 +165,8 @@ int main(){
     // vk::vk_vertex_buffer test_vertex_buffer = vk::vk_vertex_buffer(vertices);
     // vk::vk_index_buffer test_index_buffer = vk::vk_index_buffer(indices);
 
-    vk::mesh new_mesh = load("models/Ball OBJ.obj");
+    // vk::mesh new_mesh = load("models/Ball OBJ.obj");
+    vk::mesh new_mesh = load("models/viking_room.obj");
     vk::vk_vertex_buffer test_vertex_buffer = new_mesh.get_vertex();
     vk::vk_index_buffer test_index_buffer = new_mesh.get_index();
 
