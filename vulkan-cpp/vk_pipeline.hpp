@@ -62,20 +62,43 @@ namespace vk {
     
     */
 
+    /*
+    
+        Usage of vertex_binding_description
+        { "Vertex", .Binding = 0, .sttride = sizeof(vertex), .InputRate = VK_VERTEX_INPUT_RATE_VERTEX}
+    */
+    struct vertex_binding_description {
+        vertex_binding_description(const std::string& p_name, uint32_t p_binding, uint32_t p_stride, const VkVertexInputRate& p_input_rate) : Name(p_name), Binding(p_binding), Stride(p_stride), InputRate(p_input_rate) {}
+        std::string Name="Undefined";
+        uint32_t Binding=0;
+        uint32_t Stride=0;
+        VkVertexInputRate InputRate;
+    };
 
+    /*
 
+        Usage
+        { "inPosition", location = 0, binding = 0, .offset = offsetof(vk::vertex, Position)}
+        { "inColor", location = 1, binding = 0, .offset = offsetof(vk::vertex, Color) }
+        { "inColor", location = 2, binding = 0, .offset = offsetof(vk::vertex, inTexCoords) }
 
+        Used for shaders that do something similar or the following vertex attributes definition
+        layout(location = 0) in vec3 inPosition;
+        layout(location = 1) in vec3 inColor;
+        layout(location = 2) in vec2 inTexCoord;
+    */
     struct pipeline_vertex_attributes {
+        pipeline_vertex_attributes(const std::string p_name, uint32_t p_binding, uint32_t p_location, uint32_t p_offset, const VkFormat& p_format) : Name(p_name), Binding(p_binding), Location(p_location), Format(p_format) {}
         std::string Name="Undefined";
         uint32_t Binding = 0;
         uint32_t Location=0;
-        VkFormat Format=VkFormat::VK_FORMAT_UNDEFINED;
         uint32_t Offset=0;
+        VkFormat Format=VkFormat::VK_FORMAT_UNDEFINED;
     };
     
     class vk_pipeline {
     public:
-        vk_pipeline(const VkRenderPass& p_renderpass, const vk_shader& p_shader_src, const VkDescriptorSetLayout& p_descriptor_sets, const std::span<pipeline_vertex_attributes>& p_vertex_attributes);
+        vk_pipeline(const VkRenderPass& p_renderpass, const vk_shader& p_shader_src, const VkDescriptorSetLayout& p_descriptor_sets, const std::span<vertex_binding_description>& p_binding_description, const std::span<pipeline_vertex_attributes>& p_vertex_attributes);
 
         void bind(const VkCommandBuffer& p_command_buffer);
 

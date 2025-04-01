@@ -90,7 +90,7 @@ struct VertexData
 
 layout (binding = 0) readonly buffer Vertices { VertexData data[]; } in_Vertices;
 
-layout (binding = 1) readonly uniform UniformBuffer { mat4 WVP; } ubo;
+layout (binding = 1) readonly uniform UniformBuffer { mat4 MVP; } ubo;
 
 layout(location = 0) out vec2 texCoord;
 
@@ -99,7 +99,8 @@ void main() {
 
 	vec3 pos = vec3(vtx.x, vtx.y, vtx.z);
 
-	gl_Position = ubo.WVP * vec4(pos, 1.0);
+	// gl_Position = ubo.Model * ubo.Projection * ubo.View * vec4(pos, 1.0);
+	gl_Position = ubo.MVP * vec4(pos, 1.0);
 
 	texCoord = vec2(vtx.u, vtx.v);
 }

@@ -72,13 +72,13 @@ vk::mesh load(const std::string& p_filename) {
                 };
             }
 
-            if (index.normal_index >= 0) {
-                vertex.Normals = {
-                    attrib.normals[3 * index.normal_index + 0],
-                    attrib.normals[3 * index.normal_index + 1],
-                    attrib.normals[3 * index.normal_index + 2]
-                };
-            }
+            // if (index.normal_index >= 0) {
+            //     vertex.Normals = {
+            //         attrib.normals[3 * index.normal_index + 0],
+            //         attrib.normals[3 * index.normal_index + 1],
+            //         attrib.normals[3 * index.normal_index + 2]
+            //     };
+            // }
 
             if (index.texcoord_index >= 0) {
                 vertex.Uv = {
@@ -141,11 +141,11 @@ int main(){
     // vk::vk_shader test_shader = vk::vk_shader("shader_useful_directory/geometry/vert.spv", "shader_useful_directory/geometry/frag.spv");
 
     // adding descriptor sets
-    // std::vector<vk::vertex> vertices = {
-    //     vk::vertex({-1.0f, -1.0f, 1.0f},  {0.0f, 0.0f}),	// top left
-    //     vk::vertex({1.0f, -1.0f, 1.0f},   {0.0f, 1.0f}),	// top right
-    //     vk::vertex({0.0f,  1.0f, 1.0f},   {1.0f, 1.0f}) 	// bottom middle
-    // };
+    std::vector<vk::vertex> vertices = {
+        vk::vertex({-1.0f, -1.0f, 1.0f}, {1.0f, 0.f, 0.f}, {0.0f, 0.0f}),	// top left
+        vk::vertex({1.0f, -1.0f, 1.0f}, {1.0f, 0.f, 0.f}, {0.0f, 1.0f}),	// top right
+        vk::vertex({0.0f,  1.0f, 1.0f}, {1.0f, 0.f, 0.f}, {1.0f, 1.0f}) 	// bottom middle
+    };
 
     // std::vector<vk::vertex> vertices = {
     //     vk::vertex({-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}),	// Bottom left
@@ -155,28 +155,17 @@ int main(){
     //     vk::vertex({1.0f, 1.0f, 0.0f},   {1.0f, 1.0f}), // Top right
     //     vk::vertex({1.0f,  -1.0f, 0.0f}, {1.0f, 0.0f})  // Bottom right
     // };
-    // std::vector<vk::vertex> vertices = {
-    //     vk::vertex({1.0f, 0.0f, 0.0f}, {-0.5f, -0.5f}),
-    //     vk::vertex({0.0f, 1.0f, 0.0f}, {0.5f, -0.5f}),
-    //     vk::vertex({0.0f, 0.0f, 1.0f}, {0.5f, 0.5f}),
-    //     vk::vertex({1.0f, 1.0f, 1.0f}, {-0.5f, 0.5f})
-    // };
 
     // // std::vector<uint32_t> indices = {0, 1, 2, 2, 3, 0};
-    // std::vector<uint32_t> indices = {
-    //     0, 1, 2, 2, 3, 1,
-    // };
+    std::vector<uint32_t> indices = {
+        0, 1, 2, 2, 3, 1,
+    };
 
     // creating our uniform buffer
     // vk::vk_vertex_buffer test_vertex_buffer = vk::vk_vertex_buffer(vertices);
     // vk::vk_index_buffer test_index_buffer = vk::vk_index_buffer(indices);
 
-
-
-    // vk::vk_vertex_buffer test_vertex_buffer = vk::vk_vertex_buffer();
-    // vk::vk_index_buffer test_index_buffer = vk::vk_index_buffer();
-
-    vk::mesh new_mesh = load("models/viking_room.obj");
+    vk::mesh new_mesh = load("models/Ball OBJ.obj");
     vk::vk_vertex_buffer test_vertex_buffer = new_mesh.get_vertex();
     vk::vk_index_buffer test_index_buffer = new_mesh.get_index();
 
@@ -199,32 +188,51 @@ int main(){
 
     //! @note Now without needing to manually set the layout bindings manually, this will set up the descriptor sets automatically
     // this descriptor set layout is for shaders/shader.*
-    std::vector<vk::vk_descriptor_set_properties> layouts = {
+    std::vector<vk::vk_descriptor_set_properties> descriptor_layouts = {
         {"in_Vertices", 0, vk::descriptor_type::STORAGE_BUFFER, vk::shader_stage::VERTEX},
         {"ubo", 1, vk::descriptor_type::UNIFORM_BUFFER, vk::shader_stage::VERTEX},
         {"texSampler", 2, vk::descriptor_type::IMAGE_AND_SAMPLER, vk::shader_stage::FRAGMENT}
     };
 
+    // std::vector<vk::vk_descriptor_set_properties> descriptor_layouts = {
+    //     {"in_Vertices", 0, vk::descriptor_type::STORAGE_BUFFER, vk::shader_stage::VERTEX},
+    //     {"ubo", 1, vk::descriptor_type::UNIFORM_BUFFER, vk::shader_stage::FRAGMENT},
+    //     {"texSampler", 2, vk::descriptor_type::IMAGE_AND_SAMPLER, vk::shader_stage::FRAGMENT}
+    // };
+
     // This is descriptors for shader_useful_directory/geometry/shader.* shaders
-    // std::vector<vk::vk_descriptor_set_properties> layouts = {
+    // std::vector<vk::vk_descriptor_set_properties> descriptor_layouts = {
     //     {"inPosition", 0, vk::descriptor_type::UNIFORM_BUFFER, vk::shader_stage::VERTEX},
     //     {"inPosition", 1, vk::descriptor_type::IMAGE_AND_SAMPLER, vk::shader_stage::FRAGMENT},
     // };
 
-    vk::vk_descriptor_set test_descriptor_sets = vk::vk_descriptor_set(image_count, layouts);
+    vk::vk_descriptor_set test_descriptor_sets = vk::vk_descriptor_set(image_count, descriptor_layouts);
     // vk::vk_descriptor_set test_descriptor_sets = vk::vk_descriptor_set(main_window_swapchain.image_size(), test_uniforms);
+
+
+
+    // Vulkan Pipeline Specifications
+    
+    // specifically binding descriptions for pipeline
+    std::vector<vk::vertex_binding_description> binding_descriptions = {
+        { "Vertex", 0, sizeof(vk::vertex), VK_VERTEX_INPUT_RATE_VERTEX}
+    };
+
+    // specifically vertex attributes
     std::vector<vk::pipeline_vertex_attributes> vertex_attributes = {
-        {.Name = "isPos", .Binding = 0, .Location = 0, .Format = VK_FORMAT_R32G32B32_SFLOAT, .Offset = offsetof(vk::vertex, Position)}
+        { "inPosition",  0,  0, offsetof(vk::vertex, Position), VK_FORMAT_R32G32B32_SFLOAT},
+        { "inColor", 0,  1, offsetof(vk::vertex, Color), VK_FORMAT_R32G32B32_SFLOAT},
+        { "inTexCoords", 0,  2, offsetof(vk::vertex, Uv), VK_FORMAT_R32G32_SFLOAT}
     };
 
     // setting up vulkan pipeline
-    vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window_swapchain.get_renderpass(), test_shader, test_descriptor_sets.get_layout(), {});
+    vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window_swapchain.get_renderpass(), test_shader, test_descriptor_sets.get_layout(), {}, {});
 
     // vk::vk_pipeline test_pipeline2 = vk::vk_pipeline(main_window_swapchain.get_renderpass(), test_shader, test_descriptor_sets.get_layout());
 
     // Loading and using textures
-    // vk::vk_texture test_texture("models/viking_room.png");
-    vk::vk_texture test_texture("textures/bricks.jpg");
+    vk::vk_texture test_texture("models/viking_room.png");
+    // vk::vk_texture test_texture("textures/bricks.jpg");
 
     // updating descriptor sets
     /*
@@ -274,7 +282,7 @@ int main(){
         // draw (after recording)
 
         //! TODO: Could be relocated. All this needs to know is the current frame to update the uniforms
-        main_window_swapchain.update_uniforms([&test_uniforms, &main_window, dt](const uint32_t& p_frame_index){
+        main_window_swapchain.update_uniforms([&test_uniforms, &main_window, dt, width, height](const uint32_t& p_frame_index){
             static float angle = 0.0f;
             glm::mat4 rotation = glm::mat4(1.f);
             rotation = glm::rotate(rotation, glm::radians(angle), glm::normalize(glm::vec3(0.f, 0.f, 1.f)));
@@ -282,9 +290,16 @@ int main(){
 
             glm::mat4 mvp = rotation;
 
+            camera_data_uniform2 ubo{};
+            ubo.Model = glm::rotate(glm::mat4(1.0f), dt * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            ubo.Projection = glm::perspective(glm::radians(45.0f), width / (float) height, 0.1f, 10.0f);
+            ubo.Projection[1][1] *= -1;
+
 
 
             test_uniforms[p_frame_index].update(&mvp, sizeof(mvp));
+            // test_uniforms[p_frame_index].update(&ubo, sizeof(ubo));
         });
 
         // presenting frame (after drawing that frame)

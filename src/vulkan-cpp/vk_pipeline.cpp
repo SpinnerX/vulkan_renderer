@@ -6,7 +6,7 @@
 #include <vulkan-cpp/vk_window.hpp>
 
 namespace vk {
-    vk_pipeline::vk_pipeline(const VkRenderPass& p_renderpass, const vk_shader& p_shader_src, const VkDescriptorSetLayout& p_descriptor_sets, const std::span<pipeline_vertex_attributes>& p_vertex_attributes) {
+    vk_pipeline::vk_pipeline(const VkRenderPass& p_renderpass, const vk_shader& p_shader_src, const VkDescriptorSetLayout& p_descriptor_sets, const std::span<vertex_binding_description>& p_binding_description, const std::span<pipeline_vertex_attributes>& p_vertex_attributes) {
         int width=0;
         int height=0;
         m_driver = vk_driver::driver_context();
@@ -75,6 +75,38 @@ namespace vk {
         // bindingDescription.binding = 0;
         // bindingDescription.stride = sizeof(vertex);
         // bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+        // vertex attributes
+        std::vector<VkVertexInputAttributeDescription> vertex_attributes(p_vertex_attributes.size());
+
+        for(size_t i = 0; i < vertex_attributes.size(); i++) {
+            pipeline_vertex_attributes attribute = p_vertex_attributes[i];
+            vertex_attributes[i] = {
+                .location = attribute.Location,
+                .binding = attribute.Binding,
+                .format = attribute.Format,
+                .offset = attribute.Offset 
+            };
+        }
+
+        console_log_trace("vertex_attributes.size() = {}", vertex_attributes.size());
+        if(vertex_attributes.data() == nullptr) {
+            console_log_trace("vertex_attributes.data() is nullptr!!!");
+        }
+        else {
+            console_log_trace("vertex_attributes.data() not nullptr!!!");
+        }
+
+        std::vector<VkVertexInputBindingDescription> binding_descriptions(p_binding_description.size());
+
+        for(size_t i = 0; i < binding_descriptions.size(); i++) {
+            vertex_binding_description binding_desc = p_binding_description[i];
+            binding_descriptions[i] = {
+                .binding = binding_desc.Binding,
+                .stride = binding_desc.Stride,
+                .inputRate = binding_desc.InputRate
+            };
+        }
         
 
 
@@ -82,12 +114,16 @@ namespace vk {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             // .vertexBindingDescriptionCount = 1,
             // .pVertexBindingDescriptions = &bindingDescription, // Optional
-            .vertexBindingDescriptionCount = 0,
-            .pVertexBindingDescriptions = nullptr, // Optional
+            // .vertexBindingDescriptionCount = 0,
+            // .pVertexBindingDescriptions = nullptr, // Optional
             // .vertexAttributeDescriptionCount = static_cast<uint32_t>(attributes.size()),
             // .pVertexAttributeDescriptions = attributes.data(), // Optional
-            .vertexAttributeDescriptionCount = 0,
-            .pVertexAttributeDescriptions = nullptr
+            .vertexBindingDescriptionCount = static_cast<uint32_t>(binding_descriptions.size()),
+            .pVertexBindingDescriptions = binding_descriptions.data(), // Optional
+            .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_attributes.size()),
+            .pVertexAttributeDescriptions = vertex_attributes.data(), // Optional
+            // .vertexAttributeDescriptionCount = 0,
+            // .pVertexAttributeDescriptions = nullptr
         };
         
         VkPipelineInputAssemblyStateCreateInfo inputAssembly = {

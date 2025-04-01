@@ -119,6 +119,12 @@ namespace vk {
 
         std::vector<VkWriteDescriptorSet> write_descriptor_sets;
 
+        /*
+            NOTE -- Something that I need to add
+            - Ways of abstracting singular VkWriteDescriptorSets
+            - Since there are only two ways of writing descriptors either BUFFERS or IMAGE_AND_SAMPLER types!
+        */
+
         for(size_t i = 0; i < m_descriptor_count; i++) {
             
             // (dstBinding should be 0)
