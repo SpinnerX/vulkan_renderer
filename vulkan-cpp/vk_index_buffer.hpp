@@ -10,7 +10,6 @@ namespace vk {
 
         ~vk_index_buffer() {}
 
-
         uint32_t count() const { return m_indices_count; }
 
         bool has_indices() const { return (m_indices_count > 0); }
@@ -22,8 +21,8 @@ namespace vk {
         void destroy();
 
     private:
-        VkDevice m_driver=nullptr;
+        VkDevice m_driver = nullptr;
         buffer_properties m_index_buffer_data{};
-        uint32_t m_indices_count=0;
+        uint32_t m_indices_count = 0;
     };
 };

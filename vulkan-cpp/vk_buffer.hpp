@@ -4,26 +4,26 @@
 
 namespace vk {
     struct buffer_properties {
-        VkBuffer BufferHandler=nullptr;
-        VkDeviceMemory DeviceMemory=nullptr;
-        uint32_t AllocateDeviceSize=0;
+        VkBuffer BufferHandler = nullptr;
+        VkDeviceMemory DeviceMemory = nullptr;
+        uint32_t AllocateDeviceSize = 0;
     };
 
     struct image_data {
-        VkImage Image=nullptr;
-        VkImageView ImageView=nullptr;
-        VkSampler Sampler=nullptr;
-        VkDeviceMemory DeviceMemory=nullptr;
-        uint32_t Width=0;
-        uint32_t Height=0;
+        VkImage Image = nullptr;
+        VkImageView ImageView = nullptr;
+        VkSampler Sampler = nullptr;
+        VkDeviceMemory DeviceMemory = nullptr;
+        uint32_t Width = 0;
+        uint32_t Height = 0;
     };
 
     struct texture_properties {
-        VkImage Image=nullptr;
-        VkImageView ImageView=nullptr;
-        VkSampler Sampler=nullptr;
-        VkDeviceMemory DeviceMemory=nullptr;
-        uint32_t AllocateDeviceSize=0;
+        VkImage Image = nullptr;
+        VkImageView ImageView = nullptr;
+        VkSampler Sampler = nullptr;
+        VkDeviceMemory DeviceMemory = nullptr;
+        uint32_t AllocateDeviceSize = 0;
     };
 
     // struct vertex {
@@ -39,7 +39,8 @@ namespace vk {
 
     //     bool operator==(const vertex& other) const {
     //         return (Position == other.Position and Color == other.Color and
-    //                 Normals == other.Normals and TexCoords == other.TexCoords);
+    //                 Normals == other.Normals and TexCoords ==
+    //                 other.TexCoords);
     //     }
     // };
 
@@ -49,7 +50,8 @@ namespace vk {
         glm::vec2 Uv;
 
         bool operator==(const vertex& other) const {
-            return Position == other.Position && Color == other.Color && Uv == other.Uv;
+            return Position == other.Position && Color == other.Color &&
+                   Uv == other.Uv;
         }
     };
 

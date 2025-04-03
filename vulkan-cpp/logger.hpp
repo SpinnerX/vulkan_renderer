@@ -110,7 +110,7 @@ console_log_trace_tagged(const std::string& p_tag,
                          spdlog::format_string_t<T...> fmt,
                          T&&... args) {
     logger::console_log_manager::get(p_tag)->trace(fmt,
-                                                  std::forward<T>(args)...);
+                                                   std::forward<T>(args)...);
 }
 
 template<typename... T>
@@ -118,7 +118,8 @@ inline void
 console_log_info_tagged(const std::string& p_tag,
                         spdlog::format_string_t<T...> fmt,
                         T&&... args) {
-    logger::console_log_manager::get(p_tag)->info(fmt, std::forward<T>(args)...);
+    logger::console_log_manager::get(p_tag)->info(fmt,
+                                                  std::forward<T>(args)...);
 }
 
 template<typename... T>
@@ -126,7 +127,8 @@ inline void
 console_log_warn_tagged(const std::string& p_tag,
                         spdlog::format_string_t<T...> fmt,
                         T&&... args) {
-    logger::console_log_manager::get(p_tag)->warn(fmt, std::forward<T>(args)...);
+    logger::console_log_manager::get(p_tag)->warn(fmt,
+                                                  std::forward<T>(args)...);
 }
 
 template<typename... T>
@@ -135,7 +137,7 @@ console_log_error_tagged(const std::string& p_tag,
                          spdlog::format_string_t<T...> fmt,
                          T&&... args) {
     logger::console_log_manager::get(p_tag)->error(fmt,
-                                                  std::forward<T>(args)...);
+                                                   std::forward<T>(args)...);
 }
 
 template<typename... T>
@@ -144,5 +146,5 @@ console_log_fatal_tagged(const std::string& p_tag,
                          spdlog::format_string_t<T...> fmt,
                          T&&... args) {
     logger::console_log_manager::get(p_tag)->critical(fmt,
-                                                     std::forward<T>(args)...);
+                                                      std::forward<T>(args)...);
 }

@@ -15,6 +15,7 @@ namespace vk {
             uint32_t Transfer = -1;
             uint32_t Present = -1;
         };
+
     public:
         vk_physical_driver() = default;
         vk_physical_driver(const VkInstance& p_instance);
@@ -23,26 +24,28 @@ namespace vk {
         operator VkPhysicalDevice() const { return m_physical_driver; }
         operator VkPhysicalDevice() { return m_physical_driver; }
 
-        queue_family_indices get_queue_indices() const { return m_queue_indices; }
+        queue_family_indices get_queue_indices() const {
+            return m_queue_indices;
+        }
 
         static vk_physical_driver& physical_driver() { return *s_instance; }
-
 
         uint32_t get_presentation_index(const VkSurfaceKHR& p_surface);
 
         // VkSurfaceCapabilitiesKHR get_surface_capabilities();
 
-        // VkSurfaceFormatKHR get_current_surface_format(const VkSurfaceKHR& p_surface);
+        // VkSurfaceFormatKHR get_current_surface_format(const VkSurfaceKHR&
+        // p_surface);
 
         /*
-            Physical Device should provide the surface properties to other contexts of vulkan like the swapchain
+            Physical Device should provide the surface properties to other
+           contexts of vulkan like the swapchain
         */
-        surface_properties get_surface_properties(const VkSurfaceKHR& p_surface);
-
+        surface_properties get_surface_properties(
+          const VkSurfaceKHR& p_surface);
 
     private:
         queue_family_indices select_queue_family_indices();
-
 
     private:
         static vk_physical_driver* s_instance;

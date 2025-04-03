@@ -6,7 +6,7 @@ namespace vk {
     struct window_settings {
         int Width = -1;
         int Height = -1;
-        std::string Name="";
+        std::string Name = "";
     };
 
     class vk_window {
@@ -21,21 +21,24 @@ namespace vk {
 
         std::string get_name() const { return m_settings.Name; }
 
-        bool is_active() const { return !glfwWindowShouldClose(m_window_handler); }
+        bool is_active() const {
+            return !glfwWindowShouldClose(m_window_handler);
+        }
 
         void create_window_surface(const VkInstance& p_instance);
-
 
         void center_window();
 
         void clean();
 
-        static GLFWwindow* native_window() { return s_instance->m_window_handler; }
+        static GLFWwindow* native_window() {
+            return s_instance->m_window_handler;
+        }
 
         operator GLFWwindow*() { return m_window_handler; }
         operator GLFWwindow*() const { return m_window_handler; }
 
-        operator VkSurfaceKHR(){ return m_window_surface; }
+        operator VkSurfaceKHR() { return m_window_surface; }
         operator VkSurfaceKHR() const { return m_window_surface; }
 
     private:
@@ -46,7 +49,7 @@ namespace vk {
         VkInstance m_instance = nullptr;
         window_settings m_settings{};
 
-        GLFWwindow* m_window_handler=nullptr;
+        GLFWwindow* m_window_handler = nullptr;
         VkSurfaceKHR m_window_surface = nullptr;
     };
 };

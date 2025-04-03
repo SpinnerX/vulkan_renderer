@@ -8,7 +8,7 @@
 #include <cstdint>
 
 // Defines several possible options for camera movement. Used as abstraction
-    // to stay away from window-system specific input methods
+// to stay away from window-system specific input methods
 enum Camera_Movement { FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN };
 
 // Default camera values
@@ -22,14 +22,15 @@ const float ZOOM = 45.0f;
 class perspective_camera {
 public:
     // constructor with vectors
-    perspective_camera(float p_aspect_ratio, glm::vec3 position = glm::vec3(0.0f, 0.f, 0.0f),
-            glm::vec3 up = glm::vec3(0.0f, 0.f, 0.0f),
-            float yaw = YAW,
-            float pitch = PITCH)
-        : MovementSpeed(5.f)
-        , MouseSensitivity(0.1f)
-        , Zoom(ZOOM)
-        , camera_mouse_sensitivity(0.1f) {
+    perspective_camera(float p_aspect_ratio,
+                       glm::vec3 position = glm::vec3(0.0f, 0.f, 0.0f),
+                       glm::vec3 up = glm::vec3(0.0f, 0.f, 0.0f),
+                       float yaw = YAW,
+                       float pitch = PITCH)
+      : MovementSpeed(5.f)
+      , MouseSensitivity(0.1f)
+      , Zoom(ZOOM)
+      , camera_mouse_sensitivity(0.1f) {
         Position = position;
         WorldUp = up;
         EulerRotation = { yaw, pitch, 1.f };
@@ -69,8 +70,8 @@ public:
     // processes input received from a mouse input system. Expects the
     // offset value in both the x and y direction.
     void ProcessMouseMovement(float xoffset,
-                                float yoffset,
-                                bool constrainPitch = true) {
+                              float yoffset,
+                              bool constrainPitch = true) {
 
         xoffset *= MouseSensitivity;
         yoffset *= MouseSensitivity;
@@ -130,11 +131,11 @@ private:
         // sin(glm::radians(EulerRotation.x)) *
         // cos(glm::radians(EulerRotation.y)); Front =
         // glm::normalize(front); also re-calculate the Right and Up vector
-        Right = glm::normalize(glm::cross(
-            get_front(),
-            WorldUp)); // normalize the vectors, because their length
-                        // gets closer to 0 the more you look up or
-                        // down which results in slower movement.
+        Right = glm::normalize(
+          glm::cross(get_front(),
+                     WorldUp)); // normalize the vectors, because their length
+                                // gets closer to 0 the more you look up or
+                                // down which results in slower movement.
         Left = glm::normalize(glm::cross(-get_front(), WorldUp));
         Up = glm::normalize(glm::cross(Right, get_front()));
         Down = glm::normalize(glm::cross(-Right, WorldUp));
@@ -145,17 +146,17 @@ public:
         //! TODO: Eventually we will have camera configurations that will
         //! utilize this.
         Projection =
-            glm::perspective(glm::radians(Zoom), AspectRatio, .1f, 50000.f);
+          glm::perspective(glm::radians(Zoom), AspectRatio, .1f, 50000.f);
         View = glm::lookAt(Position, Position + get_front(), Up);
     }
 
     glm::vec3 get_front() const {
         glm::vec3 front_values;
         front_values.x = cos(glm::radians(EulerRotation.x)) *
-                            cos(glm::radians(EulerRotation.y));
+                         cos(glm::radians(EulerRotation.y));
         front_values.y = sin(glm::radians(EulerRotation.y));
         front_values.z = sin(glm::radians(EulerRotation.x)) *
-                            cos(glm::radians(EulerRotation.y));
+                         cos(glm::radians(EulerRotation.y));
         return glm::normalize(front_values);
     }
 

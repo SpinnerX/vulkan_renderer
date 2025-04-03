@@ -11,7 +11,9 @@ namespace vk {
     public:
         vk_imgui();
 
-        void initialize(const VkInstance& p_instance, const VkPhysicalDevice& p_physical, const vk_swapchain& p_swapchain);
+        void initialize(const VkInstance& p_instance,
+                        const VkPhysicalDevice& p_physical,
+                        const vk_swapchain& p_swapchain);
 
         void begin();
         void end();
@@ -20,7 +22,7 @@ namespace vk {
 
     private:
         vk_driver m_driver;
-        VkDescriptorPool m_imgui_desc_pool=nullptr;
+        VkDescriptorPool m_imgui_desc_pool = nullptr;
         vk_swapchain m_current_swapchain;
         // VkRenderPass m_viewport_renderpass=nullptr;
 

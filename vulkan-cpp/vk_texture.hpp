@@ -23,7 +23,8 @@ namespace vk {
         13. Sample form texture!!! (Final Step!!)
 
         ---------------------------------------
-        1. Creating separate command buffer we are recording for this specific texture
+        1. Creating separate command buffer we are recording for this specific
+       texture
         2. Then we submit this command buffer to the swapchain's main queue
     */
 
@@ -50,7 +51,7 @@ namespace vk {
     1. load_texture_data_from_image
         * create_image
         * update_texture_image
-    
+
     2. update_texture_image
         * creating staging buffer
         * map buffer
@@ -58,12 +59,12 @@ namespace vk {
         * copy_buffer_to_image_layout
         * transition_image_layout
         * destroy staging buffer
-    
+
     3. transition_image_layout
         * begin_command_bufer
         * image_memory_barrier
         * submit_copy_command_buffer
-    
+
     4. copy_buffer_to_image
         * begin command buffer
         * vkCmdCopyBufferToImage
@@ -73,8 +74,11 @@ namespace vk {
         - end_command_buffer
         - submit to queue
         - wait idle (or do VkFence stuff here)
-        NOTE HERE: There was an error when I tried to learn how to get textures working, and this is because I was submitting to the wrong queue. Instead of submitting to presentation queue, you submit through the graphics queue
-                   - Now that we know, I can cleanup the code to make more sense now!
+        NOTE HERE: There was an error when I tried to learn how to get textures
+    working, and this is because I was submitting to the wrong queue. Instead of
+    submitting to presentation queue, you submit through the graphics queue
+                   - Now that we know, I can cleanup the code to make more sense
+    now!
     */
     class vk_texture {
     public:
@@ -84,30 +88,51 @@ namespace vk {
         vk_texture(const std::string& p_filename);
 
         /*
-        
+
             1. CreateImage
             2. Update TextureImage
         */
-        void create_texture_from_data(uint32_t p_width, uint32_t p_height, const void* p_pixels, const VkFormat p_format);
+        void create_texture_from_data(uint32_t p_width,
+                                      uint32_t p_height,
+                                      const void* p_pixels,
+                                      const VkFormat p_format);
 
-        // void update_texture(const VkCommandBuffer& p_command_buffer, image_data& p_image_data, uint32_t p_width, uint32_t p_height, VkFormat p_format, const void* p_pixels);
+        // void update_texture(const VkCommandBuffer& p_command_buffer,
+        // image_data& p_image_data, uint32_t p_width, uint32_t p_height,
+        // VkFormat p_format, const void* p_pixels);
 
-        void update_texture(image_data& p_image_data, uint32_t p_width, uint32_t p_height, VkFormat p_format, const void* p_pixels);
+        void update_texture(image_data& p_image_data,
+                            uint32_t p_width,
+                            uint32_t p_height,
+                            VkFormat p_format,
+                            const void* p_pixels);
 
         // functions used by update texture
 
         // functions for transition image layout
-        void transition_image_layout(VkImage& p_image, VkFormat p_format, VkImageLayout p_old, VkImageLayout p_new);
-        void image_memory_barrier(VkCommandBuffer& p_command_buffer, VkImage& p_image, VkFormat p_format, VkImageLayout p_old, VkImageLayout p_new);
+        void transition_image_layout(VkImage& p_image,
+                                     VkFormat p_format,
+                                     VkImageLayout p_old,
+                                     VkImageLayout p_new);
+        void image_memory_barrier(VkCommandBuffer& p_command_buffer,
+                                  VkImage& p_image,
+                                  VkFormat p_format,
+                                  VkImageLayout p_old,
+                                  VkImageLayout p_new);
 
         // functions for copy buffer to image
-        void copy_buffer_to_image(VkImage& p_image, VkBuffer& p_buffer, uint32_t p_width, uint32_t p_height);
+        void copy_buffer_to_image(VkImage& p_image,
+                                  VkBuffer& p_buffer,
+                                  uint32_t p_width,
+                                  uint32_t p_height);
 
         image_data data() const { return m_texture_image; }
 
         void destroy();
 
-        vk_command_buffer* get_command_buffer() { return &m_copy_command_buffer; }
+        vk_command_buffer* get_command_buffer() {
+            return &m_copy_command_buffer;
+        }
 
         VkImageView image_view() const { return m_texture_image.ImageView; }
 
@@ -118,6 +143,6 @@ namespace vk {
         buffer_properties m_staging_buffer;
         image_data m_texture_image;
         vk_command_buffer m_copy_command_buffer;
-        VkQueue m_graphics_queue=nullptr;
+        VkQueue m_graphics_queue = nullptr;
     };
 };

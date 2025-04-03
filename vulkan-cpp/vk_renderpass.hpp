@@ -16,6 +16,6 @@ namespace vk {
         operator VkRenderPass() { return m_renderpass_handler; }
 
     private:
-        VkRenderPass m_renderpass_handler=nullptr;
+        VkRenderPass m_renderpass_handler = nullptr;
     };
 }
