@@ -14,12 +14,10 @@ public:
     void end();
 
     template<typename UCallable>
-    static void submit(const UCallable& p_callable) {
-    }
+    static void submit(const UCallable& p_callable) {}
 
     template<typename UCallable>
-    static void submit_free(const UCallable& p_callable) {
-    }
+    static void submit_free(const UCallable& p_callable) {}
 
 private:
     static std::deque<std::function<void(const VkCommandBuffer&)>> s_tasks;

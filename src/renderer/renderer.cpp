@@ -8,8 +8,8 @@ renderer::renderer(const std::string& p_tag) {
     s_instance = this;
 }
 
-void renderer::begin() {
-}
+void
+renderer::begin() {}
 
-void renderer::end() {
-}
+void
+renderer::end() {}

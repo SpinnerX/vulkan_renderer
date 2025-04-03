@@ -5,18 +5,25 @@
 
 namespace vk {
 
-    static VkFormat search_supported_depth_format(const VkPhysicalDevice& p_physical, const std::span<VkFormat>& p_formats, VkImageTiling p_tiling, VkFormatFeatureFlags p_feature_flag) {
+    static VkFormat search_supported_depth_format(
+      const VkPhysicalDevice& p_physical,
+      const std::span<VkFormat>& p_formats,
+      VkImageTiling p_tiling,
+      VkFormatFeatureFlags p_feature_flag) {
         VkFormat format;
 
-        for(size_t i = 0; i < p_formats.size(); i++) {
+        for (size_t i = 0; i < p_formats.size(); i++) {
             VkFormat current_format = p_formats[i];
             VkFormatProperties format_properties;
-            vkGetPhysicalDeviceFormatProperties(p_physical, current_format, &format_properties);
+            vkGetPhysicalDeviceFormatProperties(
+              p_physical, current_format, &format_properties);
 
-            if((p_tiling == VK_IMAGE_TILING_LINEAR) and (format_properties.linearTilingFeatures & p_feature_flag)) {
+            if ((p_tiling == VK_IMAGE_TILING_LINEAR) and
+                (format_properties.linearTilingFeatures & p_feature_flag)) {
                 format = current_format;
             }
-            else if (p_tiling == VK_IMAGE_TILING_OPTIMAL and format_properties.optimalTilingFeatures & p_feature_flag) {
+            else if (p_tiling == VK_IMAGE_TILING_OPTIMAL and
+                     format_properties.optimalTilingFeatures & p_feature_flag) {
                 format = current_format;
             }
         }
@@ -25,16 +32,25 @@ namespace vk {
     }
 
     static VkFormat search_depth_format(const VkPhysicalDevice& p_physical) {
-        std::vector<VkFormat> candidate_formats = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT};
+        std::vector<VkFormat> candidate_formats = {
+            VK_FORMAT_D32_SFLOAT,
+            VK_FORMAT_D32_SFLOAT_S8_UINT,
+            VK_FORMAT_D24_UNORM_S8_UINT
+        };
 
-        VkFormat format = search_supported_depth_format(p_physical, candidate_formats, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+        VkFormat format = search_supported_depth_format(
+          p_physical,
+          candidate_formats,
+          VK_IMAGE_TILING_OPTIMAL,
+          VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
         return format;
-    } 
+    }
 
     static VkFormat s_depth_format_selected;
 
     vk_driver* vk_driver::s_instance = nullptr;
-    vk_driver::vk_driver(const vk_physical_driver& p_physical) : m_physical_driver(p_physical) {
+    vk_driver::vk_driver(const vk_physical_driver& p_physical)
+      : m_physical_driver(p_physical) {
         console_log_info("vk_driver::vk_driver begin initialization!!!");
 
         s_depth_format_selected = search_depth_format(p_physical);
@@ -82,9 +98,12 @@ namespace vk {
         features.robustBufferAccess = false;
         create_info.pEnabledFeatures = &features;
 
-        vk_check(vkCreateDevice(p_physical, &create_info, nullptr, &m_driver), "vkCreateDevice", __FUNCTION__);
+        vk_check(vkCreateDevice(p_physical, &create_info, nullptr, &m_driver),
+                 "vkCreateDevice",
+                 __FUNCTION__);
 
-        vkGetDeviceQueue(m_driver, graphics_index, 0, &m_device_queues.GraphicsQueue);
+        vkGetDeviceQueue(
+          m_driver, graphics_index, 0, &m_device_queues.GraphicsQueue);
         console_log_info("vk_driver::vk_driver end initialization!!!\n\n");
 
         s_instance = this;
@@ -94,23 +113,28 @@ namespace vk {
         return s_depth_format_selected;
     }
 
-
-    vk_driver::~vk_driver(){
-    }
+    vk_driver::~vk_driver() {}
 
     void vk_driver::destroy() {
         vkDestroyDevice(m_driver, nullptr);
     }
 
-    VkQueue vk_driver::get_presentation_queue(const uint32_t& p_queue_family_index, const uint32_t& p_present_queue_index) {
+    VkQueue vk_driver::get_presentation_queue(
+      const uint32_t& p_queue_family_index,
+      const uint32_t& p_present_queue_index) {
         VkQueue presentation_queue;
-        vkGetDeviceQueue(m_driver, p_queue_family_index, p_present_queue_index, &presentation_queue);
+        vkGetDeviceQueue(m_driver,
+                         p_queue_family_index,
+                         p_present_queue_index,
+                         &presentation_queue);
 
         return presentation_queue;
     }
 
     //! @note Returns -1 if there are no flags available/compatible/valid
-    uint32_t vk_driver::select_memory_type(uint32_t p_type_filter, VkMemoryPropertyFlags p_property_flag){
+    uint32_t vk_driver::select_memory_type(
+      uint32_t p_type_filter,
+      VkMemoryPropertyFlags p_property_flag) {
         VkPhysicalDeviceMemoryProperties mem_props;
         vkGetPhysicalDeviceMemoryProperties(m_physical_driver, &mem_props);
 

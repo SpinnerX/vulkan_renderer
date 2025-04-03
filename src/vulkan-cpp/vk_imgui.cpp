@@ -72,12 +72,17 @@ namespace vk {
         };
 
         // VkDescriptorPool imgui_pool;
-        vk::vk_check(vkCreateDescriptorPool(m_driver, &desc_pool_create_info, nullptr, &m_imgui_desc_pool),"vkCreateDescriptorPool",__FUNCTION__);
+        vk::vk_check(
+          vkCreateDescriptorPool(
+            m_driver, &desc_pool_create_info, nullptr, &m_imgui_desc_pool),
+          "vkCreateDescriptorPool",
+          __FUNCTION__);
         console_log_info("After creating descriptor sets for IMGUI");
-
     }
 
-    void vk_imgui::initialize(const VkInstance& p_instance, const VkPhysicalDevice& p_physical, const vk_swapchain& p_swapchain) {
+    void vk_imgui::initialize(const VkInstance& p_instance,
+                              const VkPhysicalDevice& p_physical,
+                              const vk_swapchain& p_swapchain) {
         m_current_swapchain = p_swapchain;
         console_log_info("Imgui Debug Track #0");
         //! @note Setting up imgui stuff.
@@ -98,7 +103,6 @@ namespace vk {
 
         // Setting custom dark themed imgui layout
         imgui_color_layout_customization();
-
 
         console_log_info("Imgui Debug Track #2");
 
@@ -158,7 +162,8 @@ namespace vk {
 
         // auto current_cmd_buffer = get_current_command_buffer();
         // VkCommandBuffer current = vk_swapchain::current_active_buffer();
-        VkCommandBuffer current = m_current_swapchain.current_active_comand_buffer();
+        VkCommandBuffer current =
+          m_current_swapchain.current_active_comand_buffer();
 
         int width, height;
         glfwGetFramebufferSize(vk_window::native_window(),

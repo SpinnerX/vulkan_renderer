@@ -13,7 +13,11 @@ struct camera_properties {
 class first_person_camera {
 public:
     static constexpr bool camera_orientation_left_hand = true;
-    first_person_camera(float p_aspect_ratio, const glm::vec3& p_pos, const glm::vec3& p_target, const glm::vec3& p_up, const camera_properties& p_properties);
+    first_person_camera(float p_aspect_ratio,
+                        const glm::vec3& p_pos,
+                        const glm::vec3& p_target,
+                        const glm::vec3& p_up,
+                        const camera_properties& p_properties);
 
     glm::mat4 projection();
 
@@ -23,11 +27,11 @@ public:
     glm::mat4 view_proj_mat();
 
 private:
-    float m_aspect_ratio=0.f;
-    glm::mat4 m_projection{0.f};
-    glm::mat4 m_view{0.f};
-    glm::mat4 m_view_proj{0.f};
+    float m_aspect_ratio = 0.f;
+    glm::mat4 m_projection{ 0.f };
+    glm::mat4 m_view{ 0.f };
+    glm::mat4 m_view_proj{ 0.f };
 
-    glm::vec3 m_position{0.f};
-    glm::quat m_orientation{glm::vec3(0.f)};
+    glm::vec3 m_position{ 0.f };
+    glm::quat m_orientation{ glm::vec3(0.f) };
 };

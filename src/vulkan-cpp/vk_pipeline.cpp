@@ -6,9 +6,14 @@
 #include <vulkan-cpp/vk_window.hpp>
 
 namespace vk {
-    vk_pipeline::vk_pipeline(const VkRenderPass& p_renderpass, const vk_shader& p_shader_src, const VkDescriptorSetLayout& p_descriptor_sets, const std::span<vertex_binding_description>& p_binding_description, const std::span<pipeline_vertex_attributes>& p_vertex_attributes) {
-        int width=0;
-        int height=0;
+    vk_pipeline::vk_pipeline(
+      const VkRenderPass& p_renderpass,
+      const vk_shader& p_shader_src,
+      const VkDescriptorSetLayout& p_descriptor_sets,
+      const std::span<vertex_binding_description>& p_binding_description,
+      const std::span<pipeline_vertex_attributes>& p_vertex_attributes) {
+        int width = 0;
+        int height = 0;
         m_driver = vk_driver::driver_context();
         GLFWwindow* handle = vk_window::native_window();
 
@@ -18,11 +23,11 @@ namespace vk {
         VkShaderModule vert_module = p_shader_src.get_vertex_module();
         VkShaderModule frag_module = p_shader_src.get_fragment_module();
 
-        if(vert_module != nullptr) {
+        if (vert_module != nullptr) {
             console_log_trace("vertex shader module is valid!!!");
         }
 
-        if(frag_module != nullptr) {
+        if (frag_module != nullptr) {
             console_log_trace("fragment shader module is valid!!!");
         }
 
@@ -40,8 +45,9 @@ namespace vk {
             .pName = "main"
         };
 
-        std::array<VkPipelineShaderStageCreateInfo, 2> shader_stages = { vertex_pipeine_stage_ci, fragment_pipeine_stage_ci};
-
+        std::array<VkPipelineShaderStageCreateInfo, 2> shader_stages = {
+            vertex_pipeine_stage_ci, fragment_pipeine_stage_ci
+        };
 
         // This is used for vertex attributes
         // std::vector<VkVertexInputAttributeDescription> attributes = {
@@ -70,45 +76,41 @@ namespace vk {
         // attributes[2].format = VK_FORMAT_R32G32_SFLOAT;
         // attributes[2].offset = offsetof(vertex, Uv);
 
-
         // VkVertexInputBindingDescription bindingDescription{};
         // bindingDescription.binding = 0;
         // bindingDescription.stride = sizeof(vertex);
         // bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
         // vertex attributes
-        std::vector<VkVertexInputAttributeDescription> vertex_attributes(p_vertex_attributes.size());
+        std::vector<VkVertexInputAttributeDescription> vertex_attributes(
+          p_vertex_attributes.size());
 
-        for(size_t i = 0; i < vertex_attributes.size(); i++) {
+        for (size_t i = 0; i < vertex_attributes.size(); i++) {
             pipeline_vertex_attributes attribute = p_vertex_attributes[i];
-            vertex_attributes[i] = {
-                .location = attribute.Location,
-                .binding = attribute.Binding,
-                .format = attribute.Format,
-                .offset = attribute.Offset 
-            };
+            vertex_attributes[i] = { .location = attribute.Location,
+                                     .binding = attribute.Binding,
+                                     .format = attribute.Format,
+                                     .offset = attribute.Offset };
         }
 
-        console_log_trace("vertex_attributes.size() = {}", vertex_attributes.size());
-        if(vertex_attributes.data() == nullptr) {
+        console_log_trace("vertex_attributes.size() = {}",
+                          vertex_attributes.size());
+        if (vertex_attributes.data() == nullptr) {
             console_log_trace("vertex_attributes.data() is nullptr!!!");
         }
         else {
             console_log_trace("vertex_attributes.data() not nullptr!!!");
         }
 
-        std::vector<VkVertexInputBindingDescription> binding_descriptions(p_binding_description.size());
+        std::vector<VkVertexInputBindingDescription> binding_descriptions(
+          p_binding_description.size());
 
-        for(size_t i = 0; i < binding_descriptions.size(); i++) {
+        for (size_t i = 0; i < binding_descriptions.size(); i++) {
             vertex_binding_description binding_desc = p_binding_description[i];
-            binding_descriptions[i] = {
-                .binding = binding_desc.Binding,
-                .stride = binding_desc.Stride,
-                .inputRate = binding_desc.InputRate
-            };
+            binding_descriptions[i] = { .binding = binding_desc.Binding,
+                                        .stride = binding_desc.Stride,
+                                        .inputRate = binding_desc.InputRate };
         }
-        
-
 
         VkPipelineVertexInputStateCreateInfo vertex_input_info = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -116,38 +118,41 @@ namespace vk {
             // .pVertexBindingDescriptions = &bindingDescription, // Optional
             // .vertexBindingDescriptionCount = 0,
             // .pVertexBindingDescriptions = nullptr, // Optional
-            // .vertexAttributeDescriptionCount = static_cast<uint32_t>(attributes.size()),
+            // .vertexAttributeDescriptionCount =
+            // static_cast<uint32_t>(attributes.size()),
             // .pVertexAttributeDescriptions = attributes.data(), // Optional
-            .vertexBindingDescriptionCount = static_cast<uint32_t>(binding_descriptions.size()),
-            .pVertexBindingDescriptions = binding_descriptions.data(), // Optional
-            .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_attributes.size()),
-            .pVertexAttributeDescriptions = vertex_attributes.data(), // Optional
+            .vertexBindingDescriptionCount =
+              static_cast<uint32_t>(binding_descriptions.size()),
+            .pVertexBindingDescriptions =
+              binding_descriptions.data(), // Optional
+            .vertexAttributeDescriptionCount =
+              static_cast<uint32_t>(vertex_attributes.size()),
+            .pVertexAttributeDescriptions =
+              vertex_attributes.data(), // Optional
             // .vertexAttributeDescriptionCount = 0,
             // .pVertexAttributeDescriptions = nullptr
         };
-        
+
         VkPipelineInputAssemblyStateCreateInfo inputAssembly = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+            .sType =
+              VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
             .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
             .primitiveRestartEnable = VK_FALSE,
         };
         // VkExtent2D swapchain_extent = vk::vk_swapchain::get_extent();
         console_log_trace("W = {}, H = {}", width, height);
 
-
         VkViewport viewport = {
             .x = 0.0f,
             .y = 0.0f,
-            .width = (float) width,
-            .height = (float) height,
+            .width = (float)width,
+            .height = (float)height,
             .minDepth = 0.0f,
             .maxDepth = 1.0f,
         };
 
-        VkRect2D scissor = {
-            .offset = {0, 0},
-            .extent = {(uint32_t)width, (uint32_t)height}
-        };
+        VkRect2D scissor = { .offset = { 0, 0 },
+                             .extent = { (uint32_t)width, (uint32_t)height } };
 
         VkPipelineViewportStateCreateInfo viewportState = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
@@ -159,40 +164,58 @@ namespace vk {
         VkPipelineRasterizationStateCreateInfo rasterizer_ci = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
             .depthClampEnable = VK_FALSE,
-            .rasterizerDiscardEnable = VK_FALSE, // set to true make fragmenta that are beyond near/far planes clamped to them as opposed to discarding them
-            .polygonMode = VK_POLYGON_MODE_FILL, // if set to true then geometry never passes through rasterizer stage. This basically disables output to frame_buffer
-            .lineWidth = 1.0f,                  // represents thickness of lines
-            .cullMode = VK_CULL_MODE_BACK_BIT,  // determines what culling to use. Can also be disabled, culls front-face, back-face or both
-            .frontFace = VK_FRONT_FACE_CLOCKWISE, // specifies vertex order of fdaces considered front-face or clockwise/counter-clockwise
+            .rasterizerDiscardEnable =
+              VK_FALSE, // set to true make fragmenta that are beyond near/far
+                        // planes clamped to them as opposed to discarding them
+            .polygonMode =
+              VK_POLYGON_MODE_FILL, // if set to true then geometry never passes
+                                    // through rasterizer stage. This basically
+                                    // disables output to frame_buffer
+            .lineWidth = 1.0f,      // represents thickness of lines
+            .cullMode =
+              VK_CULL_MODE_BACK_BIT, // determines what culling to use. Can also
+                                     // be disabled, culls front-face, back-face
+                                     // or both
+            .frontFace =
+              VK_FRONT_FACE_CLOCKWISE, // specifies vertex order of fdaces
+                                       // considered front-face or
+                                       // clockwise/counter-clockwise
             .depthBiasEnable = VK_FALSE,
             .depthBiasConstantFactor = 0.0f, // Optional
-            .depthBiasClamp = 0.0f, // Optional
-            .depthBiasSlopeFactor = 0.0f, // Optional
+            .depthBiasClamp = 0.0f,          // Optional
+            .depthBiasSlopeFactor = 0.0f,    // Optional
         };
 
         //! @note Multi-sampling
-        VkPipelineMultisampleStateCreateInfo  multisampling_ci = {
+        VkPipelineMultisampleStateCreateInfo multisampling_ci = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
             .sampleShadingEnable = VK_FALSE,
             .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
-            .minSampleShading = 1.0f, // Optional
-            .pSampleMask = nullptr, // Optional
+            .minSampleShading = 1.0f,          // Optional
+            .pSampleMask = nullptr,            // Optional
             .alphaToCoverageEnable = VK_FALSE, // Optional
-            .alphaToOneEnable = VK_FALSE, // Optional
+            .alphaToOneEnable = VK_FALSE,      // Optional
         };
 
         // Depth Blending (will add later)
 
-        // Color blending Attachment -- blending color when the fragment returns the color
+        // Color blending Attachment -- blending color when the fragment returns
+        // the color
         VkPipelineColorBlendAttachmentState color_blend_attachment = {
             .blendEnable = true,
-            .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA, // Enabled: alpha blending
-            .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, // Enabled: alpha blending
-            .colorBlendOp = VK_BLEND_OP_ADD, // Enabled: alpha blending
-            .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE, // Enabled: alpha blending
-            .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO, // Enabled: alpha blending
+            .srcColorBlendFactor =
+              VK_BLEND_FACTOR_SRC_ALPHA, // Enabled: alpha blending
+            .dstColorBlendFactor =
+              VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, // Enabled: alpha blending
+            .colorBlendOp = VK_BLEND_OP_ADD,       // Enabled: alpha blending
+            .srcAlphaBlendFactor =
+              VK_BLEND_FACTOR_ONE, // Enabled: alpha blending
+            .dstAlphaBlendFactor =
+              VK_BLEND_FACTOR_ZERO,          // Enabled: alpha blending
             .alphaBlendOp = VK_BLEND_OP_ADD, // Enabled: alpha blending
-            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+            .colorWriteMask =
+              VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+              VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
         };
 
         VkPipelineColorBlendStateCreateInfo color_blending_ci = {
@@ -202,7 +225,7 @@ namespace vk {
             .attachmentCount = 1,
             .pAttachments = &color_blend_attachment,
             // these are optional
-            .blendConstants = {0.f, 0.f, 0.f, 0.f}
+            .blendConstants = { 0.f, 0.f, 0.f, 0.f }
             // .blendConstants[0] = 0.0f, // Optional
             // .blendConstants[1] = 0.0f, // Optional
             // .blendConstants[2] = 0.0f, // Optional
@@ -226,8 +249,7 @@ namespace vk {
         //! @note Dynamic State
         //! @note -- pipeline states needs to be baked into the pipeline state
         std::array<VkDynamicState, 2> dynamic_states = {
-            VK_DYNAMIC_STATE_VIEWPORT,
-            VK_DYNAMIC_STATE_SCISSOR
+            VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR
         };
 
         VkPipelineDynamicStateCreateInfo dynamic_state_ci = {
@@ -242,11 +264,11 @@ namespace vk {
 
         VkDescriptorSetLayout layout = p_descriptor_sets;
 
-        if(layout == nullptr) {
+        if (layout == nullptr) {
             console_log_error("Descriptor Set Layout IS NULLPTR!!!!!");
         }
 
-        if(layout != nullptr) {
+        if (layout != nullptr) {
             pipeline_layout_ci.setLayoutCount = 1;
             pipeline_layout_ci.pSetLayouts = &layout;
         }
@@ -255,7 +277,11 @@ namespace vk {
             pipeline_layout_ci.pSetLayouts = nullptr;
         }
 
-        vk::vk_check(vkCreatePipelineLayout(m_driver, &pipeline_layout_ci, nullptr, &m_pipeline_layout), "vkCreatePipelineLayout", __FUNCTION__);
+        vk::vk_check(
+          vkCreatePipelineLayout(
+            m_driver, &pipeline_layout_ci, nullptr, &m_pipeline_layout),
+          "vkCreatePipelineLayout",
+          __FUNCTION__);
 
         VkGraphicsPipelineCreateInfo graphics_pipeline_ci = {
             .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -279,7 +305,11 @@ namespace vk {
             .basePipelineIndex = -1
         };
 
-        vk::vk_check(vkCreateGraphicsPipelines(m_driver, nullptr, 1, &graphics_pipeline_ci, nullptr, &m_pipeline), "vkCreateGraphicsPipelines", __FUNCTION__);
+        vk::vk_check(
+          vkCreateGraphicsPipelines(
+            m_driver, nullptr, 1, &graphics_pipeline_ci, nullptr, &m_pipeline),
+          "vkCreateGraphicsPipelines",
+          __FUNCTION__);
 
         console_log_info("vk_pipeline successfully initialized!!!!\n\n");
     }
@@ -290,6 +320,7 @@ namespace vk {
     }
 
     void vk_pipeline::bind(const VkCommandBuffer& p_command_buffer) {
-        vkCmdBindPipeline(p_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+        vkCmdBindPipeline(
+          p_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
     }
 };

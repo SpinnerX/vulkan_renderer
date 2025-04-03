@@ -26,7 +26,8 @@ namespace std {
     //     size_t operator()(const glm::vec<N, T>& v) const {
     //         size_t seed = 0;
     //         for (int i = 0; i < N; ++i) {
-    //             seed ^= std::hash<T>()(v.data[i]) + 0x9e3779b9 + (seed << 6) + (seed << 2);
+    //             seed ^= std::hash<T>()(v.data[i]) + 0x9e3779b9 + (seed << 6)
+    //             + (seed << 2);
     //         }
     //         return seed;
     //     }
@@ -42,7 +43,8 @@ namespace std {
 };
 
 namespace vk {
-    mesh::mesh(const std::span<vertex>& p_vertices, const std::span<uint32_t>& p_indices) {
+    mesh::mesh(const std::span<vertex>& p_vertices,
+               const std::span<uint32_t>& p_indices) {
         m_vbo = vk_vertex_buffer(p_vertices);
         m_ibo = vk_index_buffer(p_indices);
     }
@@ -54,8 +56,8 @@ namespace vk {
         std::string warn, err;
 
         if (!tinyobj::LoadObj(
-            &attrib, &shapes, &materials, &warn, &err, p_filename.c_str())) {
-          console_log_warn("Could not load model from path {}", p_filename);
+              &attrib, &shapes, &materials, &warn, &err, p_filename.c_str())) {
+            console_log_warn("Could not load model from path {}", p_filename);
         }
         else {
             console_log_info("Model Loaded = {}", p_filename);
@@ -119,12 +121,11 @@ namespace vk {
     void mesh::draw(const VkCommandBuffer& p_cmd_buffer) {
         m_vbo.bind(p_cmd_buffer);
 
-        if(m_ibo.has_indices()) {
+        if (m_ibo.has_indices()) {
             m_ibo.bind(p_cmd_buffer);
             m_ibo.draw(p_cmd_buffer);
         }
         else {
-            
         }
     }
 };

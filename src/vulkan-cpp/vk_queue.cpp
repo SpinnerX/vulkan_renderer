@@ -12,47 +12,54 @@ namespace vk {
         };
 
         VkSemaphore semaphore;
-        vk_check(vkCreateSemaphore(p_driver, &semaphore_ci, nullptr, &semaphore), "vkCreateSemaphore", __FUNCTION__);
+        vk_check(
+          vkCreateSemaphore(p_driver, &semaphore_ci, nullptr, &semaphore),
+          "vkCreateSemaphore",
+          __FUNCTION__);
         return semaphore;
     }
 
-    vk_queue::vk_queue(const vk_driver& p_driver, const VkSwapchainKHR& p_swapchain, const VkQueue& p_queue) : m_driver(p_driver), m_swapchain_handler(p_swapchain), m_queue(p_queue) {
+    vk_queue::vk_queue(const vk_driver& p_driver,
+                       const VkSwapchainKHR& p_swapchain,
+                       const VkQueue& p_queue)
+      : m_driver(p_driver)
+      , m_swapchain_handler(p_swapchain)
+      , m_queue(p_queue) {
 
         m_render_completed_semaphore = create_semaphore(p_driver);
         m_present_completed_semaphore = create_semaphore(p_driver);
     }
 
-    void vk_queue::submit_to(const VkCommandBuffer& p_command_buffer, submission_type submission_t) {
-        VkPipelineStageFlags wait_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    void vk_queue::submit_to(const VkCommandBuffer& p_command_buffer,
+                             submission_type submission_t) {
+        VkPipelineStageFlags wait_flags =
+          VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         // console_log_error("Debug #0 -- Tracked Here");
         VkSubmitInfo submit_info = {};
-        if(submission_t == submission_type::Async) {
+        if (submission_t == submission_type::Async) {
             // console_log_warn("Submission Type == Async!!!");
-            submit_info = {
-                .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                .pNext = nullptr,
-                .waitSemaphoreCount = 1,
-                .pWaitSemaphores = &m_present_completed_semaphore,
-                .pWaitDstStageMask = &wait_flags,
-                .commandBufferCount = 1,
-                .pCommandBuffers = &p_command_buffer,
-                .signalSemaphoreCount = 1,
-                .pSignalSemaphores = &m_render_completed_semaphore
-            };
-            // console_log_error("Debug #2 -- Tracked Here If Statement Async");   
+            submit_info = { .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                            .pNext = nullptr,
+                            .waitSemaphoreCount = 1,
+                            .pWaitSemaphores = &m_present_completed_semaphore,
+                            .pWaitDstStageMask = &wait_flags,
+                            .commandBufferCount = 1,
+                            .pCommandBuffers = &p_command_buffer,
+                            .signalSemaphoreCount = 1,
+                            .pSignalSemaphores =
+                              &m_render_completed_semaphore };
+            // console_log_error("Debug #2 -- Tracked Here If Statement Async");
         }
         else {
-            submit_info = {
-                .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                .pNext = nullptr,
-                .waitSemaphoreCount = 0,
-                .pWaitSemaphores = nullptr,
-                .pWaitDstStageMask = nullptr,
-                .commandBufferCount = 1,
-                .pCommandBuffers = &p_command_buffer,
-                .signalSemaphoreCount = 0,
-                .pSignalSemaphores = nullptr
-            };
+            submit_info = { .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                            .pNext = nullptr,
+                            .waitSemaphoreCount = 0,
+                            .pWaitSemaphores = nullptr,
+                            .pWaitDstStageMask = nullptr,
+                            .commandBufferCount = 1,
+                            .pCommandBuffers = &p_command_buffer,
+                            .signalSemaphoreCount = 0,
+                            .pSignalSemaphores = nullptr };
         }
 
         VkResult res = vkQueueSubmit(m_queue, 1, &submit_info, nullptr);
@@ -60,16 +67,18 @@ namespace vk {
     }
 
     void vk_queue::present(uint32_t p_frame_index) {
-        VkPresentInfoKHR present_info = {
-            .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-            .pNext = nullptr,
-            .waitSemaphoreCount = 1,
-            .pWaitSemaphores = &m_render_completed_semaphore,
-            .swapchainCount = 1,
-            .pSwapchains = &m_swapchain_handler,
-            .pImageIndices = &p_frame_index
-        };
-        vk_check(vkQueuePresentKHR(m_queue, &present_info), "vkQueuePresentKHR", __FUNCTION__);
+        VkPresentInfoKHR present_info = { .sType =
+                                            VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+                                          .pNext = nullptr,
+                                          .waitSemaphoreCount = 1,
+                                          .pWaitSemaphores =
+                                            &m_render_completed_semaphore,
+                                          .swapchainCount = 1,
+                                          .pSwapchains = &m_swapchain_handler,
+                                          .pImageIndices = &p_frame_index };
+        vk_check(vkQueuePresentKHR(m_queue, &present_info),
+                 "vkQueuePresentKHR",
+                 __FUNCTION__);
     }
 
     void vk_queue::wait_idle() {
@@ -78,10 +87,17 @@ namespace vk {
 
     uint32_t vk_queue::read_acquire_image() {
         uint32_t image_acquired;
-        vk_check(vkAcquireNextImageKHR(m_driver, m_swapchain_handler, UINT64_MAX, m_present_completed_semaphore, nullptr, &image_acquired), "vkAcquireNextImageKHR", __FUNCTION__);
+        vk_check(vkAcquireNextImageKHR(m_driver,
+                                       m_swapchain_handler,
+                                       UINT64_MAX,
+                                       m_present_completed_semaphore,
+                                       nullptr,
+                                       &image_acquired),
+                 "vkAcquireNextImageKHR",
+                 __FUNCTION__);
         return image_acquired;
     }
-    
+
     void vk_queue::destroy() {
         vkDestroySemaphore(m_driver, m_present_completed_semaphore, nullptr);
         vkDestroySemaphore(m_driver, m_render_completed_semaphore, nullptr);
