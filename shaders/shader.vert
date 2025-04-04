@@ -82,24 +82,37 @@
 // 	texCoord = vec2(vtx.x, vtx.y);
 // }
 
-struct VertexData
-{
-	float x, y, z;
-	float u, v;
-};
+// struct VertexData
+// {
+// 	float x, y, z;
+// 	float u, v;
+// };
 
-layout (binding = 0) readonly buffer Vertices { VertexData data[]; } in_Vertices;
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec3 inColor;
+layout(location = 2) in vec2 inTexCoords;
 
-layout (binding = 1) readonly uniform UniformBuffer { mat4 MVP; } ubo;
+layout(location = 0) out vec3 fragColor;
+layout(location = 1) out vec2 fragTexCoords;
 
-layout(location = 0) out vec2 texCoord;
+// layout (binding = 0) readonly buffer Vertices { VertexData data[]; } in_Vertices;
+
+layout (binding = 0) readonly uniform UniformBuffer {
+	mat4 MVP;
+} ubo;
+
+// layout(location = 0) out vec2 texCoord;
 
 void main() {
-	VertexData vtx = in_Vertices.data[gl_VertexIndex];
+	// VertexData vtx = in_Vertices.data[gl_VertexIndex];
 
-	vec3 pos = vec3(vtx.x, vtx.y, vtx.z);
+	// vec3 pos = vec3(vtx.x, vtx.y, vtx.z);
+	// gl_Position 
 
 	// gl_Position = ubo.Model * ubo.Projection * ubo.View * vec4(pos, 1.0);
-	gl_Position = ubo.MVP * vec4(pos, 1.0);
-	texCoord = vec2(vtx.u, vtx.v);
+	// gl_Position = ubo.MVP * vec4(pos, 1.0);
+	gl_Position = ubo.MVP * vec4(inPosition, 1.0);
+	fragColor = inColor;
+	// texCoord = vec2(vtx.u, vtx.v);
+	fragTexCoords = inTexCoords;
 }

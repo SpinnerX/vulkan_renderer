@@ -6,6 +6,7 @@
 #include <vulkan-cpp/vk_uniform_buffer.hpp>
 #include <vulkan-cpp/vk_texture.hpp>
 #include <renderer/mesh.hpp>
+#include <vulkan-cpp/vk_vertex_buffer.hpp>
 
 namespace vk {
     /*
@@ -120,7 +121,7 @@ namespace vk {
         vk_descriptor_set() = default;
         vk_descriptor_set(
           uint32_t p_descriptor_count,
-          const std::span<vk_descriptor_set_properties>& p_layouts);
+          const std::initializer_list<VkDescriptorSetLayoutBinding>& p_layouts);
 
         //! @note Does cleanup for descriptor set
         void destroy();
@@ -137,6 +138,9 @@ namespace vk {
           const std::span<vk_uniform_buffer>& p_uniform_buffer);
         void update_vertex(const vk_vertex_buffer& p_vertex_buffer);
         void update_texture(const vk_texture* p_texture);
+
+        // void update_test_descriptors(const std::initializer_list<VkWriteDescriptorSet>& p_write_descriptors);
+        void update_test_descriptors(const std::span<vk_uniform_buffer>& p_uniforms, vk_vertex_buffer& p_vertex, vk_texture& p_texture);
 
         VkDescriptorPool get_pool() const { return m_descriptor_pool; }
         VkDescriptorSetLayout get_layout() const {

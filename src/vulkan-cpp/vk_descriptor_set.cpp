@@ -1,7 +1,9 @@
+#include <vulkan-cpp/uniforms.hpp>
 #include <vulkan-cpp/vk_descriptor_set.hpp>
 #include <vulkan-cpp/vk_driver.hpp>
 #include <vulkan-cpp/helper_functions.hpp>
 #include <vulkan-cpp/logger.hpp>
+#include <span>
 
 namespace vk {
 
@@ -32,18 +34,23 @@ namespace vk {
 
     vk_descriptor_set::vk_descriptor_set(
       uint32_t p_descriptor_count,
-      const std::span<vk_descriptor_set_properties>& p_layouts)
+      const std::initializer_list<VkDescriptorSetLayoutBinding>& p_layouts)
       : m_descriptor_count(p_descriptor_count) {
         m_driver = vk_driver::driver_context();
 
         console_log_trace("begin pool descriptor sets initialization!!");
+        std::array<VkDescriptorPoolSize, 2> poolSizes{};
+        poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSizes[0].descriptorCount = static_cast<uint32_t>(m_descriptor_count);
+        poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[1].descriptorCount = static_cast<uint32_t>(m_descriptor_count);
         VkDescriptorPoolCreateInfo desc_pool_ci = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
             .pNext = nullptr,
             .flags = 0,
             .maxSets = m_descriptor_count,
-            .poolSizeCount = 0,
-            .pPoolSizes = nullptr
+            .poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
+            .pPoolSizes = poolSizes.data()
         };
 
         vk_check(vkCreateDescriptorPool(
@@ -54,19 +61,8 @@ namespace vk {
         console_log_trace("successfully pool descriptor sets initialization!!");
 
         // automate -- setting up descriptor set layouts
-        std::vector<VkDescriptorSetLayoutBinding> layout_bindings;
-        for (const auto& layout : p_layouts) {
-
-            VkDescriptorSetLayoutBinding descriptor_set_layout_binding = {
-                .binding = (uint32_t)layout.Binding,
-                .descriptorType = to_descriptor_set_type(layout.Type),
-                .descriptorCount = 1,
-                .stageFlags = to_vk_shader_stage(layout.Stage)
-            };
-
-            layout_bindings.push_back(descriptor_set_layout_binding);
-        }
-
+        std::vector<VkDescriptorSetLayoutBinding> layout_bindings(p_layouts);
+        
         VkDescriptorSetLayoutCreateInfo descriptor_set_layout_ci = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
             .pNext = nullptr,
@@ -235,6 +231,42 @@ namespace vk {
           write_descriptor_sets.data(),
           0,
           nullptr);
+    }
+
+    void vk_descriptor_set::update_test_descriptors(const std::span<vk_uniform_buffer>& p_uniforms, vk_vertex_buffer& p_vertex, vk_texture& p_texture) {
+        for(size_t i = 0; i < m_descriptor_count; i++) {
+            VkDescriptorBufferInfo bufferInfo{};
+            bufferInfo.buffer = p_uniforms[i];
+            bufferInfo.offset = 0;
+            bufferInfo.range = sizeof(camera_data_uniform);
+
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = p_texture.image_view();
+            imageInfo.sampler = p_texture.sampler();
+
+            // std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+            std::array<VkWriteDescriptorSet, 2> write_descriptors;
+
+            write_descriptors[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write_descriptors[0].pNext = nullptr;
+            write_descriptors[0].dstSet = m_descriptor_sets[i];
+            write_descriptors[0].dstBinding = 0;
+            write_descriptors[0].dstArrayElement = 0;
+            write_descriptors[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            write_descriptors[0].descriptorCount = 1;
+            write_descriptors[0].pBufferInfo = &bufferInfo;
+
+            write_descriptors[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write_descriptors[1].pNext = nullptr;
+            write_descriptors[1].dstSet = m_descriptor_sets[i];
+            write_descriptors[1].dstBinding = 1;
+            write_descriptors[1].dstArrayElement = 0;
+            write_descriptors[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            write_descriptors[1].descriptorCount = 1;
+            write_descriptors[1].pImageInfo = &imageInfo;
+            vkUpdateDescriptorSets(m_driver, static_cast<uint32_t>(write_descriptors.size()), write_descriptors.data(), 0, nullptr); 
+        }
     }
 
     void vk_descriptor_set::destroy() {

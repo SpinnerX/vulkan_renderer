@@ -69,4 +69,12 @@ namespace vk {
     void vk_shader::load_from_file(const std::string& p_filename) {}
 
     void vk_shader::load_from_text(const std::string& p_filename) {}
+
+    void vk_shader::set_vertex_bind_attributes(const std::initializer_list<VkVertexInputBindingDescription>& p_attribute_descriptions) {
+        m_binding_attribute_descriptions = std::vector<VkVertexInputBindingDescription>(p_attribute_descriptions);
+    }
+
+    void vk_shader::set_vertex_attributes(const std::initializer_list<VkVertexInputAttributeDescription>& p_list) {
+        m_attribute_descriptions = std::vector<VkVertexInputAttributeDescription>(p_list);
+    }
 };

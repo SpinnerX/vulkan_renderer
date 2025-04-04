@@ -31,6 +31,9 @@ namespace std {
     };
 }
 
+
+// operator defer_""(){}
+
 vk::mesh
 load(const std::string& p_filename) {
     vk::mesh return_mesh;
@@ -69,10 +72,12 @@ load(const std::string& p_filename) {
                     attrib.vertices[3 * index.vertex_index + 2]
                 };
 
-                vertex.Color = { attrib.colors[3 * index.vertex_index + 0],
-                                 attrib.colors[3 * index.vertex_index + 1],
-                                 attrib.colors[3 * index.vertex_index + 2] };
+                // vertex.Color = { attrib.colors[3 * index.vertex_index + 0],
+                //                  attrib.colors[3 * index.vertex_index + 1],
+                //                  attrib.colors[3 * index.vertex_index + 2] };
             }
+
+			vertex.Color = {1.0f, 1.0f, 1.0f};
 
             // if (index.normal_index >= 0) {
             //     vertex.Normals = {
@@ -83,8 +88,7 @@ load(const std::string& p_filename) {
             // }
 
             if (index.texcoord_index >= 0) {
-                vertex.Uv = { attrib.texcoords[2 * index.texcoord_index + 0],
-                              attrib.texcoords[2 * index.texcoord_index + 1] };
+                vertex.Uv = { attrib.texcoords[2 * index.texcoord_index + 0],attrib.texcoords[2 * index.texcoord_index + 1] };
             }
 
             // vertices.push_back(vertex);
@@ -116,8 +120,8 @@ main() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-    int width = 1600;
-    int height = 900;
+    int width = 900;
+    int height = 600;
 
     //! @note 0.) Initialize Vulkan
     // create_vulkan_instance();
@@ -138,10 +142,20 @@ main() {
     //! @note 4.) Initializing Swapchain
     vk::vk_swapchain main_window_swapchain =
       vk::vk_swapchain(main_physical_device, main_driver, main_window);
-    main_window_swapchain.set_background_color({ 0.f, 1.f, 0.f, 1.f });
+    main_window_swapchain.set_background_color({ 0.f, 0.f, 0.f, 0.f });
 
-    vk::vk_shader test_shader =
-      vk::vk_shader("shaders/vert.spv", "shaders/frag.spv");
+    vk::vk_shader test_shader = vk::vk_shader("shaders/vert.spv", "shaders/frag.spv");
+    test_shader.set_vertex_attributes({
+		{.location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(vk::vertex, Position)},
+		{.location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(vk::vertex, Color)},
+		{.location = 2, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(vk::vertex, Uv)}
+    });
+
+	test_shader.set_vertex_bind_attributes({
+		{.binding = 0, .stride = sizeof(vk::vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}
+	});
+
+
     // vk::vk_shader test_shader =
     // vk::vk_shader("shader_useful_directory/geometry/vert.spv",
     // "shader_useful_directory/geometry/frag.spv");
@@ -182,12 +196,14 @@ main() {
     vk::vk_vertex_buffer test_vertex_buffer = new_mesh.get_vertex();
     vk::vk_index_buffer test_index_buffer = new_mesh.get_index();
 
+    uint32_t size_of_bytes = sizeof(camera_data_uniform);
+
     // creating uniforms
     std::vector<vk::vk_uniform_buffer> test_uniforms;
     test_uniforms.resize(main_window_swapchain.image_size());
 
     for (size_t i = 0; i < test_uniforms.size(); i++) {
-        test_uniforms[i] = vk::vk_uniform_buffer(sizeof(camera_data_uniform));
+        test_uniforms[i] = vk::vk_uniform_buffer(size_of_bytes);
     }
 
     /*
@@ -203,45 +219,24 @@ main() {
     //! @note Now without needing to manually set the layout bindings manually,
     //! this will set up the descriptor sets automatically
     // this descriptor set layout is for shaders/shader.*
-    std::vector<vk::vk_descriptor_set_properties> descriptor_layouts = {
-        { "in_Vertices",
-          0,
-          vk::descriptor_type::STORAGE_BUFFER,
-          vk::shader_stage::VERTEX },
-        { "ubo",
-          1,
-          vk::descriptor_type::UNIFORM_BUFFER,
-          vk::shader_stage::VERTEX },
-        { "texSampler",
-          2,
-          vk::descriptor_type::IMAGE_AND_SAMPLER,
-          vk::shader_stage::FRAGMENT }
+    /*
+	std::vector<vk::vk_descriptor_set_properties> descriptor_layouts = {
+        { "in_Vertices", 0, vk::descriptor_type::STORAGE_BUFFER, vk::shader_stage::VERTEX },
+        { "ubo", 1, vk::descriptor_type::UNIFORM_BUFFER, vk::shader_stage::VERTEX },
+        { "texSampler", 2, vk::descriptor_type::IMAGE_AND_SAMPLER, vk::shader_stage::FRAGMENT }
     };
 
-    // std::vector<vk::vk_descriptor_set_properties> descriptor_layouts = {
-    //     {"in_Vertices", 0, vk::descriptor_type::STORAGE_BUFFER,
-    //     vk::shader_stage::VERTEX},
-    //     {"ubo", 1, vk::descriptor_type::UNIFORM_BUFFER,
-    //     vk::shader_stage::FRAGMENT},
-    //     {"texSampler", 2, vk::descriptor_type::IMAGE_AND_SAMPLER,
-    //     vk::shader_stage::FRAGMENT}
-    // };
-
-    // This is descriptors for shader_useful_directory/geometry/shader.* shaders
-    // std::vector<vk::vk_descriptor_set_properties> descriptor_layouts = {
-    //     {"inPosition", 0, vk::descriptor_type::UNIFORM_BUFFER,
-    //     vk::shader_stage::VERTEX},
-    //     {"inPosition", 1, vk::descriptor_type::IMAGE_AND_SAMPLER,
-    //     vk::shader_stage::FRAGMENT},
-    // };
-
-    vk::vk_descriptor_set test_descriptor_sets =
-      vk::vk_descriptor_set(image_count, descriptor_layouts);
-    // vk::vk_descriptor_set test_descriptor_sets =
-    // vk::vk_descriptor_set(main_window_swapchain.image_size(), test_uniforms);
+    vk::vk_descriptor_set test_descriptor_sets = vk::vk_descriptor_set(image_count, descriptor_layouts);
+	*/
+	
+	vk::vk_descriptor_set test_descriptor_sets = vk::vk_descriptor_set(image_count,
+	{
+		{.binding = 0, .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_VERTEX_BIT, .pImmutableSamplers  = nullptr},
+		{.binding = 1, .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT, .pImmutableSamplers  = nullptr}
+	}
+	);
 
     // Vulkan Pipeline Specifications
-
     // specifically binding descriptions for pipeline
     std::vector<vk::vertex_binding_description> binding_descriptions = {
         { "Vertex", 0, sizeof(vk::vertex), VK_VERTEX_INPUT_RATE_VERTEX }
@@ -249,34 +244,13 @@ main() {
 
     // specifically vertex attributes
     std::vector<vk::pipeline_vertex_attributes> vertex_attributes = {
-        { "inPosition",
-          0,
-          0,
-          offsetof(vk::vertex, Position),
-          VK_FORMAT_R32G32B32_SFLOAT },
-        { "inColor",
-          0,
-          1,
-          offsetof(vk::vertex, Color),
-          VK_FORMAT_R32G32B32_SFLOAT },
-        { "inTexCoords",
-          0,
-          2,
-          offsetof(vk::vertex, Uv),
-          VK_FORMAT_R32G32_SFLOAT }
+        { "inPosition", 0, 0, offsetof(vk::vertex, Position), VK_FORMAT_R32G32B32_SFLOAT },
+        { "inColor", 0, 1, offsetof(vk::vertex, Color), VK_FORMAT_R32G32B32_SFLOAT },
+        { "inTexCoords", 0, 2, offsetof(vk::vertex, Uv), VK_FORMAT_R32G32_SFLOAT }
     };
 
     // setting up vulkan pipeline
-    vk::vk_pipeline test_pipeline =
-      vk::vk_pipeline(main_window_swapchain.get_renderpass(),
-                      test_shader,
-                      test_descriptor_sets.get_layout(),
-                      {},
-                      {});
-
-    // vk::vk_pipeline test_pipeline2 =
-    // vk::vk_pipeline(main_window_swapchain.get_renderpass(), test_shader,
-    // test_descriptor_sets.get_layout());
+    vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window_swapchain.get_renderpass(),test_shader, test_descriptor_sets.get_layout());
 
     // Loading and using textures
     vk::vk_texture test_texture("models/viking_room.png");
@@ -298,12 +272,26 @@ main() {
 
         descriptor_set[i].update_descriptor_set(uniform_buffer[i]);
     */
-    // test_descriptor_sets.update_descriptor_sets(test_vertex_buffer,
-    // test_uniforms, &test_texture);
-    test_descriptor_sets.update_uniforms(test_uniforms);
-    test_descriptor_sets.update_texture(&test_texture);
-    test_descriptor_sets.update_vertex(test_vertex_buffer);
-    // test_descriptor_sets.update_write_descriptors();
+
+    // test_descriptor_sets.update_uniforms(test_uniforms);
+    // test_descriptor_sets.update_texture(&test_texture);
+    // test_descriptor_sets.update_vertex(test_vertex_buffer);
+
+	test_descriptor_sets.update_test_descriptors(test_uniforms, test_vertex_buffer, test_texture);
+
+    /*
+
+    vk::vk_descriptor_set_manager desc_manager(image_size); // img_size = 3
+    std::vector<vk::vk_descriptor_set> descriptor_sets(3);
+
+      for(size_t i = 0; i < image_size; i++) {
+        // desc_manager.write(i, uniform);
+        descriptor_sets[i].write_uniform(uniform);
+        descriptor_sets[i].write_texture(&test_texture);
+
+      }
+
+    */
 
     // recording clear colors for all swapchain command buffers
     main_window_swapchain.record(
@@ -320,8 +308,6 @@ main() {
 
           test_vertex_buffer.bind(p_command_buffer);
           test_index_buffer.bind(p_command_buffer);
-
-          // test_vertex_buffer.draw(p_command_buffer);
 
           if (test_index_buffer.has_indices()) {
               test_index_buffer.draw(p_command_buffer);
@@ -352,28 +338,25 @@ main() {
         main_window_swapchain.update_uniforms(
           [&test_uniforms, &main_window, dt, width, height](
             const uint32_t& p_frame_index) {
-              static float angle = 0.0f;
-              glm::mat4 rotation = glm::mat4(1.f);
-              rotation = glm::rotate(rotation,
-                                     glm::radians(angle),
-                                     glm::normalize(glm::vec3(0.f, 0.f, 1.f)));
-              angle += 0.001f;
+            //   static float angle = 0.0f;
+            //   glm::mat4 rotation = glm::mat4(1.f);
+            //   rotation = glm::rotate(rotation,glm::radians(angle), glm::normalize(glm::vec3(0.f, 0.f, 1.f)));
+            //   angle += 0.001f;
 
-              glm::mat4 mvp = rotation;
+            //   glm::mat4 mvp = rotation;
+			static auto startTime = std::chrono::high_resolution_clock::now();
+
+			auto currentTime = std::chrono::high_resolution_clock::now();
+			float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
               camera_data_uniform2 ubo{};
-              ubo.Model = glm::rotate(glm::mat4(1.0f),
-                                      dt * glm::radians(90.0f),
-                                      glm::vec3(0.0f, 0.0f, 1.0f));
-              ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f),
-                                     glm::vec3(0.0f, 0.0f, 0.0f),
-                                     glm::vec3(0.0f, 0.0f, 1.0f));
-              ubo.Projection = glm::perspective(
-                glm::radians(45.0f), width / (float)height, 0.1f, 10.0f);
+              ubo.Model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 1.0f));
+              ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+              ubo.Projection = glm::perspective(glm::radians(45.0f), width / (float) height, 0.1f, 10.0f);
               ubo.Projection[1][1] *= -1;
 
-              test_uniforms[p_frame_index].update(&mvp, sizeof(mvp));
-              // test_uniforms[p_frame_index].update(&ubo, sizeof(ubo));
+              // test_uniforms[p_frame_index].update(&mvp, sizeof(mvp));
+              test_uniforms[p_frame_index].update(&ubo, sizeof(ubo));
           });
 
         // presenting frame (after drawing that frame)

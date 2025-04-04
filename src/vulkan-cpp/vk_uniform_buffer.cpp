@@ -8,8 +8,7 @@ namespace vk {
     // Creating a single uniform buffer through these helper functions
     buffer_properties create_uniform_buffer(uint32_t p_size) {
 
-        VkBufferUsageFlags flags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                                   VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        VkBufferUsageFlags flags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         VkMemoryPropertyFlags memory_property_flag =
           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
           VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;

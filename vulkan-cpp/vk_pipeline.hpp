@@ -120,10 +120,8 @@ namespace vk {
     public:
         vk_pipeline(
           const VkRenderPass& p_renderpass,
-          const vk_shader& p_shader_src,
-          const VkDescriptorSetLayout& p_descriptor_sets,
-          const std::span<vertex_binding_description>& p_binding_description,
-          const std::span<pipeline_vertex_attributes>& p_vertex_attributes);
+          vk_shader& p_shader_src,
+          const VkDescriptorSetLayout& p_descriptor_sets);
 
         void bind(const VkCommandBuffer& p_command_buffer);
 
