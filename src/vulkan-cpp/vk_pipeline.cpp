@@ -187,6 +187,8 @@ namespace vk {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         };
 
+		//! @note This is just to double-check that the descriptor set layout is valid.
+		//! @note If the descriptor set layout is invalid, then proceed but not use the descriptor set layout
         VkDescriptorSetLayout layout = p_descriptor_sets;
 
         if (layout != nullptr) {
