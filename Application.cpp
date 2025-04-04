@@ -1,5 +1,3 @@
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/hash.hpp>
 #include <vulkan/vulkan_core.h>
 #include <fmt/core.h>
 #include <vulkan-cpp/logger.hpp>
@@ -17,7 +15,13 @@
 #include <imgui.h>
 #include <vulkan-cpp/vk_imgui.hpp>
 
+
+
 #include <tiny_obj_loader.h>
+#include <vulkan-cpp/perspective_camera.hpp>
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
 
 namespace std {
     template<>
@@ -28,8 +32,46 @@ namespace std {
     };
 }
 
+/*
 
-// operator defer_""(){}
+	[NOTE For Setting Up Multiple Render Passes]
+		- These are the three main render passes I want to focus in try getting to work within the engine
+		- As soon resizable swapchains could work and we can support viewports a lot better
+
+	- Geometry Pass (First Renderpass)
+		- Data contains crucial for framebuffers are COlor, Normals, depth, and other material-like for geometry
+	
+	Lighting Pass (Second RenderPass)
+		- Sample textuyres (normals, depth) used from Geometry Pass
+		- Performs lighting operations (using sampled data about light sources such as position, color, intensity, etc)
+		- Send these information to a render target (swapchain image)
+		[ Implementation High-level detail ]
+		 	- Steps to doing this is the following
+				1. Create and allocate anther vulkan image for each attachment
+				2. Then associate an image view with it
+				3. Then create a geometry render pass (VkRenderPass) that contains your geometry information (contained per vertex)
+				4. Then create framebuffer that uses that specified renderpass
+	
+	Shadow Map
+		- Involves casting a shadow onto your specific render targets
+		- Contains information such as shadow casters, shadow biases information
+
+		[ Implementation High-level detail ]
+		 	- Creates depth target with (VkImage and VkImageView)
+			- Create VkRenderPass (shadow pass object)
+			- Create Shadow pass VkPipeline (graphics pipeline)
+				- Would enable depth testing, backface culling (if needed)
+			- Shadow Pass framebuffer
+			- Per light perspective do the following:
+				- Begin shadow render pass, bind framebuffer
+				- Bind shadow graphics pipeline
+				- Bind viewport and scissor
+				- Bind vertex and index buffers of scene geometry
+				- Bind descriptors (containing to its respective data)
+				- End shadow renderpass
+
+
+*/
 
 vk::mesh
 load(const std::string& p_filename) {
@@ -293,6 +335,9 @@ main() {
 
 	glm::vec3 Position = {0.f, 0.f, 0.f};
 
+
+	perspective_camera camera = perspective_camera((float)width / height);
+
     // vk::vk_imgui test_imgui = vk::vk_imgui();
     // VkRenderPass rp = main_window_swapchain.get_renderpass();
     // test_imgui.initialize(initiating_vulkan, main_physical_device,
@@ -310,28 +355,35 @@ main() {
         // draw (after recording)
 
 		if(glfwGetKey(main_window, GLFW_KEY_W) == GLFW_PRESS) {
-			Position.x += (0.1f) * dt;
+			// Position.x += (0.1f) * dt;
+			camera.ProcessKeyboard(FORWARD, dt);
 		}
 		if(glfwGetKey(main_window, GLFW_KEY_S) == GLFW_PRESS) {
-			Position.x -= (0.1f) * dt;
+			camera.ProcessKeyboard(BACKWARD, dt);
 		}
 		if(glfwGetKey(main_window, GLFW_KEY_Q) == GLFW_PRESS) {
-			Position.y += (0.1f) * dt;
+			// Position.y += (0.1f) * dt;
+			camera.ProcessKeyboard(UP, dt);
 		}
 		if(glfwGetKey(main_window, GLFW_KEY_E) == GLFW_PRESS) {
-			Position.y -= (0.1f) * dt;
+			// Position.y -= (0.1f) * dt;
+			camera.ProcessKeyboard(DOWN, dt);
 		}
 
 		if(glfwGetKey(main_window, GLFW_KEY_A) == GLFW_PRESS) {
-			Position.z += (0.1f) * dt;
+			// Position.z += (0.1f) * dt;
+			camera.ProcessKeyboard(RIGHT, dt);
 		}
 		if(glfwGetKey(main_window, GLFW_KEY_D) == GLFW_PRESS) {
-			Position.z -= (0.1f) * dt;
+			// Position.z -= (0.1f) * dt;
+			camera.ProcessKeyboard(LEFT, dt);
 		}
+
+		camera.UpdateProjView();
 		
         //! TODO: Could be relocated. All this needs to know is the current
         //! frame to update the uniforms
-        main_window_swapchain.update_uniforms([&test_uniforms, &main_window, width, height, &Position](const uint32_t& p_frame_index) {
+        main_window_swapchain.update_uniforms([&test_uniforms, &main_window, width, height, &Position, &camera](const uint32_t& p_frame_index) {
 			static auto startTime = std::chrono::high_resolution_clock::now();
 
 			auto currentTime = std::chrono::high_resolution_clock::now();
@@ -343,10 +395,14 @@ main() {
 			// ubo.Projection = glm::perspective(glm::radians(45.0f), width / (float) height, 0.9f, 10.0f);
 			// ubo.Projection[1][1] *= -1;
 			ubo.Model = glm::mat4(1.f);
-			ubo.Model = glm::translate(ubo.Model, Position);
+			ubo.Model = glm::translate(ubo.Model, glm::vec3(0.f, 0.f, 0.f));
+			// ubo.Model = glm::translate(ubo.Model, camera.Position);
+			ubo.Model =glm::scale(ubo.Model, glm::vec3(0.5f, 0.5f, 0.5f));
 			ubo.Model = glm::rotate(ubo.Model, time * glm::radians(90.0f), glm::vec3(5.0f, 5.0f, 5.0f));
-			ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, -0.50f), glm::vec3(0.0f, 0.0f, 1.0f));
-			ubo.Projection = glm::perspective(glm::radians(45.0f), (float)width / height, 0.1f, 10.0f);
+			// ubo.View = camera.get_view();
+			// ubo.Projection = camera.get_projection();
+			ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 5.0f), glm::vec3(0.0f, 0.0f, -0.50f), glm::vec3(0.0f, 0.0f, 1.0f));
+			ubo.Projection = glm::perspective(glm::radians(45.0f), (float)width / height, 0.0f, 1000.0f);
 			ubo.Projection[1][1] *= -1;
 
 			// test_uniforms[p_frame_index].update(&mvp, sizeof(mvp));

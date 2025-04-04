@@ -98,11 +98,11 @@ namespace vk {
                                     // disables output to frame_buffer
             .lineWidth = 1.0f,      // represents thickness of lines
             .cullMode =
-              VK_CULL_MODE_BACK_BIT, // determines what culling to use. Can also
+			VK_CULL_MODE_NONE, // determines what culling to use. Can also
                                      // be disabled, culls front-face, back-face
                                      // or both
             .frontFace =
-              VK_FRONT_FACE_CLOCKWISE, // specifies vertex order of fdaces
+			VK_FRONT_FACE_COUNTER_CLOCKWISE, // specifies vertex order of fdaces
                                        // considered front-face or
                                        // clockwise/counter-clockwise
             .depthBiasEnable = VK_FALSE,
@@ -116,13 +116,11 @@ namespace vk {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
             .sampleShadingEnable = VK_FALSE,
             .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
-            .minSampleShading = 1.0f,          // Optional
-            .pSampleMask = nullptr,            // Optional
-            .alphaToCoverageEnable = VK_FALSE, // Optional
-            .alphaToOneEnable = VK_FALSE,      // Optional
+            // .minSampleShading = 1.0f,          // Optional
+            // .pSampleMask = nullptr,            // Optional
+            // .alphaToCoverageEnable = VK_FALSE, // Optional
+            // .alphaToOneEnable = VK_FALSE,      // Optional
         };
-
-        // Depth Blending (will add later)
 
         // Color blending Attachment -- blending color when the fragment returns
         // the color
@@ -150,11 +148,7 @@ namespace vk {
             .attachmentCount = 1,
             .pAttachments = &color_blend_attachment,
             // these are optional
-            .blendConstants = { 0.f, 0.f, 0.f, 0.f }
-            // .blendConstants[0] = 0.0f, // Optional
-            // .blendConstants[1] = 0.0f, // Optional
-            // .blendConstants[2] = 0.0f, // Optional
-            // .blendConstants[3] = 0.0f, // Optional
+            .blendConstants = { 0.f, 0.f, 0.f, 0.f } // optional
         };
 
         // Enable depth-stencil state
@@ -165,10 +159,6 @@ namespace vk {
             .depthCompareOp = VK_COMPARE_OP_LESS,
             .depthBoundsTestEnable = false,
             .stencilTestEnable = false,
-            .front = {},
-            .back = {},
-            .minDepthBounds = 0.0f,
-            .maxDepthBounds = 1.0f
         };
 
         //! @note Dynamic State

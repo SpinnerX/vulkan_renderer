@@ -30,7 +30,7 @@ set(
 
     ${INCLUDE_DIR}/logger.hpp
     renderer/mesh.hpp
-    renderer/first_person_camera.hpp
+    ${INCLUDE_DIR}/perspective_camera.hpp
 )
 
 set(
@@ -57,7 +57,7 @@ set(
     ${SRC_DIR}/vk_imgui.cpp
 
     src/renderer/mesh.cpp
-    src/renderer/first_person_camera.cpp
+    # ${SRC_DIR}/perspective_camera.cpp
     
     ${SRC_DIR}/vk_renderpass.cpp
     ${SRC_DIR}/helper_functions.cpp
