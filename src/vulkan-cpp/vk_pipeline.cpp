@@ -189,6 +189,15 @@ namespace vk {
 
         VkDescriptorSetLayout layout = p_descriptor_sets;
 
+        if (layout != nullptr) {
+            pipeline_layout_ci.setLayoutCount = 1;
+            pipeline_layout_ci.pSetLayouts = &layout;
+        }
+        else {
+            pipeline_layout_ci.setLayoutCount = 0;
+            pipeline_layout_ci.pSetLayouts = nullptr;
+        }
+
         vk::vk_check(
           vkCreatePipelineLayout(
             m_driver, &pipeline_layout_ci, nullptr, &m_pipeline_layout),
