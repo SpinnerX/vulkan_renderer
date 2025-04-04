@@ -23,10 +23,7 @@ namespace std {
     template<>
     struct hash<vk::vertex> {
         size_t operator()(vk::vertex const& vertex) const {
-            return ((hash<glm::vec3>()(vertex.Position) ^
-                     (hash<glm::vec3>()(vertex.Color) << 1)) >>
-                    1) ^
-                   (hash<glm::vec2>()(vertex.Uv) << 1);
+            return ((hash<glm::vec3>()(vertex.Position) ^ (hash<glm::vec3>()(vertex.Color) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.Uv) << 1);
         }
     };
 }
@@ -142,7 +139,7 @@ main() {
     //! @note 4.) Initializing Swapchain
     vk::vk_swapchain main_window_swapchain =
       vk::vk_swapchain(main_physical_device, main_driver, main_window);
-    main_window_swapchain.set_background_color({ 0.f, 0.f, 0.f, 0.f });
+    main_window_swapchain.set_background_color({ 0.f, 0.f, 0.f, 1.f });
 
     vk::vk_shader test_shader = vk::vk_shader("shaders/vert.spv", "shaders/frag.spv");
     test_shader.set_vertex_attributes({
@@ -323,7 +320,7 @@ main() {
     // main_window_swapchain);
 
     while (main_window.is_active()) {
-        float dt = (float)glfwGetTime();
+        // float dt = (float)glfwGetTime();
 
         // acquire next image ( then record)
         // test_imgui.begin();
@@ -336,23 +333,16 @@ main() {
         //! TODO: Could be relocated. All this needs to know is the current
         //! frame to update the uniforms
         main_window_swapchain.update_uniforms(
-          [&test_uniforms, &main_window, dt, width, height](
-            const uint32_t& p_frame_index) {
-            //   static float angle = 0.0f;
-            //   glm::mat4 rotation = glm::mat4(1.f);
-            //   rotation = glm::rotate(rotation,glm::radians(angle), glm::normalize(glm::vec3(0.f, 0.f, 1.f)));
-            //   angle += 0.001f;
-
-            //   glm::mat4 mvp = rotation;
+          [&test_uniforms, &main_window, width, height](const uint32_t& p_frame_index) {
 			static auto startTime = std::chrono::high_resolution_clock::now();
 
 			auto currentTime = std::chrono::high_resolution_clock::now();
 			float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-              camera_data_uniform2 ubo{};
-              ubo.Model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 1.0f));
-              ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-              ubo.Projection = glm::perspective(glm::radians(45.0f), width / (float) height, 0.1f, 10.0f);
+			camera_data_uniform ubo{};
+              ubo.Model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(1.f, 1.f, 1.0f));
+              ubo.View = glm::lookAt(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+              ubo.Projection = glm::perspective(glm::radians(45.0f), width / (float) height, 0.f, 10.0f);
               ubo.Projection[1][1] *= -1;
 
               // test_uniforms[p_frame_index].update(&mvp, sizeof(mvp));

@@ -50,8 +50,7 @@ namespace vk {
         glm::vec2 Uv;
 
         bool operator==(const vertex& other) const {
-            return Position == other.Position && Color == other.Color &&
-                   Uv == other.Uv;
+            return Position == other.Position && Color == other.Color && Uv == other.Uv;
         }
     };
 

@@ -33,7 +33,7 @@ namespace vk {
         vk_vertex_buffer(const std::span<vertex>& p_vertices);
         ~vk_vertex_buffer() {}
 
-        void copy(const VkCommandBuffer& p_command_buffer);
+        // void copy(const VkCommandBuffer& p_command_buffer);
 
         void bind(const VkCommandBuffer& p_command_buffer);
 

@@ -23,19 +23,29 @@ namespace vk {
         //! buffer by descriptor set
         VkBufferUsageFlags usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
                                    VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        // VkBufferUsageFlags usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
         VkMemoryPropertyFlags memory_property_flags =
           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
           VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
         // buffer_properties staging_vertex_buffer =
         // create_buffer(p_vertices.size(), usage, memory_property_flags);
-        m_vertex_data = create_buffer(
-          m_vertices_byte_size_count, usage, memory_property_flags);
 
+        buffer_properties staging_buffer = create_buffer(m_vertices_byte_size_count, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         // 2. Mapping memory of vertex buffer (vkMap/vkUnmap operation)
-        write(m_vertex_data, p_vertices);
+        write(staging_buffer, p_vertices);
+
+
+        // m_vertex_data = create_buffer(m_vertices_byte_size_count, usage, memory_property_flags);
+        m_vertex_data = create_buffer(m_vertices_byte_size_count, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+        // copy data from staging buffer into vertex buffer
+        copy(staging_buffer, m_vertex_data, (uint32_t)p_vertices.size_bytes());
+
+        vkFreeMemory(m_driver, staging_buffer.DeviceMemory, nullptr);
+        vkDestroyBuffer(m_driver, staging_buffer.BufferHandler, nullptr);
     }
 
-    void vk_vertex_buffer::copy(const VkCommandBuffer& p_command_buffer) {}
+    // void vk_vertex_buffer::copy(const VkCommandBuffer& p_command_buffer) {}
 
     void vk_vertex_buffer::bind(const VkCommandBuffer& p_command_buffer) {
         VkBuffer buffers[] = { m_vertex_data.BufferHandler };

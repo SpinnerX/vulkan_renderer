@@ -166,6 +166,30 @@ namespace vk {
         vkUnmapMemory(driver, p_buffer.DeviceMemory);
     }
 
+
+    void copy(const buffer_properties& p_src, const buffer_properties& p_dst, uint32_t p_size_of_bytes) {
+        VkDevice driver = vk_driver::driver_context();
+        VkQueue graphics_queue =vk_driver::driver_context().get_graphics_queue();
+        VkCommandPool command_pool = create_single_command_pool();
+        VkCommandBuffer copy_cmd_buffer = create_single_command_buffer(command_pool);
+
+        begin_command_buffer(copy_cmd_buffer, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+        VkBufferCopy copy_region{};
+        copy_region.size = (VkDeviceSize)p_size_of_bytes;
+        vkCmdCopyBuffer(copy_cmd_buffer, p_src.BufferHandler, p_dst.BufferHandler, 1, &copy_region);
+        end_command_buffer(copy_cmd_buffer);
+
+        VkSubmitInfo submit_info{};
+        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submit_info.commandBufferCount = 1;
+        submit_info.pCommandBuffers = &copy_cmd_buffer;
+        vkQueueSubmit(graphics_queue, 1, &submit_info, nullptr);
+        vkQueueWaitIdle(graphics_queue);
+
+        vkFreeCommandBuffers(driver, command_pool, 1, &copy_cmd_buffer);
+        vkDestroyCommandPool(driver, command_pool, nullptr);
+    }
+
     void write(const buffer_properties& p_buffer,
                const std::span<float>& p_in_buffer) {
         VkDeviceSize buffer_size =

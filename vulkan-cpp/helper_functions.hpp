@@ -37,6 +37,10 @@ namespace vk {
 
     void write(const buffer_properties& p_buffer,
                const std::span<vertex>& p_in_buffer);
+    
+	void copy(const buffer_properties& p_src, const buffer_properties& p_dst, uint32_t p_size_of_bytes);
+
+    
 
     // const char* vk_to_string(VkResult res);
     //! @note Terminates if the result was unsuccessful!
