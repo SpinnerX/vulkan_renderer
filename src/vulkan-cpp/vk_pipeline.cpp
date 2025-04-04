@@ -52,19 +52,10 @@ namespace vk {
 
         VkPipelineVertexInputStateCreateInfo vertex_input_info = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-            // .vertexBindingDescriptionCount = 1,
-            // .pVertexBindingDescriptions = &bindingDescription, // Optional
-            // .vertexBindingDescriptionCount = 0,
-            // .pVertexBindingDescriptions = nullptr, // Optional
-            // .vertexAttributeDescriptionCount =
-            // static_cast<uint32_t>(attributes.size()),
-            // .pVertexAttributeDescriptions = attributes.data(), // Optional
-            // .vertexAttributeDescriptionCount = 0,
-            // .pVertexAttributeDescriptions = nullptr
             .vertexBindingDescriptionCount = static_cast<uint32_t>(bind_vertex_attributes.size()),
-            .pVertexBindingDescriptions = bind_vertex_attributes.data(), // Optional
+            .pVertexBindingDescriptions = bind_vertex_attributes.data(), // Optional: Enabled
             .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_attributes.size()),
-            .pVertexAttributeDescriptions = vertex_attributes.data(), // Optional
+            .pVertexAttributeDescriptions = vertex_attributes.data(), // Optional: Enabled
         };
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly = {
@@ -197,19 +188,6 @@ namespace vk {
         };
 
         VkDescriptorSetLayout layout = p_descriptor_sets;
-
-        if (layout == nullptr) {
-            console_log_error("Descriptor Set Layout IS NULLPTR!!!!!");
-        }
-
-        if (layout != nullptr) {
-            pipeline_layout_ci.setLayoutCount = 1;
-            pipeline_layout_ci.pSetLayouts = &layout;
-        }
-        else {
-            pipeline_layout_ci.setLayoutCount = 0;
-            pipeline_layout_ci.pSetLayouts = nullptr;
-        }
 
         vk::vk_check(
           vkCreatePipelineLayout(

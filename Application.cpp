@@ -23,7 +23,7 @@ namespace std {
     template<>
     struct hash<vk::vertex> {
         size_t operator()(vk::vertex const& vertex) const {
-            return ((hash<glm::vec3>()(vertex.Position) ^ (hash<glm::vec3>()(vertex.Color) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.Uv) << 1);
+            return ((hash<glm::vec3>()(vertex.Position) ^ (hash<glm::vec4>()(vertex.Color) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.Uv) << 1);
         }
     };
 }
@@ -62,19 +62,25 @@ load(const std::string& p_filename) {
         for (const auto& index : shape.mesh.indices) {
             vk::vertex vertex{};
 
-            if (index.vertex_index >= 0) {
-                vertex.Position = {
-                    attrib.vertices[3 * index.vertex_index + 0],
-                    attrib.vertices[3 * index.vertex_index + 1],
-                    attrib.vertices[3 * index.vertex_index + 2]
-                };
+            // if (index.vertex_index >= 0) {
+            //     vertex.Position = {
+            //         attrib.vertices[3 * index.vertex_index + 0],
+            //         attrib.vertices[3 * index.vertex_index + 1],
+            //         attrib.vertices[3 * index.vertex_index + 2]
+            //     };
 
-                // vertex.Color = { attrib.colors[3 * index.vertex_index + 0],
-                //                  attrib.colors[3 * index.vertex_index + 1],
-                //                  attrib.colors[3 * index.vertex_index + 2] };
-            }
+            //     // vertex.Color = { attrib.colors[3 * index.vertex_index + 0],
+            //     //                  attrib.colors[3 * index.vertex_index + 1],
+            //     //                  attrib.colors[3 * index.vertex_index + 2] };
+            // }
+			vertex.Position = {
+				attrib.vertices[3 * index.vertex_index + 0],
+				attrib.vertices[3 * index.vertex_index + 1],
+				attrib.vertices[3 * index.vertex_index + 2]
+			};
 
-			vertex.Color = {1.0f, 1.0f, 1.0f};
+
+			vertex.Color = {1.0f, 1.0f, 1.0f, 1.f};
 
             // if (index.normal_index >= 0) {
             //     vertex.Normals = {
@@ -83,10 +89,11 @@ load(const std::string& p_filename) {
             //         attrib.normals[3 * index.normal_index + 2]
             //     };
             // }
+			vertex.Uv = { attrib.texcoords[2 * index.texcoord_index + 0],attrib.texcoords[2 * index.texcoord_index + 1] };
 
-            if (index.texcoord_index >= 0) {
-                vertex.Uv = { attrib.texcoords[2 * index.texcoord_index + 0],attrib.texcoords[2 * index.texcoord_index + 1] };
-            }
+            // if (index.texcoord_index >= 0) {
+            //     vertex.Uv = { attrib.texcoords[2 * index.texcoord_index + 0],attrib.texcoords[2 * index.texcoord_index + 1] };
+            // }
 
             // vertices.push_back(vertex);
             if (unique_vertices.contains(vertex) == 0) {
@@ -142,52 +149,19 @@ main() {
     main_window_swapchain.set_background_color({ 0.f, 0.f, 0.f, 1.f });
 
     vk::vk_shader test_shader = vk::vk_shader("shaders/vert.spv", "shaders/frag.spv");
+	// vk::vk_shader test_shader = vk::vk_shader("shader_useful_directory/geometry/vert.spv","shader_useful_directory/geometry/frag.spv");
     test_shader.set_vertex_attributes({
 		{.location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(vk::vertex, Position)},
-		{.location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(vk::vertex, Color)},
-		{.location = 2, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(vk::vertex, Uv)}
+		{.location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32A32_SFLOAT, .offset = offsetof(vk::vertex, Color)},
+		{.location = 2, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(vk::vertex, Uv)}
     });
 
 	test_shader.set_vertex_bind_attributes({
 		{.binding = 0, .stride = sizeof(vk::vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}
 	});
 
-
-    // vk::vk_shader test_shader =
-    // vk::vk_shader("shader_useful_directory/geometry/vert.spv",
-    // "shader_useful_directory/geometry/frag.spv");
-
     // adding descriptor sets
-    std::vector<vk::vertex> vertices = {
-        vk::vertex({ -1.0f, -1.0f, 1.0f },
-                   { 1.0f, 0.f, 0.f },
-                   { 0.0f, 0.0f }), // top left
-        vk::vertex({ 1.0f, -1.0f, 1.0f },
-                   { 1.0f, 0.f, 0.f },
-                   { 0.0f, 1.0f }), // top right
-        vk::vertex({ 0.0f, 1.0f, 1.0f },
-                   { 1.0f, 0.f, 0.f },
-                   { 1.0f, 1.0f }) // bottom middle
-    };
-
-    // std::vector<vk::vertex> vertices = {
-    //     vk::vertex({-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}),	// Bottom left
-    //     vk::vertex({-1.0f, 1.0f, 0.0f},  {0.0f, 1.0f}), // Top left
-    //     vk::vertex({1.0f,  1.0f, 0.0f},  {1.0f, 1.0f}), // Top right
-    //     vk::vertex({-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}), // Bottom left
-    //     vk::vertex({1.0f, 1.0f, 0.0f},   {1.0f, 1.0f}), // Top right
-    //     vk::vertex({1.0f,  -1.0f, 0.0f}, {1.0f, 0.0f})  // Bottom right
-    // };
-
-    // // std::vector<uint32_t> indices = {0, 1, 2, 2, 3, 0};
-    std::vector<uint32_t> indices = {
-        0, 1, 2, 2, 3, 1,
-    };
-
-    // creating our uniform buffer
-    // vk::vk_vertex_buffer test_vertex_buffer = vk::vk_vertex_buffer(vertices);
-    // vk::vk_index_buffer test_index_buffer = vk::vk_index_buffer(indices);
-
+    // creating our vertex and index buffers
     // vk::mesh new_mesh = load("models/Ball OBJ.obj");
     vk::mesh new_mesh = load("models/viking_room.obj");
     vk::vk_vertex_buffer test_vertex_buffer = new_mesh.get_vertex();
@@ -226,6 +200,12 @@ main() {
     vk::vk_descriptor_set test_descriptor_sets = vk::vk_descriptor_set(image_count, descriptor_layouts);
 	*/
 	
+	/*
+	
+		p_layouts
+		- Used to specify what kinds of data will this descriptor set be containing
+
+	*/
 	vk::vk_descriptor_set test_descriptor_sets = vk::vk_descriptor_set(image_count,
 	{
 		{.binding = 0, .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_VERTEX_BIT, .pImmutableSamplers  = nullptr},
@@ -241,9 +221,9 @@ main() {
 
     // specifically vertex attributes
     std::vector<vk::pipeline_vertex_attributes> vertex_attributes = {
-        { "inPosition", 0, 0, offsetof(vk::vertex, Position), VK_FORMAT_R32G32B32_SFLOAT },
-        { "inColor", 0, 1, offsetof(vk::vertex, Color), VK_FORMAT_R32G32B32_SFLOAT },
-        { "inTexCoords", 0, 2, offsetof(vk::vertex, Uv), VK_FORMAT_R32G32_SFLOAT }
+        { "inPosition", 0, 0, offsetof(vk::vertex, Position), VK_FORMAT_R32G32B32A32_SFLOAT },
+        { "inColor", 0, 1, offsetof(vk::vertex, Color), VK_FORMAT_R32G32B32A32_SFLOAT },
+        { "inTexCoords", 0, 2, offsetof(vk::vertex, Uv), VK_FORMAT_R32G32B32A32_SFLOAT }
     };
 
     // setting up vulkan pipeline
@@ -278,6 +258,8 @@ main() {
 
     /*
 
+	// Essentially there are going to be vk_descriptor_set that is to be defined as a single descriptor set
+	// Then set the descriptor set as probably a shader source group
     vk::vk_descriptor_set_manager desc_manager(image_size); // img_size = 3
     std::vector<vk::vk_descriptor_set> descriptor_sets(3);
 
@@ -291,12 +273,7 @@ main() {
     */
 
     // recording clear colors for all swapchain command buffers
-    main_window_swapchain.record(
-      [&main_window_swapchain,
-       &test_pipeline,
-       &test_vertex_buffer,
-       &test_index_buffer,
-       &test_descriptor_sets](const VkCommandBuffer& p_command_buffer) {
+    main_window_swapchain.record([&main_window_swapchain, &test_pipeline, &test_vertex_buffer, &test_index_buffer, &test_descriptor_sets](const VkCommandBuffer& p_command_buffer) {
           test_pipeline.bind(p_command_buffer);
 
           test_descriptor_sets.bind(p_command_buffer,
@@ -312,7 +289,9 @@ main() {
           else {
               test_vertex_buffer.draw(p_command_buffer);
           }
-      });
+	});
+
+	glm::vec3 Position = {0.f, 0.f, 0.f};
 
     // vk::vk_imgui test_imgui = vk::vk_imgui();
     // VkRenderPass rp = main_window_swapchain.get_renderpass();
@@ -320,7 +299,7 @@ main() {
     // main_window_swapchain);
 
     while (main_window.is_active()) {
-        // float dt = (float)glfwGetTime();
+        float dt = (float)glfwGetTime();
 
         // acquire next image ( then record)
         // test_imgui.begin();
@@ -330,24 +309,49 @@ main() {
 
         // draw (after recording)
 
+		if(glfwGetKey(main_window, GLFW_KEY_W) == GLFW_PRESS) {
+			Position.x += (0.1f) * dt;
+		}
+		if(glfwGetKey(main_window, GLFW_KEY_S) == GLFW_PRESS) {
+			Position.x -= (0.1f) * dt;
+		}
+		if(glfwGetKey(main_window, GLFW_KEY_Q) == GLFW_PRESS) {
+			Position.y += (0.1f) * dt;
+		}
+		if(glfwGetKey(main_window, GLFW_KEY_E) == GLFW_PRESS) {
+			Position.y -= (0.1f) * dt;
+		}
+
+		if(glfwGetKey(main_window, GLFW_KEY_A) == GLFW_PRESS) {
+			Position.z += (0.1f) * dt;
+		}
+		if(glfwGetKey(main_window, GLFW_KEY_D) == GLFW_PRESS) {
+			Position.z -= (0.1f) * dt;
+		}
+		
         //! TODO: Could be relocated. All this needs to know is the current
         //! frame to update the uniforms
-        main_window_swapchain.update_uniforms(
-          [&test_uniforms, &main_window, width, height](const uint32_t& p_frame_index) {
+        main_window_swapchain.update_uniforms([&test_uniforms, &main_window, width, height, &Position](const uint32_t& p_frame_index) {
 			static auto startTime = std::chrono::high_resolution_clock::now();
 
 			auto currentTime = std::chrono::high_resolution_clock::now();
 			float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 			camera_data_uniform ubo{};
-              ubo.Model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(1.f, 1.f, 1.0f));
-              ubo.View = glm::lookAt(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-              ubo.Projection = glm::perspective(glm::radians(45.0f), width / (float) height, 0.f, 10.0f);
-              ubo.Projection[1][1] *= -1;
+			// ubo.Model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(1.f, 0.f, 1.0f));
+			// ubo.View = glm::lookAt(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+			// ubo.Projection = glm::perspective(glm::radians(45.0f), width / (float) height, 0.9f, 10.0f);
+			// ubo.Projection[1][1] *= -1;
+			ubo.Model = glm::mat4(1.f);
+			ubo.Model = glm::translate(ubo.Model, Position);
+			ubo.Model = glm::rotate(ubo.Model, time * glm::radians(90.0f), glm::vec3(5.0f, 5.0f, 5.0f));
+			ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, -0.50f), glm::vec3(0.0f, 0.0f, 1.0f));
+			ubo.Projection = glm::perspective(glm::radians(45.0f), (float)width / height, 0.1f, 10.0f);
+			ubo.Projection[1][1] *= -1;
 
-              // test_uniforms[p_frame_index].update(&mvp, sizeof(mvp));
-              test_uniforms[p_frame_index].update(&ubo, sizeof(ubo));
-          });
+			// test_uniforms[p_frame_index].update(&mvp, sizeof(mvp));
+			test_uniforms[p_frame_index].update(&ubo, sizeof(ubo));
+		});
 
         // presenting frame (after drawing that frame)
         main_window_swapchain.present();

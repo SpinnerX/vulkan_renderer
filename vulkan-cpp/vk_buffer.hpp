@@ -46,7 +46,7 @@ namespace vk {
 
     struct vertex {
         glm::vec3 Position;
-        glm::vec3 Color;
+        glm::vec4 Color;
         glm::vec2 Uv;
 
         bool operator==(const vertex& other) const {
