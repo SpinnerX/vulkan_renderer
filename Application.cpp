@@ -15,22 +15,9 @@
 #include <imgui.h>
 #include <vulkan-cpp/vk_imgui.hpp>
 
-
-
 #include <tiny_obj_loader.h>
 #include <vulkan-cpp/perspective_camera.hpp>
-
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/hash.hpp>
-
-namespace std {
-    template<>
-    struct hash<vk::vertex> {
-        size_t operator()(vk::vertex const& vertex) const {
-            return ((hash<glm::vec3>()(vertex.Position) ^ (hash<glm::vec4>()(vertex.Color) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.Uv) << 1);
-        }
-    };
-}
+#include <renderer/mesh.hpp>
 
 /*
 
@@ -72,85 +59,6 @@ namespace std {
 
 
 */
-
-vk::mesh
-load(const std::string& p_filename) {
-    vk::mesh return_mesh;
-    tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
-    std::string warn, err;
-
-    //! @note If we return the constructor then we can check if the mesh
-    //! loaded successfully
-    //! @note We also receive hints if the loading is successful!
-    //! @note Return default constructor automatically returns false means
-    //! that mesh will return the boolean as false because it wasnt
-    //! successful
-    if (!tinyobj::LoadObj(
-          &attrib, &shapes, &materials, &warn, &err, p_filename.c_str())) {
-        console_log_warn("Could not load model from path {}", p_filename);
-    }
-    else {
-        console_log_info("Model Loaded = {}", p_filename);
-    }
-
-    std::vector<vk::vertex> vertices;
-    // std::vector<uint32_t> indices;
-    std::vector<uint32_t> indices;
-    std::unordered_map<vk::vertex, uint32_t> unique_vertices{};
-
-    for (const auto& shape : shapes) {
-        for (const auto& index : shape.mesh.indices) {
-            vk::vertex vertex{};
-
-            // if (index.vertex_index >= 0) {
-            //     vertex.Position = {
-            //         attrib.vertices[3 * index.vertex_index + 0],
-            //         attrib.vertices[3 * index.vertex_index + 1],
-            //         attrib.vertices[3 * index.vertex_index + 2]
-            //     };
-
-            //     // vertex.Color = { attrib.colors[3 * index.vertex_index + 0],
-            //     //                  attrib.colors[3 * index.vertex_index + 1],
-            //     //                  attrib.colors[3 * index.vertex_index + 2] };
-            // }
-			vertex.Position = {
-				attrib.vertices[3 * index.vertex_index + 0],
-				attrib.vertices[3 * index.vertex_index + 1],
-				attrib.vertices[3 * index.vertex_index + 2]
-			};
-
-
-			vertex.Color = {1.0f, 1.0f, 1.0f, 1.f};
-
-            // if (index.normal_index >= 0) {
-            //     vertex.Normals = {
-            //         attrib.normals[3 * index.normal_index + 0],
-            //         attrib.normals[3 * index.normal_index + 1],
-            //         attrib.normals[3 * index.normal_index + 2]
-            //     };
-            // }
-			vertex.Uv = { attrib.texcoords[2 * index.texcoord_index + 0],attrib.texcoords[2 * index.texcoord_index + 1] };
-
-            // if (index.texcoord_index >= 0) {
-            //     vertex.Uv = { attrib.texcoords[2 * index.texcoord_index + 0],attrib.texcoords[2 * index.texcoord_index + 1] };
-            // }
-
-            // vertices.push_back(vertex);
-            if (unique_vertices.contains(vertex) == 0) {
-                unique_vertices[vertex] =
-                  static_cast<uint32_t>(vertices.size());
-                vertices.push_back(vertex);
-            }
-
-            indices.push_back(unique_vertices[vertex]);
-        }
-    }
-
-    return_mesh = vk::mesh(vertices, indices);
-    return return_mesh;
-}
 
 int
 main() {
@@ -205,9 +113,9 @@ main() {
     // adding descriptor sets
     // creating our vertex and index buffers
     // vk::mesh new_mesh = load("models/Ball OBJ.obj");
-    vk::mesh new_mesh = load("models/viking_room.obj");
+    // vk::mesh new_mesh = load("models/viking_room.obj");
+    vk::mesh new_mesh = vk::mesh("models/viking_room.obj");
     vk::vk_vertex_buffer test_vertex_buffer = new_mesh.get_vertex();
-    vk::vk_index_buffer test_index_buffer = new_mesh.get_index();
 
     uint32_t size_of_bytes = sizeof(camera_data_uniform);
 
@@ -315,22 +223,22 @@ main() {
     */
 
     // recording clear colors for all swapchain command buffers
-    main_window_swapchain.record([&main_window_swapchain, &test_pipeline, &test_vertex_buffer, &test_index_buffer, &test_descriptor_sets](const VkCommandBuffer& p_command_buffer) {
+    main_window_swapchain.record([&main_window_swapchain, &test_pipeline, &test_vertex_buffer, &test_descriptor_sets, &new_mesh](const VkCommandBuffer& p_command_buffer) {
           test_pipeline.bind(p_command_buffer);
 
           test_descriptor_sets.bind(p_command_buffer,
                                     main_window_swapchain.current_frame(),
                                     test_pipeline.get_layout());
+        //   test_vertex_buffer.bind(p_command_buffer);
+        //   test_index_buffer.bind(p_command_buffer);
 
-          test_vertex_buffer.bind(p_command_buffer);
-          test_index_buffer.bind(p_command_buffer);
-
-          if (test_index_buffer.has_indices()) {
-              test_index_buffer.draw(p_command_buffer);
-          }
-          else {
-              test_vertex_buffer.draw(p_command_buffer);
-          }
+        //   if (test_index_buffer.has_indices()) {
+        //       test_index_buffer.draw(p_command_buffer);
+        //   }
+        //   else {
+        //       test_vertex_buffer.draw(p_command_buffer);
+        //   }
+        new_mesh.draw(p_command_buffer);
 	});
 
 	glm::vec3 Position = {0.f, 0.f, 0.f};
@@ -390,23 +298,16 @@ main() {
 			float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 			camera_data_uniform ubo{};
-			// ubo.Model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(1.f, 0.f, 1.0f));
-			// ubo.View = glm::lookAt(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-			// ubo.Projection = glm::perspective(glm::radians(45.0f), width / (float) height, 0.9f, 10.0f);
-			// ubo.Projection[1][1] *= -1;
-			ubo.Model = glm::mat4(1.f);
-			ubo.Model = glm::translate(ubo.Model, glm::vec3(0.f, 0.f, 0.f));
-			// ubo.Model = glm::translate(ubo.Model, camera.Position);
-			ubo.Model =glm::scale(ubo.Model, glm::vec3(0.5f, 0.5f, 0.5f));
-			ubo.Model = glm::rotate(ubo.Model, time * glm::radians(90.0f), glm::vec3(5.0f, 5.0f, 5.0f));
-			// ubo.View = camera.get_view();
-			// ubo.Projection = camera.get_projection();
-			ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 5.0f), glm::vec3(0.0f, 0.0f, -0.50f), glm::vec3(0.0f, 0.0f, 1.0f));
-			ubo.Projection = glm::perspective(glm::radians(45.0f), (float)width / height, 0.0f, 1000.0f);
-			ubo.Projection[1][1] *= -1;
+            ubo.Model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            ubo.Projection = glm::perspective(glm::radians(45.0f), width / (float) height, 0.1f, 10.0f);
+            ubo.Projection[1][1] *= -1;
+
+            // ubo.proj * ubo.view * ubo.model
+            glm::mat4 MVP = ubo.Projection * ubo.View * ubo.Model;
 
 			// test_uniforms[p_frame_index].update(&mvp, sizeof(mvp));
-			test_uniforms[p_frame_index].update(&ubo, sizeof(ubo));
+			test_uniforms[p_frame_index].update(&MVP, sizeof(MVP));
 		});
 
         // presenting frame (after drawing that frame)
@@ -431,8 +332,9 @@ main() {
     }
 
     test_descriptor_sets.destroy();
-    test_index_buffer.destroy();
-    test_vertex_buffer.destroy();
+    // test_index_buffer.destroy();
+    // test_vertex_buffer.destroy();
+    new_mesh.destroy();
     test_pipeline.destroy();
     test_shader.destroy();
     main_window_swapchain.destroy();

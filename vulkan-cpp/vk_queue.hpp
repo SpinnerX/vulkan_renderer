@@ -21,6 +21,9 @@ namespace vk {
 
         uint32_t read_acquire_image();
 
+        bool is_resize_requested() const { return m_resize_requested; }
+        void set_resize_request(const bool& p_request) { m_resize_requested = p_request; }
+        VkResult queue_acquired_image_status() const { return m_status; }
         /*
         Specify whether you want to submit to the command buffer in either async
         or synchronization mode
@@ -43,5 +46,7 @@ namespace vk {
         VkQueue m_queue = nullptr;
         VkSemaphore m_render_completed_semaphore;
         VkSemaphore m_present_completed_semaphore;
+        bool m_resize_requested=false;
+        VkResult m_status;
     };
 };

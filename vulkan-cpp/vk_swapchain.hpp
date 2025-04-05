@@ -6,6 +6,7 @@
 #include <vulkan-cpp/logger.hpp>
 #include <vulkan-cpp/vk_buffer.hpp>
 #include <vulkan-cpp/vk_command_buffer.hpp>
+#include <vulkan-cpp/vk_window.hpp>
 
 namespace vk {
     struct swapchain_configs {
@@ -34,14 +35,6 @@ namespace vk {
             std::array<VkClearValue, 2> clear_values = {};
             clear_values[0].color = m_color;
             clear_values[1].depthStencil = { 1.0f, 0 };
-
-            // VkImageSubresourceRange image_range = {
-            //     .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-            //     .baseMipLevel = 0,
-            //     .levelCount = 1,
-            //     .baseArrayLayer = 0,
-            //     .layerCount = 1
-            // };
 
             VkRenderPassBeginInfo renderpass_begin_info = {
                 .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
@@ -127,6 +120,15 @@ namespace vk {
             m_swapchain_queue.wait_idle();
 
             uint32_t frame_idx = m_swapchain_queue.read_acquire_image();
+
+            if(m_swapchain_queue.is_resize_requested()) {
+                // int width=0, height=0;
+                // glfwGetFramebufferSize(vk_window::native_window(), &width, &height);
+                vkDeviceWaitIdle(m_driver);
+                on_create();
+                m_swapchain_queue.set_resize_request(false);
+                return;
+            }
 
             m_current_image_index = frame_idx;
 

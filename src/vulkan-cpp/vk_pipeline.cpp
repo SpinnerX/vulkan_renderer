@@ -98,7 +98,7 @@ namespace vk {
                                     // disables output to frame_buffer
             .lineWidth = 1.0f,      // represents thickness of lines
             .cullMode =
-			VK_CULL_MODE_NONE, // determines what culling to use. Can also
+			        VK_CULL_MODE_NONE, // determines what culling to use. Can also
                                      // be disabled, culls front-face, back-face
                                      // or both
             .frontFace =

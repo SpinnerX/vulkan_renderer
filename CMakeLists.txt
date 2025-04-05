@@ -57,7 +57,6 @@ set(
     ${SRC_DIR}/vk_imgui.cpp
 
     src/renderer/mesh.cpp
-    # ${SRC_DIR}/perspective_camera.cpp
     
     ${SRC_DIR}/vk_renderpass.cpp
     ${SRC_DIR}/helper_functions.cpp

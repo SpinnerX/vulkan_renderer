@@ -9,6 +9,7 @@ namespace vk {
     //! @note In SimpleMesh(in tutorial) only contains vertex buffer and vertex
     //! buffer size in bytes
     vk_vertex_buffer::vk_vertex_buffer(const std::span<vertex>& p_vertices) {
+        console_log_trace("vertex buffer begin initialization!!!");
         m_driver = vk_driver::driver_context();
         m_vertices_count = static_cast<uint32_t>(p_vertices.size());
         m_vertices_byte_size_count = p_vertices.size_bytes();
@@ -43,6 +44,7 @@ namespace vk {
 
         vkFreeMemory(m_driver, staging_buffer.DeviceMemory, nullptr);
         vkDestroyBuffer(m_driver, staging_buffer.BufferHandler, nullptr);
+        console_log_trace("vertex buffer end initialization!!!");
     }
 
     // void vk_vertex_buffer::copy(const VkCommandBuffer& p_command_buffer) {}
