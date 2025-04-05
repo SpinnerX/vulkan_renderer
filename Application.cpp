@@ -180,7 +180,8 @@ main() {
     vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window_swapchain.get_renderpass(),test_shader, test_descriptor_sets.get_layout());
 
     // Loading and using textures
-    vk::vk_texture test_texture("models/viking_room.png");
+    // vk::vk_texture test_texture("models/viking_room.png");
+    new_mesh.set_texture(0, "models/viking_room.png");
     // vk::vk_texture test_texture("textures/bricks.jpg");
 
     // updating descriptor sets
@@ -203,8 +204,9 @@ main() {
     // test_descriptor_sets.update_uniforms(test_uniforms);
     // test_descriptor_sets.update_texture(&test_texture);
     // test_descriptor_sets.update_vertex(test_vertex_buffer);
+    vk::vk_texture my_texture = new_mesh.get_texture(0);
 
-	test_descriptor_sets.update_test_descriptors(test_uniforms, test_vertex_buffer, test_texture);
+	test_descriptor_sets.update_test_descriptors(test_uniforms, test_vertex_buffer, my_texture);
 
     /*
 
@@ -324,8 +326,9 @@ main() {
     // just before they get destroyed!!
     vkDeviceWaitIdle(main_driver);
 
-    test_texture.destroy();
+    // test_texture.destroy();
 
+    my_texture.destroy();
     // test_uniforms.destroy();
     for (size_t i = 0; i < test_uniforms.size(); i++) {
         test_uniforms[i].destroy();

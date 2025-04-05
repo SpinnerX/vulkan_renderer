@@ -67,7 +67,13 @@ namespace vk {
         m_ibo = vk_index_buffer(indices);
     }
 
+    void mesh::set_texture(uint32_t p_index, const std::string& p_filename) {
+        m_current_texture = vk_texture(p_filename);
+        m_textures[p_index] = &m_current_texture;
+    }
+
     void mesh::draw(const VkCommandBuffer& p_cmd_buffer) {
+
         m_vbo.bind(p_cmd_buffer);
 
         if (m_ibo.has_indices()) {
