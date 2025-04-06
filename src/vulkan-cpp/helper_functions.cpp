@@ -478,7 +478,7 @@ namespace vk {
         vkEndCommandBuffer(p_command_buffer);
     }
 
-    buffer_properties create_buffer(uint32_t p_device_size,
+    vk_buffer create_buffer(uint32_t p_device_size,
                                     VkBufferUsageFlags p_usage,
                                     VkMemoryPropertyFlags p_property_flags) {
         vk_driver driver = vk_driver::driver_context();
@@ -487,7 +487,7 @@ namespace vk {
             console_log_warn("driver is still valid!!!");
         }
 
-        buffer_properties new_buffer{};
+        vk_buffer new_buffer{};
         new_buffer.AllocateDeviceSize = p_device_size;
 
         VkBufferCreateInfo buffer_ci = {
@@ -542,7 +542,7 @@ namespace vk {
         return new_buffer;
     }
 
-    void write(const buffer_properties& p_buffer,
+    void write(const vk_buffer& p_buffer,
                const void* p_data,
                size_t p_size_in_bytes) {
         VkDevice driver = vk_driver::driver_context();
@@ -556,7 +556,7 @@ namespace vk {
         vkUnmapMemory(driver, p_buffer.DeviceMemory);
     }
 
-    void write(const buffer_properties& p_buffer,
+    void write(const vk_buffer& p_buffer,
                const std::span<uint32_t>& p_in_buffer) {
         VkDeviceSize buffer_size = p_in_buffer.size_bytes();
         VkDevice driver = vk_driver::driver_context();
@@ -570,7 +570,7 @@ namespace vk {
     }
 
 
-    void copy(const buffer_properties& p_src, const buffer_properties& p_dst, uint32_t p_size_of_bytes) {
+    void copy(const vk_buffer& p_src, const vk_buffer& p_dst, uint32_t p_size_of_bytes) {
         VkDevice driver = vk_driver::driver_context();
         VkQueue graphics_queue =vk_driver::driver_context().get_graphics_queue();
         VkCommandPool command_pool = create_single_command_pool();
@@ -593,7 +593,7 @@ namespace vk {
         vkDestroyCommandPool(driver, command_pool, nullptr);
     }
 
-    void write(const buffer_properties& p_buffer,
+    void write(const vk_buffer& p_buffer,
                const std::span<float>& p_in_buffer) {
         VkDeviceSize buffer_size =
           p_in_buffer
@@ -609,7 +609,7 @@ namespace vk {
         vkUnmapMemory(driver, p_buffer.DeviceMemory);
     }
 
-    void write(const buffer_properties& p_buffer,
+    void write(const vk_buffer& p_buffer,
                const std::span<vertex>& p_in_buffer) {
         VkDeviceSize buffer_size =
           p_in_buffer

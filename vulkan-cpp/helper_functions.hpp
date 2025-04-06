@@ -45,29 +45,29 @@ namespace vk {
 
     void end_command_buffer(const VkCommandBuffer& p_command_buffer);
 
-    buffer_properties create_buffer(uint32_t p_device_size,
+    vk_buffer create_buffer(uint32_t p_device_size,
                                     VkBufferUsageFlags p_usage,
                                     VkMemoryPropertyFlags p_property_flags);
 
     // Use is for vkMap/vkUnmap data of bytes yourself
-    void write(const buffer_properties& p_buffer,
+    void write(const vk_buffer& p_buffer,
                const void* p_data,
                size_t p_size_in_bytes);
 
     // Maps/Unmaps a buffer handler from std::span<uint32_t>
-    void write(const buffer_properties& p_buffer,
+    void write(const vk_buffer& p_buffer,
                const std::span<uint32_t>& p_in_buffer);
 	
 	// Maps/Unmaps a buffer handler from std::span<float>
-    void write(const buffer_properties& p_buffer,
+    void write(const vk_buffer& p_buffer,
                const std::span<float>& p_in_buffer);
 	
 	// Maps/Unmaps a buffer handler from std::span<vertex>
-    void write(const buffer_properties& p_buffer,
+    void write(const vk_buffer& p_buffer,
                const std::span<vertex>& p_in_buffer);
     
 	// Copies from one buffer source into another buffer source with a specific size of bytes to be stored the buffer that is being copied to
-	void copy(const buffer_properties& p_src, const buffer_properties& p_dst, uint32_t p_size_of_bytes);
+	void copy(const vk_buffer& p_src, const vk_buffer& p_dst, uint32_t p_size_of_bytes);
 
 	/**
 	 * @param VkFormat input is the format to check if this format's a stencil attachment

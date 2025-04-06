@@ -6,14 +6,14 @@
 namespace vk {
 
     // Creating a single uniform buffer through these helper functions
-    buffer_properties create_uniform_buffer(uint32_t p_size) {
+    vk_buffer create_uniform_buffer(uint32_t p_size) {
 
         VkBufferUsageFlags flags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         VkMemoryPropertyFlags memory_property_flag =
           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
           VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-        buffer_properties buffer_data =
+        vk_buffer buffer_data =
           create_buffer(p_size, flags, memory_property_flag);
 
         return buffer_data;

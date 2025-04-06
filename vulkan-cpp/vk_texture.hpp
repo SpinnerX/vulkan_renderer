@@ -128,7 +128,7 @@ namespace vk {
 
     private:
         vk_driver m_driver;
-        buffer_properties m_staging_buffer;
+        vk_buffer m_staging_buffer;
         vk_image m_texture_image;
         vk_command_buffer m_copy_command_buffer;
         bool m_is_image_loaded=false;

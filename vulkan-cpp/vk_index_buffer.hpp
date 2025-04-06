@@ -22,7 +22,7 @@ namespace vk {
 
     private:
         VkDevice m_driver = nullptr;
-        buffer_properties m_index_buffer_data{};
+        vk_buffer m_index_buffer_data{};
         uint32_t m_indices_count = 0;
     };
 };

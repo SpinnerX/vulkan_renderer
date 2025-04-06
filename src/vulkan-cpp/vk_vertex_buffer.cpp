@@ -28,10 +28,10 @@ namespace vk {
         VkMemoryPropertyFlags memory_property_flags =
           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
           VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-        // buffer_properties staging_vertex_buffer =
+        // vk_buffer staging_vertex_buffer =
         // create_buffer(p_vertices.size(), usage, memory_property_flags);
 
-        buffer_properties staging_buffer = create_buffer(m_vertices_byte_size_count, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        vk_buffer staging_buffer = create_buffer(m_vertices_byte_size_count, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         // 2. Mapping memory of vertex buffer (vkMap/vkUnmap operation)
         write(staging_buffer, p_vertices);
 

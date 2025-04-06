@@ -3,11 +3,6 @@
 #include <glm/glm.hpp>
 
 namespace vk {
-    struct buffer_properties {
-        VkBuffer BufferHandler = nullptr;
-        VkDeviceMemory DeviceMemory = nullptr;
-        uint32_t AllocateDeviceSize = 0;
-    };
 
     struct vk_buffer {
         VkBuffer BufferHandler = nullptr;
@@ -20,8 +15,6 @@ namespace vk {
         VkImageView ImageView = nullptr;
         VkSampler Sampler = nullptr;
         VkDeviceMemory DeviceMemory = nullptr;
-        uint32_t Width = 0;
-        uint32_t Height = 0;
     };
 
     struct vertex {

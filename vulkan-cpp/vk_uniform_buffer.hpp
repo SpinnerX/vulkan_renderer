@@ -19,15 +19,15 @@ namespace vk {
             return m_uniform_buffer_data.BufferHandler;
         }
 
-        // std::vector<buffer_properties> data() const { return
+        // std::vector<vk_buffer> data() const { return
         // m_uniform_buffers; }
 
         void destroy();
 
     private:
         VkDevice m_driver = nullptr;
-        buffer_properties m_uniform_buffer_data{};
+        vk_buffer m_uniform_buffer_data{};
         // VkDeviceMemory m_device_memory=nullptr;
-        // std::vector<buffer_properties> m_uniform_buffers{};
+        // std::vector<vk_buffer> m_uniform_buffers{};
     };
 };

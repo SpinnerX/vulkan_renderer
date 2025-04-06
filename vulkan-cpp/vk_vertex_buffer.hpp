@@ -55,6 +55,6 @@ namespace vk {
         VkDevice m_driver = nullptr;
         uint32_t m_vertices_count = 0;
         uint32_t m_vertices_byte_size_count = 0;
-        buffer_properties m_vertex_data{};
+        vk_buffer m_vertex_data{};
     };
 };
