@@ -39,18 +39,40 @@ namespace vk {
             for (const auto& index : shape.mesh.indices) {
                 vertex vertex{};
 
-                vertex.Position = {
-                    attrib.vertices[3 * index.vertex_index + 0],
-                    attrib.vertices[3 * index.vertex_index + 1],
-                    attrib.vertices[3 * index.vertex_index + 2]
-                };
+                // vertices.push_back(vertex);
+                if (unique_vertices.contains(vertex) == 0) {
+                    unique_vertices[vertex] =
+                      static_cast<uint32_t>(vertices.size());
+                    vertices.push_back(vertex);
+                }
+                if (index.vertex_index >= 0) {
+                    vertex.Position = {
+                        attrib.vertices[3 * index.vertex_index + 0],
+                        attrib.vertices[3 * index.vertex_index + 1],
+                        attrib.vertices[3 * index.vertex_index + 2]
+                    };
 
-                vertex.Uv = {
-                    attrib.texcoords[2 * index.texcoord_index + 0],
+                    vertex.Color = {
+                        attrib.colors[3 * index.vertex_index + 0],
+                        attrib.colors[3 * index.vertex_index + 1],
+                        attrib.colors[3 * index.vertex_index + 2]
+                    };
+                }
+
+                if (index.normal_index >= 0) {
+                    vertex.Normals = {
+                        attrib.normals[3 * index.normal_index + 0],
+                        attrib.normals[3 * index.normal_index + 1],
+                        attrib.normals[3 * index.normal_index + 2]
+                    };
+                }
+
+                if (index.texcoord_index >= 0) {
+                    vertex.Uv = {
+                        attrib.texcoords[2 * index.texcoord_index + 0],
                     1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-                };
-                
-                vertex.Color = {1.0f, 1.0f, 1.0f};
+                    };
+                }
 
                 // vertices.push_back(vertex);
                 if (unique_vertices.contains(vertex) == 0) {

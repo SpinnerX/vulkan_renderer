@@ -37,136 +37,10 @@ namespace vk {
         return 0;
     }
 
-    VkSampler create_sampler(VkFilter MinFilter,
-                             VkFilter MaxFilter,
-                             VkSamplerAddressMode AddressMode) {
-        VkDevice driver = vk_driver::driver_context();
-
-        VkSamplerCreateInfo SamplerInfo = {
-            .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .magFilter = MinFilter,
-            .minFilter = MaxFilter,
-            .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-            .addressModeU = AddressMode,
-            .addressModeV = AddressMode,
-            .addressModeW = AddressMode,
-            .mipLodBias = 0.0f,
-            .anisotropyEnable = false,
-            .maxAnisotropy = 1,
-            .compareEnable = false,
-            .compareOp = VK_COMPARE_OP_ALWAYS,
-            .minLod = 0.0f,
-            .maxLod = 0.0f,
-            .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
-            .unnormalizedCoordinates = false
-        };
-
-        VkSampler Sampler;
-        VkResult res =
-          vkCreateSampler(driver, &SamplerInfo, VK_NULL_HANDLE, &Sampler);
-        vk_check(res, "vkCreateSampler", __FUNCTION__);
-
-        return Sampler;
-    }
-
-    VkImageView create_image_view(VkImage Image,
-                                  VkFormat Format,
-                                  VkImageAspectFlags AspectFlags) {
-        VkDevice driver = vk_driver::driver_context();
-
-        VkImageViewCreateInfo ViewInfo = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-            .pNext = NULL,
-            .flags = 0,
-            .image = Image,
-            .viewType = VK_IMAGE_VIEW_TYPE_2D,
-            .format = Format,
-            .components = { .r = VK_COMPONENT_SWIZZLE_IDENTITY,
-                            .g = VK_COMPONENT_SWIZZLE_IDENTITY,
-                            .b = VK_COMPONENT_SWIZZLE_IDENTITY,
-                            .a = VK_COMPONENT_SWIZZLE_IDENTITY },
-            .subresourceRange = { .aspectMask = AspectFlags,
-                                  .baseMipLevel = 0,
-                                  .levelCount = 1,
-                                  .baseArrayLayer = 0,
-                                  .layerCount = 1 }
-        };
-
-        VkImageView ImageView;
-        VkResult res = vkCreateImageView(driver, &ViewInfo, NULL, &ImageView);
-        vk_check(res, "vkCreateImageView", __FUNCTION__);
-        return ImageView;
-    }
-
-    image_data create_image2d(uint32_t p_width,
-                              uint32_t p_height,
-                              VkFormat p_format,
-                              VkImageUsageFlags p_usage,
-                              VkMemoryPropertyFlagBits p_property) {
-        vk_driver driver = vk_driver::driver_context();
-
-        VkImageCreateInfo image_ci = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .imageType = VK_IMAGE_TYPE_2D,
-            .format = p_format,
-            .extent = { .width = p_width, .height = p_height, .depth = 1 },
-            .mipLevels = 1,
-            .arrayLayers = 1,
-            .samples = VK_SAMPLE_COUNT_1_BIT,
-            .tiling = VK_IMAGE_TILING_OPTIMAL,
-            .usage = p_usage,
-            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-            .queueFamilyIndexCount = 0,
-            .pQueueFamilyIndices = nullptr,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
-        };
-
-        // VkImage image=nullptr;
-        image_data image;
-        image.Width = p_width;
-        image.Height = p_height;
-
-        vk_check(vkCreateImage(driver, &image_ci, nullptr, &image.Image),
-                 "vkCreateImage",
-                 __FUNCTION__);
-
-        // 2. get buffer memory requirements
-        VkMemoryRequirements memory_requirements;
-        vkGetImageMemoryRequirements(driver, image.Image, &memory_requirements);
-
-        // 3. get memory type index
-        uint32_t memory_type_index = driver.select_memory_type(
-          memory_requirements.memoryTypeBits, p_property);
-
-        // 4. Allocate info
-        VkMemoryAllocateInfo memory_alloc_info = {
-            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            .pNext = nullptr,
-            .allocationSize = memory_requirements.size,
-            .memoryTypeIndex = memory_type_index
-        };
-
-        vk_check(vkAllocateMemory(
-                   driver, &memory_alloc_info, nullptr, &image.DeviceMemory),
-                 "vkAllocateMemory",
-                 __FUNCTION__);
-
-        // 5. bind image memory
-        vk_check(vkBindImageMemory(driver, image.Image, image.DeviceMemory, 0),
-                 "vkBindImageMemory",
-                 __FUNCTION__);
-
-        return image;
-    }
-
-    bool has_stencil_attachment(VkFormat p_format) {
-        return ((p_format == VK_FORMAT_D32_SFLOAT_S8_UINT) ||
-                (p_format == VK_FORMAT_D24_UNORM_S8_UINT));
-    }
+    // bool has_stencil_attachment(VkFormat p_format) {
+    //     return ((p_format == VK_FORMAT_D32_SFLOAT_S8_UINT) ||
+    //             (p_format == VK_FORMAT_D24_UNORM_S8_UINT));
+    // }
 
     vk_texture::vk_texture(const std::string& p_filename) {
         console_log_info("vk_texture begin initialization!!!");
@@ -179,7 +53,7 @@ namespace vk {
         */
 
         m_driver = vk_driver::driver_context();
-        m_graphics_queue = m_driver.get_graphics_queue();
+        // m_graphics_queue = m_driver.get_graphics_queue();
 
         command_buffer_properties properties = {
             0,
@@ -291,7 +165,7 @@ namespace vk {
                                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
         // // 6. Copy buffer to image
-        copy_buffer_to_image(p_image_data.Image,
+        copy(m_copy_command_buffer, p_image_data.Image,
                              m_staging_buffer.BufferHandler,
                              p_width,
                              p_height);
@@ -308,6 +182,7 @@ namespace vk {
 
     // This should automatically submit to the swaphain to the swapchain
     // queue-specifically
+    /*
     void vk_texture::transition_image_layout(VkImage& p_image,
                                              VkFormat p_format,
                                              VkImageLayout p_old,
@@ -403,7 +278,7 @@ namespace vk {
 
             source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             dst_stages = VK_PIPELINE_STAGE_TRANSFER_BIT;
-        } /* Convert back from read-only to updateable */
+        } Convert back from read-only to updateable
         else if (p_old == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL &&
                  p_new == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
             image_memory_barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -411,7 +286,7 @@ namespace vk {
 
             source_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
             dst_stages = VK_PIPELINE_STAGE_TRANSFER_BIT;
-        } /* Convert from updateable texture to shader read-only */
+        } Convert from updateable texture to shader read-only
         else if (p_old == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
                  p_new == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
             image_memory_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -419,8 +294,8 @@ namespace vk {
 
             source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
             dst_stages = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        } /* Convert depth texture from undefined state to depth-stencil buffer
-           */
+        }
+        Convert depth texture from undefined state to depth-stencil buffer
         else if (p_old == VK_IMAGE_LAYOUT_UNDEFINED &&
                  p_new == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
             image_memory_barrier.srcAccessMask = 0;
@@ -430,20 +305,21 @@ namespace vk {
 
             source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             dst_stages = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        } /* Wait for render pass to complete */
+        }
+        Wait for render pass to complete
         else if (p_old == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL &&
                  p_new == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
             image_memory_barrier.srcAccessMask =
               0; // VK_ACCESS_SHADER_READ_BIT;
             image_memory_barrier.dstAccessMask = 0;
-            /*
+            
                     source_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
             ///		dst_stages = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
                     dst_stages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-            */
+            
             source_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
             dst_stages = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        } /* Convert back from read-only to color attachment */
+        } Convert back from read-only to color attachment
         else if (p_old == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL &&
                  p_new == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
             image_memory_barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -452,7 +328,7 @@ namespace vk {
 
             source_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
             dst_stages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        } /* Convert from updateable texture to shader read-only */
+        } Convert from updateable texture to shader read-only
         else if (p_old == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL &&
                  p_new == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
             image_memory_barrier.srcAccessMask =
@@ -461,7 +337,7 @@ namespace vk {
 
             source_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
             dst_stages = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        } /* Convert back from read-only to depth attachment */
+        } Convert back from read-only to depth attachment
         else if (p_old == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL &&
                  p_new == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
             image_memory_barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -470,7 +346,7 @@ namespace vk {
 
             source_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
             dst_stages = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-        } /* Convert from updateable depth texture to shader read-only */
+        } Convert from updateable depth texture to shader read-only
         else if (p_old == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL &&
                  p_new == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
             image_memory_barrier.srcAccessMask =
@@ -492,46 +368,47 @@ namespace vk {
                              1,
                              &image_memory_barrier);
     }
+    */
 
-    void vk_texture::copy_buffer_to_image(VkImage& p_image,
-                                          VkBuffer& p_buffer,
-                                          uint32_t p_width,
-                                          uint32_t p_height) {
-        m_copy_command_buffer.begin(
-          VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    // void vk_texture::copy_buffer_to_image(VkImage& p_image,
+    //                                       VkBuffer& p_buffer,
+    //                                       uint32_t p_width,
+    //                                       uint32_t p_height) {
+    //     m_copy_command_buffer.begin(
+    //       VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
-        VkBufferImageCopy buffer_image_copy = {
-            .bufferOffset = 0,
-            .bufferRowLength = 0,
-            .bufferImageHeight = 0,
-            .imageSubresource = { .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                                  .mipLevel = 0,
-                                  .baseArrayLayer = 0,
-                                  .layerCount = 1 },
-            .imageOffset = { .x = 0, .y = 0, .z = 0 },
-            .imageExtent = { .width = p_width, .height = p_height, .depth = 1 }
-        };
+    //     VkBufferImageCopy buffer_image_copy = {
+    //         .bufferOffset = 0,
+    //         .bufferRowLength = 0,
+    //         .bufferImageHeight = 0,
+    //         .imageSubresource = { .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+    //                               .mipLevel = 0,
+    //                               .baseArrayLayer = 0,
+    //                               .layerCount = 1 },
+    //         .imageOffset = { .x = 0, .y = 0, .z = 0 },
+    //         .imageExtent = { .width = p_width, .height = p_height, .depth = 1 }
+    //     };
 
-        vkCmdCopyBufferToImage(m_copy_command_buffer,
-                               p_buffer,
-                               p_image,
-                               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                               1,
-                               &buffer_image_copy);
+    //     vkCmdCopyBufferToImage(m_copy_command_buffer,
+    //                            p_buffer,
+    //                            p_image,
+    //                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    //                            1,
+    //                            &buffer_image_copy);
 
-        m_copy_command_buffer.end();
+    //     m_copy_command_buffer.end();
 
-        VkCommandBuffer buffer = m_copy_command_buffer.handle();
+    //     VkCommandBuffer buffer = m_copy_command_buffer.handle();
 
-        VkSubmitInfo submitInfo = {
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .commandBufferCount = 1,
-            .pCommandBuffers = &buffer,
-        };
+    //     VkSubmitInfo submitInfo = {
+    //         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+    //         .commandBufferCount = 1,
+    //         .pCommandBuffers = &buffer,
+    //     };
 
-        vkQueueSubmit(m_graphics_queue, 1, &submitInfo, VK_NULL_HANDLE);
-        vkQueueWaitIdle(m_graphics_queue);
-    }
+    //     vkQueueSubmit(m_graphics_queue, 1, &submitInfo, VK_NULL_HANDLE);
+    //     vkQueueWaitIdle(m_graphics_queue);
+    // }
 
     void vk_texture::destroy() {
         vkDestroyImageView(m_driver, m_texture_image.ImageView, nullptr);

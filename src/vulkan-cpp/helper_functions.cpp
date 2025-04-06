@@ -4,6 +4,411 @@
 
 namespace vk {
 
+    VkImageView create_image_view(const VkImage& p_image,
+                                         VkFormat Format,
+                                         VkImageAspectFlags AspectFlags) {
+        vk_driver driver = vk_driver::driver_context();
+        VkImageViewCreateInfo ViewInfo = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .pNext = NULL,
+            .flags = 0,
+            .image = p_image,
+            .viewType = VK_IMAGE_VIEW_TYPE_2D,
+            .format = Format,
+            .components = { .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+                            .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+                            .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+                            .a = VK_COMPONENT_SWIZZLE_IDENTITY },
+            .subresourceRange = { .aspectMask = AspectFlags,
+                                  .baseMipLevel = 0,
+                                  .levelCount = 1,
+                                  .baseArrayLayer = 0,
+                                  .layerCount = 1 }
+        };
+
+        VkImageView ImageView = nullptr;
+        VkResult res =
+          vkCreateImageView(driver, &ViewInfo, nullptr, &ImageView);
+        vk_check(res, "vkCreateImageView", __FUNCTION__);
+        return ImageView;
+    }
+
+
+    VkImageView create_image_view(const VkDevice& p_driver,
+                                         VkImage p_image,
+                                         VkSurfaceFormatKHR p_surface_format,
+                                         VkImageAspectFlags p_aspect_flags,
+                                         VkImageViewType p_view_t,
+                                         uint32_t p_layer_count,
+                                         uint32_t p_mip_levels) {
+        VkImageViewCreateInfo image_view_ci = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .image = p_image,
+            .viewType = p_view_t,
+            .format = p_surface_format.format,
+            .components = { .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+                            .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+                            .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+                            .a = VK_COMPONENT_SWIZZLE_IDENTITY },
+            .subresourceRange = { .aspectMask = p_aspect_flags,
+                                  .baseMipLevel = 0,
+                                  .levelCount = p_mip_levels,
+                                  .baseArrayLayer = 0,
+                                  .layerCount = p_layer_count },
+        };
+
+        VkImageView image_view;
+        vk_check(
+          vkCreateImageView(p_driver, &image_view_ci, nullptr, &image_view),
+          "vkCreateImageView",
+          __FUNCTION__);
+
+        return image_view;
+    }
+
+    image_data create_image2d(uint32_t p_width,
+                              uint32_t p_height,
+                              VkFormat p_format,
+                              VkImageUsageFlags p_usage,
+                              VkMemoryPropertyFlagBits p_property) {
+        vk_driver driver = vk_driver::driver_context();
+
+        VkImageCreateInfo image_ci = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .imageType = VK_IMAGE_TYPE_2D,
+            .format = p_format,
+            .extent = { .width = p_width, .height = p_height, .depth = 1 },
+            .mipLevels = 1,
+            .arrayLayers = 1,
+            .samples = VK_SAMPLE_COUNT_1_BIT,
+            .tiling = VK_IMAGE_TILING_OPTIMAL,
+            .usage = p_usage,
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+            .queueFamilyIndexCount = 0,
+            .pQueueFamilyIndices = nullptr,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+        };
+
+        // VkImage image=nullptr;
+        image_data image;
+        image.Width = p_width;
+        image.Height = p_height;
+
+        vk_check(vkCreateImage(driver, &image_ci, nullptr, &image.Image),
+                 "vkCreateImage",
+                 __FUNCTION__);
+
+        // 2. get buffer memory requirements
+        VkMemoryRequirements memory_requirements;
+        vkGetImageMemoryRequirements(driver, image.Image, &memory_requirements);
+
+        // 3. get memory type index
+        uint32_t memory_type_index = driver.select_memory_type(
+          memory_requirements.memoryTypeBits, p_property);
+
+        // 4. Allocate info
+        VkMemoryAllocateInfo memory_alloc_info = {
+            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            .pNext = nullptr,
+            .allocationSize = memory_requirements.size,
+            .memoryTypeIndex = memory_type_index
+        };
+
+        vk_check(vkAllocateMemory(
+                   driver, &memory_alloc_info, nullptr, &image.DeviceMemory),
+                 "vkAllocateMemory",
+                 __FUNCTION__);
+
+        // 5. bind image memory
+        vk_check(vkBindImageMemory(driver, image.Image, image.DeviceMemory, 0),
+                 "vkBindImageMemory",
+                 __FUNCTION__);
+
+        return image;
+    }
+
+
+    VkSampler create_sampler(VkFilter MinFilter,
+                             VkFilter MaxFilter,
+                             VkSamplerAddressMode AddressMode) {
+        VkDevice driver = vk_driver::driver_context();
+
+        VkSamplerCreateInfo SamplerInfo = {
+            .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .magFilter = MinFilter,
+            .minFilter = MaxFilter,
+            .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+            .addressModeU = AddressMode,
+            .addressModeV = AddressMode,
+            .addressModeW = AddressMode,
+            .mipLodBias = 0.0f,
+            .anisotropyEnable = false,
+            .maxAnisotropy = 1,
+            .compareEnable = false,
+            .compareOp = VK_COMPARE_OP_ALWAYS,
+            .minLod = 0.0f,
+            .maxLod = 0.0f,
+            .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+            .unnormalizedCoordinates = false
+        };
+
+        VkSampler Sampler;
+        VkResult res =
+          vkCreateSampler(driver, &SamplerInfo, VK_NULL_HANDLE, &Sampler);
+        vk_check(res, "vkCreateSampler", __FUNCTION__);
+
+        return Sampler;
+    }
+
+    bool has_stencil_attachment(VkFormat p_format) {
+        return ((p_format == VK_FORMAT_D32_SFLOAT_S8_UINT) ||
+                (p_format == VK_FORMAT_D24_UNORM_S8_UINT));
+    }
+
+
+    void image_memory_barrier(VkCommandBuffer& p_command_buffer,
+                                          VkImage& p_image,
+                                          VkFormat p_format,
+                                          VkImageLayout p_old,
+                                          VkImageLayout p_new) {
+        VkImageMemoryBarrier image_memory_barrier = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .pNext = nullptr,
+            .srcAccessMask = 0,
+            .dstAccessMask = 0,
+            .oldLayout = p_old,
+            .newLayout = p_new,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .image = p_image,
+            .subresourceRange = { .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                  .baseMipLevel = 0,
+                                  .levelCount = 1,
+                                  .baseArrayLayer = 0,
+                                  .layerCount = 1 }
+        };
+
+        VkPipelineStageFlags source_stage;
+        VkPipelineStageFlags dst_stages;
+
+        if (p_new == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL ||
+            (p_format == VK_FORMAT_D16_UNORM) ||
+            (p_format == VK_FORMAT_X8_D24_UNORM_PACK32) ||
+            (p_format == VK_FORMAT_D32_SFLOAT) ||
+            (p_format == VK_FORMAT_S8_UINT) ||
+            (p_format == VK_FORMAT_D16_UNORM_S8_UINT) ||
+            (p_format == VK_FORMAT_D24_UNORM_S8_UINT)) {
+            image_memory_barrier.subresourceRange.aspectMask =
+              VK_IMAGE_ASPECT_DEPTH_BIT;
+
+            if (has_stencil_attachment(p_format)) {
+                image_memory_barrier.subresourceRange.aspectMask |=
+                  VK_IMAGE_ASPECT_STENCIL_BIT;
+            }
+        }
+        else {
+            image_memory_barrier.subresourceRange.aspectMask =
+              VK_IMAGE_ASPECT_COLOR_BIT;
+        }
+
+        if (p_old == VK_IMAGE_LAYOUT_UNDEFINED &&
+            p_new == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            image_memory_barrier.srcAccessMask = 0;
+            image_memory_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            dst_stages = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        }
+        else if (p_old == VK_IMAGE_LAYOUT_UNDEFINED &&
+                 p_new == VK_IMAGE_LAYOUT_GENERAL) {
+            image_memory_barrier.srcAccessMask = 0;
+            image_memory_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            dst_stages = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        }
+
+        if (p_old == VK_IMAGE_LAYOUT_UNDEFINED &&
+            p_new == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+            image_memory_barrier.srcAccessMask = 0;
+            image_memory_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+            source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            dst_stages = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        } /* Convert back from read-only to updateable */
+        else if (p_old == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL &&
+                 p_new == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+            image_memory_barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            image_memory_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+            source_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            dst_stages = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        } /* Convert from updateable texture to shader read-only */
+        else if (p_old == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+                 p_new == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            image_memory_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            image_memory_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            dst_stages = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        } /* Convert depth texture from undefined state to depth-stencil buffer
+           */
+        else if (p_old == VK_IMAGE_LAYOUT_UNDEFINED &&
+                 p_new == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+            image_memory_barrier.srcAccessMask = 0;
+            image_memory_barrier.dstAccessMask =
+              VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+              VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+            source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            dst_stages = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        } /* Wait for render pass to complete */
+        else if (p_old == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL &&
+                 p_new == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            image_memory_barrier.srcAccessMask =
+              0; // VK_ACCESS_SHADER_READ_BIT;
+            image_memory_barrier.dstAccessMask = 0;
+            /*
+                    source_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            ///		dst_stages = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+                    dst_stages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            */
+            source_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            dst_stages = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        } /* Convert back from read-only to color attachment */
+        else if (p_old == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL &&
+                 p_new == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+            image_memory_barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            image_memory_barrier.dstAccessMask =
+              VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+            source_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            dst_stages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        } /* Convert from updateable texture to shader read-only */
+        else if (p_old == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL &&
+                 p_new == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            image_memory_barrier.srcAccessMask =
+              VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            image_memory_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            source_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            dst_stages = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        } /* Convert back from read-only to depth attachment */
+        else if (p_old == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL &&
+                 p_new == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+            image_memory_barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            image_memory_barrier.dstAccessMask =
+              VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+            source_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            dst_stages = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        } /* Convert from updateable depth texture to shader read-only */
+        else if (p_old == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL &&
+                 p_new == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            image_memory_barrier.srcAccessMask =
+              VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            image_memory_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            source_stage = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+            dst_stages = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        }
+
+        vkCmdPipelineBarrier(p_command_buffer,
+                             source_stage,
+                             dst_stages,
+                             0,
+                             0,
+                             nullptr,
+                             0,
+                             nullptr,
+                             1,
+                             &image_memory_barrier);
+    }
+
+    void transition_image_layout(VkImage& p_image,
+                                             VkFormat p_format,
+                                             VkImageLayout p_old,
+                                             VkImageLayout p_new) {
+        VkQueue graphics_queue = vk_driver::driver_context().get_graphics_queue();
+        command_buffer_properties properties = {
+            0,
+            command_buffer_levels::Primary,
+            VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+        };
+
+        vk_command_buffer temp_copy_command_buffer = vk_command_buffer(properties);;
+
+        temp_copy_command_buffer.begin(
+          VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+        // 1. image memory barrier
+        VkCommandBuffer handle = temp_copy_command_buffer.handle();
+        image_memory_barrier(handle, p_image, p_format, p_old, p_new);
+
+        // submit one copy
+        temp_copy_command_buffer.end();
+
+        VkCommandBuffer buffer = temp_copy_command_buffer.handle();
+
+        VkSubmitInfo submitInfo = {
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .commandBufferCount = 1,
+            .pCommandBuffers = &buffer,
+        };
+
+        vkQueueSubmit(graphics_queue, 1, &submitInfo, VK_NULL_HANDLE);
+        vkQueueWaitIdle(graphics_queue);
+
+        temp_copy_command_buffer.destroy();
+    }
+
+    void copy(vk_command_buffer& p_command_buffer, VkImage& p_image,
+                                          VkBuffer& p_buffer,
+                                          uint32_t p_width,
+                                          uint32_t p_height) {
+        VkQueue graphics_queue = vk_driver::driver_context().get_graphics_queue();
+        p_command_buffer.begin(
+          VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+        VkBufferImageCopy buffer_image_copy = {
+            .bufferOffset = 0,
+            .bufferRowLength = 0,
+            .bufferImageHeight = 0,
+            .imageSubresource = { .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                  .mipLevel = 0,
+                                  .baseArrayLayer = 0,
+                                  .layerCount = 1 },
+            .imageOffset = { .x = 0, .y = 0, .z = 0 },
+            .imageExtent = { .width = p_width, .height = p_height, .depth = 1 }
+        };
+
+        vkCmdCopyBufferToImage(p_command_buffer,
+                               p_buffer,
+                               p_image,
+                               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                               1,
+                               &buffer_image_copy);
+
+        p_command_buffer.end();
+
+        VkCommandBuffer buffer = p_command_buffer.handle();
+
+        VkSubmitInfo submitInfo = {
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .commandBufferCount = 1,
+            .pCommandBuffers = &buffer,
+        };
+
+        vkQueueSubmit(graphics_queue, 1, &submitInfo, nullptr);
+        vkQueueWaitIdle(graphics_queue);
+    }
+
     VkCommandBufferBeginInfo commend_buffer_begin_info(
       const VkCommandBufferUsageFlags& p_usage) {
         VkCommandBufferBeginInfo begin_info = {

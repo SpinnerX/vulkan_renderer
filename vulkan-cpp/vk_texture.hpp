@@ -87,6 +87,8 @@ namespace vk {
         //! TODO: NEED to do a better way of doing this.
         vk_texture(const std::string& p_filename);
 
+        bool has_loaded() const { return m_is_image_loaded; }
+
         /*
 
             1. CreateImage
@@ -110,29 +112,25 @@ namespace vk {
         // functions used by update texture
 
         // functions for transition image layout
-        void transition_image_layout(VkImage& p_image,
-                                     VkFormat p_format,
-                                     VkImageLayout p_old,
-                                     VkImageLayout p_new);
-        void image_memory_barrier(VkCommandBuffer& p_command_buffer,
-                                  VkImage& p_image,
-                                  VkFormat p_format,
-                                  VkImageLayout p_old,
-                                  VkImageLayout p_new);
+        // void transition_image_layout(VkImage& p_image,
+        //                              VkFormat p_format,
+        //                              VkImageLayout p_old,
+        //                              VkImageLayout p_new);
+        // void image_memory_barrier(VkCommandBuffer& p_command_buffer,
+        //                           VkImage& p_image,
+        //                           VkFormat p_format,
+        //                           VkImageLayout p_old,
+        //                           VkImageLayout p_new);
 
         // functions for copy buffer to image
-        void copy_buffer_to_image(VkImage& p_image,
-                                  VkBuffer& p_buffer,
-                                  uint32_t p_width,
-                                  uint32_t p_height);
+        // void copy_buffer_to_image(VkImage& p_image,
+        //                           VkBuffer& p_buffer,
+        //                           uint32_t p_width,
+        //                           uint32_t p_height);
 
         image_data data() const { return m_texture_image; }
 
         void destroy();
-
-        vk_command_buffer* get_command_buffer() {
-            return &m_copy_command_buffer;
-        }
 
         VkImageView image_view() const { return m_texture_image.ImageView; }
 
@@ -143,6 +141,6 @@ namespace vk {
         buffer_properties m_staging_buffer;
         image_data m_texture_image;
         vk_command_buffer m_copy_command_buffer;
-        VkQueue m_graphics_queue = nullptr;
+        bool m_is_image_loaded=false;
     };
 };

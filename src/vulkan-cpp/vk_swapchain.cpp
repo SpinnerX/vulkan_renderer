@@ -1,7 +1,6 @@
 #include <vulkan-cpp/vk_swapchain.hpp>
 #include <vulkan-cpp/helper_functions.hpp>
 #include <vulkan-cpp/logger.hpp>
-#include <array>
 
 namespace vk {
     vk_swapchain* vk_swapchain::s_instance = nullptr;
@@ -33,69 +32,6 @@ namespace vk {
         }
 
         return final_image_count;
-    }
-
-    static VkImageView create_image_view(const VkDevice& p_driver,
-                                         VkImage p_image,
-                                         VkSurfaceFormatKHR p_surface_format,
-                                         VkImageAspectFlags p_aspect_flags,
-                                         VkImageViewType p_view_t,
-                                         uint32_t p_layer_count,
-                                         uint32_t p_mip_levels) {
-        VkImageViewCreateInfo image_view_ci = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .image = p_image,
-            .viewType = p_view_t,
-            .format = p_surface_format.format,
-            .components = { .r = VK_COMPONENT_SWIZZLE_IDENTITY,
-                            .g = VK_COMPONENT_SWIZZLE_IDENTITY,
-                            .b = VK_COMPONENT_SWIZZLE_IDENTITY,
-                            .a = VK_COMPONENT_SWIZZLE_IDENTITY },
-            .subresourceRange = { .aspectMask = p_aspect_flags,
-                                  .baseMipLevel = 0,
-                                  .levelCount = p_mip_levels,
-                                  .baseArrayLayer = 0,
-                                  .layerCount = p_layer_count },
-        };
-
-        VkImageView image_view;
-        vk_check(
-          vkCreateImageView(p_driver, &image_view_ci, nullptr, &image_view),
-          "vkCreateImageView",
-          __FUNCTION__);
-
-        return image_view;
-    }
-
-    static VkImageView create_image_view(const VkImage& p_image,
-                                         VkFormat Format,
-                                         VkImageAspectFlags AspectFlags) {
-        vk_driver driver = vk_driver::driver_context();
-        VkImageViewCreateInfo ViewInfo = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-            .pNext = NULL,
-            .flags = 0,
-            .image = p_image,
-            .viewType = VK_IMAGE_VIEW_TYPE_2D,
-            .format = Format,
-            .components = { .r = VK_COMPONENT_SWIZZLE_IDENTITY,
-                            .g = VK_COMPONENT_SWIZZLE_IDENTITY,
-                            .b = VK_COMPONENT_SWIZZLE_IDENTITY,
-                            .a = VK_COMPONENT_SWIZZLE_IDENTITY },
-            .subresourceRange = { .aspectMask = AspectFlags,
-                                  .baseMipLevel = 0,
-                                  .levelCount = 1,
-                                  .baseArrayLayer = 0,
-                                  .layerCount = 1 }
-        };
-
-        VkImageView ImageView = nullptr;
-        VkResult res =
-          vkCreateImageView(driver, &ViewInfo, nullptr, &ImageView);
-        vk_check(res, "vkCreateImageView", __FUNCTION__);
-        return ImageView;
     }
 
     static VkRenderPass create_simple_renderpass(
