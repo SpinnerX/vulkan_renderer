@@ -19,7 +19,7 @@ namespace vk {
                                          uint32_t p_layer_count,
                                          uint32_t p_mip_levels);
 	
-	image_data create_image2d(uint32_t p_width,
+	vk_image create_image2d(uint32_t p_width,
                               uint32_t p_height,
                               VkFormat p_format,
                               VkImageUsageFlags p_usage,

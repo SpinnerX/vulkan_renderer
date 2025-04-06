@@ -74,11 +74,14 @@ namespace vk {
         int channels;
 
         // 1. load from file
-        stbi_uc* image_data =
+        stbi_uc* image_pixel_data =
           stbi_load(p_filename.c_str(), &w, &h, &channels, STBI_rgb_alpha);
         VkDeviceSize image_size = w * h * 4;
 
-        if (!image_data) {
+        m_width = w;
+        m_height = h;
+
+        if (!image_pixel_data) {
             console_log_warn("Could not load filename with = {}", p_filename);
             return;
         }
@@ -86,14 +89,14 @@ namespace vk {
             console_log_trace("Loaded {} successfully!!!", p_filename);
         }
 
-        // image_data
+        // image_pixel_data
         VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
 
         // 1. creating image data
         // 2. updating texture data
-        create_texture_from_data(w, h, image_data, format);
+        create_texture_from_data(w, h, image_pixel_data, format);
 
-        stbi_image_free(image_data);
+        stbi_image_free(image_pixel_data);
 
         // 3. create image view
         VkImageAspectFlags aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -131,10 +134,7 @@ namespace vk {
           "create_texture_from_data update END initialization!!!\n\n");
     }
 
-    // void vk_texture::update_texture(const VkCommandBuffer& p_command_buffer,
-    // image_data& p_image_data, uint32_t p_width, uint32_t p_height, VkFormat
-    // p_format, const void* p_pixels) {
-    void vk_texture::update_texture(image_data& p_image_data,
+    void vk_texture::update_texture(vk_image& p_image_properties,
                                     uint32_t p_width,
                                     uint32_t p_height,
                                     VkFormat p_format,
@@ -159,19 +159,19 @@ namespace vk {
         write(m_staging_buffer, p_pixels, image_size);
 
         // 5. transition image layout
-        transition_image_layout(p_image_data.Image,
+        transition_image_layout(p_image_properties.Image,
                                 p_format,
                                 VK_IMAGE_LAYOUT_UNDEFINED,
                                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
         // // 6. Copy buffer to image
-        copy(m_copy_command_buffer, p_image_data.Image,
+        copy(m_copy_command_buffer, p_image_properties.Image,
                              m_staging_buffer.BufferHandler,
                              p_width,
                              p_height);
 
         // // 7. transition image layout again
-        transition_image_layout(p_image_data.Image,
+        transition_image_layout(p_image_properties.Image,
                                 p_format,
                                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);

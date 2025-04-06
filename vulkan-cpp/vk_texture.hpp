@@ -89,58 +89,50 @@ namespace vk {
 
         bool has_loaded() const { return m_is_image_loaded; }
 
-        /*
-
-            1. CreateImage
-            2. Update TextureImage
+        /**
+         * @param p_width contains width of the image being loaded
+         * @param p_height contains height of the image being loaded
+         * @param p_pixel is the actual pixel data loaded from the filepath
+         * @param p_format is the format the pixel data (image) is loaded with
         */
         void create_texture_from_data(uint32_t p_width,
                                       uint32_t p_height,
                                       const void* p_pixels,
                                       const VkFormat p_format);
-
-        // void update_texture(const VkCommandBuffer& p_command_buffer,
-        // image_data& p_image_data, uint32_t p_width, uint32_t p_height,
-        // VkFormat p_format, const void* p_pixels);
-
-        void update_texture(image_data& p_image_data,
+        
+        /**
+         * @brief During updating this texture we do the following:
+         * @brief Writing to a staging buffer
+         * @brief then transition from the image we loaded and its layout
+         * @brief copy from the buffer handler to a command buffer
+         * @brief transitioning from that old image layout into a destination image layout specified
+        */
+        void update_texture(vk_image& p_vk_image,
                             uint32_t p_width,
                             uint32_t p_height,
                             VkFormat p_format,
                             const void* p_pixels);
 
-        // functions used by update texture
+        vk_image data() const { return m_texture_image; }
 
-        // functions for transition image layout
-        // void transition_image_layout(VkImage& p_image,
-        //                              VkFormat p_format,
-        //                              VkImageLayout p_old,
-        //                              VkImageLayout p_new);
-        // void image_memory_barrier(VkCommandBuffer& p_command_buffer,
-        //                           VkImage& p_image,
-        //                           VkFormat p_format,
-        //                           VkImageLayout p_old,
-        //                           VkImageLayout p_new);
-
-        // functions for copy buffer to image
-        // void copy_buffer_to_image(VkImage& p_image,
-        //                           VkBuffer& p_buffer,
-        //                           uint32_t p_width,
-        //                           uint32_t p_height);
-
-        image_data data() const { return m_texture_image; }
-
+        //! @note Destroys the vulkan handlers cleanly
+        //! @note TODO: This should probably be submitted into a deletion queue of some sort
         void destroy();
 
         VkImageView image_view() const { return m_texture_image.ImageView; }
 
         VkSampler sampler() const { return m_texture_image.Sampler; }
 
+        uint32_t width() const { return m_width; }
+        uint32_t height() const { return m_height; }
+
     private:
         vk_driver m_driver;
         buffer_properties m_staging_buffer;
-        image_data m_texture_image;
+        vk_image m_texture_image;
         vk_command_buffer m_copy_command_buffer;
         bool m_is_image_loaded=false;
+        uint32_t m_width=0;
+        uint32_t m_height=0;
     };
 };

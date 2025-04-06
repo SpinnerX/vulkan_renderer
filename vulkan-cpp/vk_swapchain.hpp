@@ -245,7 +245,7 @@ namespace vk {
         // std::array<image, swapchain_configs::MaxFramesInFlight>
         // m_swapchain_images;
         std::vector<image> m_swapchain_images;
-        std::vector<texture_properties> m_swapchain_depth_images;
+        std::vector<vk_image> m_swapchain_depth_images;
 
         // swapchain queue
         vk_queue m_swapchain_queue;

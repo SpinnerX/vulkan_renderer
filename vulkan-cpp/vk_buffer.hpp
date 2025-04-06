@@ -9,21 +9,19 @@ namespace vk {
         uint32_t AllocateDeviceSize = 0;
     };
 
-    struct image_data {
+    struct vk_buffer {
+        VkBuffer BufferHandler = nullptr;
+        VkDeviceMemory DeviceMemory = nullptr;
+        uint32_t AllocateDeviceSize = 0;
+    };
+
+    struct vk_image {
         VkImage Image = nullptr;
         VkImageView ImageView = nullptr;
         VkSampler Sampler = nullptr;
         VkDeviceMemory DeviceMemory = nullptr;
         uint32_t Width = 0;
         uint32_t Height = 0;
-    };
-
-    struct texture_properties {
-        VkImage Image = nullptr;
-        VkImageView ImageView = nullptr;
-        VkSampler Sampler = nullptr;
-        VkDeviceMemory DeviceMemory = nullptr;
-        uint32_t AllocateDeviceSize = 0;
     };
 
     struct vertex {

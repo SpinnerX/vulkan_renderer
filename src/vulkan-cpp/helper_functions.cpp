@@ -68,7 +68,7 @@ namespace vk {
         return image_view;
     }
 
-    image_data create_image2d(uint32_t p_width,
+    vk_image create_image2d(uint32_t p_width,
                               uint32_t p_height,
                               VkFormat p_format,
                               VkImageUsageFlags p_usage,
@@ -94,9 +94,7 @@ namespace vk {
         };
 
         // VkImage image=nullptr;
-        image_data image;
-        image.Width = p_width;
-        image.Height = p_height;
+        vk_image image;
 
         vk_check(vkCreateImage(driver, &image_ci, nullptr, &image.Image),
                  "vkCreateImage",

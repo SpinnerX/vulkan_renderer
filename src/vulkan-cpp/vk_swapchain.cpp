@@ -113,67 +113,67 @@ namespace vk {
         return renderpass;
     }
 
-    static texture_properties create_image(
-      uint32_t ImageWidth,
-      uint32_t ImageHeight,
-      VkFormat p_texture_format,
-      VkImageUsageFlags UsageFlags,
-      VkMemoryPropertyFlagBits PropertyFlags) {
-        vk_driver driver = vk_driver::driver_context();
-        texture_properties image;
+    // static texture_properties create_image(
+    //   uint32_t ImageWidth,
+    //   uint32_t ImageHeight,
+    //   VkFormat p_texture_format,
+    //   VkImageUsageFlags UsageFlags,
+    //   VkMemoryPropertyFlagBits PropertyFlags) {
+    //     vk_driver driver = vk_driver::driver_context();
+    //     texture_properties image;
 
-        VkImageCreateInfo ImageInfo = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .imageType = VK_IMAGE_TYPE_2D,
-            .format = p_texture_format,
-            .extent = VkExtent3D{ .width = ImageWidth,
-                                  .height = ImageHeight,
-                                  .depth = 1 },
-            .mipLevels = 1,
-            .arrayLayers = 1,
-            .samples = VK_SAMPLE_COUNT_1_BIT,
-            .tiling = VK_IMAGE_TILING_OPTIMAL,
-            .usage = UsageFlags,
-            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-            .queueFamilyIndexCount = 0,
-            .pQueueFamilyIndices = nullptr,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-        };
+    //     VkImageCreateInfo ImageInfo = {
+    //         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+    //         .pNext = nullptr,
+    //         .flags = 0,
+    //         .imageType = VK_IMAGE_TYPE_2D,
+    //         .format = p_texture_format,
+    //         .extent = VkExtent3D{ .width = ImageWidth,
+    //                               .height = ImageHeight,
+    //                               .depth = 1 },
+    //         .mipLevels = 1,
+    //         .arrayLayers = 1,
+    //         .samples = VK_SAMPLE_COUNT_1_BIT,
+    //         .tiling = VK_IMAGE_TILING_OPTIMAL,
+    //         .usage = UsageFlags,
+    //         .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+    //         .queueFamilyIndexCount = 0,
+    //         .pQueueFamilyIndices = nullptr,
+    //         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+    //     };
 
-        // Step #1: create the image object
-        VkResult res = vkCreateImage(driver, &ImageInfo, NULL, &image.Image);
-        vk_check(res, "vkCreateImage", __FUNCTION__);
+    //     // Step #1: create the image object
+    //     VkResult res = vkCreateImage(driver, &ImageInfo, NULL, &image.Image);
+    //     vk_check(res, "vkCreateImage", __FUNCTION__);
 
-        // Step 2: get the buffer memory requirements
-        VkMemoryRequirements memory_requirements = { 0 };
-        vkGetImageMemoryRequirements(driver, image.Image, &memory_requirements);
-        // printf("Image requires %d bytes\n", (int)MemReqs.size);
+    //     // Step 2: get the buffer memory requirements
+    //     VkMemoryRequirements memory_requirements = { 0 };
+    //     vkGetImageMemoryRequirements(driver, image.Image, &memory_requirements);
+    //     // printf("Image requires %d bytes\n", (int)MemReqs.size);
 
-        // Step 3: get the memory type index
-        uint32_t memory_type_index = driver.select_memory_type(
-          memory_requirements.memoryTypeBits, PropertyFlags);
-        printf("Memory type index %d\n", memory_type_index);
+    //     // Step 3: get the memory type index
+    //     uint32_t memory_type_index = driver.select_memory_type(
+    //       memory_requirements.memoryTypeBits, PropertyFlags);
+    //     printf("Memory type index %d\n", memory_type_index);
 
-        // Step 4: allocate memory
-        VkMemoryAllocateInfo MemAllocInfo = {
-            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            .pNext = NULL,
-            .allocationSize = memory_requirements.size,
-            .memoryTypeIndex = memory_type_index
-        };
+    //     // Step 4: allocate memory
+    //     VkMemoryAllocateInfo MemAllocInfo = {
+    //         .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+    //         .pNext = NULL,
+    //         .allocationSize = memory_requirements.size,
+    //         .memoryTypeIndex = memory_type_index
+    //     };
 
-        res =
-          vkAllocateMemory(driver, &MemAllocInfo, NULL, &image.DeviceMemory);
-        vk_check(res, "vkAllocateMemory failed", __FUNCTION__);
+    //     res =
+    //       vkAllocateMemory(driver, &MemAllocInfo, NULL, &image.DeviceMemory);
+    //     vk_check(res, "vkAllocateMemory failed", __FUNCTION__);
 
-        // Step 5: bind memory
-        res = vkBindImageMemory(driver, image.Image, image.DeviceMemory, 0);
-        vk_check(res, "vkBindBufferMemory", __FUNCTION__);
+    //     // Step 5: bind memory
+    //     res = vkBindImageMemory(driver, image.Image, image.DeviceMemory, 0);
+    //     vk_check(res, "vkBindBufferMemory", __FUNCTION__);
 
-        return image;
-    }
+    //     return image;
+    // }
 
     vk_swapchain::vk_swapchain(vk_physical_driver& p_physical,
                                const vk_driver& p_driver,
@@ -263,7 +263,7 @@ namespace vk {
             VkMemoryPropertyFlagBits property_flags =
               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
             // Creates our images
-            m_swapchain_depth_images[i] = create_image(m_swapchain_size.width,
+            m_swapchain_depth_images[i] = create_image2d(m_swapchain_size.width,
                                                        m_swapchain_size.height,
                                                        depth_format,
                                                        usage,
