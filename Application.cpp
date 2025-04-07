@@ -244,15 +244,21 @@ main() {
         // Start recording
         main_window_swapchain.begin(current);
         test_imgui.begin();
-        test_pipeline.bind(current);
 
+
+        test_pipeline.bind(current);
         test_descriptor_sets.bind(current,main_window_swapchain.current_frame(), test_pipeline.get_layout());
 
         // draw (after recording)
         new_mesh.draw(current);
 
-        ImGui::Begin("Testing");
+        ImGui::Begin("Viewport");
         ImGui::Button("Press Me!");
+
+        ImVec2 viewport_panel_size = ImGui::GetContentRegionAvail();
+        ImGui::Image(test_descriptor_sets.get(frame), ImVec2{100, 100});
+
+        // ImGui::Image()
         ImGui::End();
 
         test_imgui.end(current);
