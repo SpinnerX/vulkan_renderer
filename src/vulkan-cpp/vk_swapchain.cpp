@@ -223,7 +223,7 @@ namespace vk {
             command_buffer_properties properties = {
                 present_index,
                 command_buffer_levels::Primary,
-                (VkCommandPoolCreateFlagBits)0
+                VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
             };
 
             m_swapchain_command_buffers[i] = vk_command_buffer(properties);
@@ -281,6 +281,62 @@ namespace vk {
         on_create();
     }
 
+
+	void vk_swapchain::begin(vk_command_buffer& p_current) {
+		// vk_command_buffer current = get_active_command_buffer(m_current_image_index);
+		std::array<VkClearValue, 2> clear_values = {};
+		clear_values[0].color = m_color;
+		clear_values[1].depthStencil = { 1.0f, 0 };
+		VkRenderPassBeginInfo renderpass_begin_info = {
+			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+			.pNext = nullptr,
+			.renderPass = m_swapchain_renderpass,
+			.renderArea = {
+				.offset = {
+					.x = 0,
+					.y = 0
+				},
+				.extent = {
+					.width = m_swapchain_size.width,
+					.height = m_swapchain_size.height
+				},
+			},
+			// .clearValueCount = 1,
+			// .pClearValues = &clear_value
+			.clearValueCount = static_cast<uint32_t>(clear_values.size()),
+			.pClearValues = clear_values.data()
+		};
+
+		// begin command buffer recording
+		p_current.begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+		VkViewport viewport = {
+			.x = 0.0f,
+			.y = 0.0f,
+			.width = static_cast<float>(m_swapchain_size.width),
+			.height = static_cast<float>(m_swapchain_size.height),
+			.minDepth = 0.0f,
+			.maxDepth = 1.0f,
+		};
+		vkCmdSetViewport(p_current, 0, 1, &viewport);
+
+		VkRect2D scissor = {
+			.offset = { 0, 0 },
+			.extent = m_swapchain_size,
+		};
+
+		vkCmdSetScissor(p_current, 0, 1, &scissor);
+
+		renderpass_begin_info.framebuffer = m_swapchain_framebuffers[m_current_image_index];
+
+		vkCmdBeginRenderPass(p_current,&renderpass_begin_info,VK_SUBPASS_CONTENTS_INLINE);
+	}
+
+	void vk_swapchain::end(vk_command_buffer& p_current) {
+		// End command buffer recording
+		vkCmdEndRenderPass(p_current);
+		p_current.end();
+	}
+
 	uint32_t vk_swapchain::read_acquired_frame() {
 		//! @note We always want to wait until the current frame is ready before moving onto the next frame
 		m_swapchain_present_queue.wait_idle();
@@ -294,7 +350,6 @@ namespace vk {
 	}
 
 	void vk_swapchain::present() {
-
 		m_swapchain_present_queue.present(m_current_image_index);
 	}
 

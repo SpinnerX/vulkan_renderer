@@ -224,15 +224,6 @@ main() {
       }
 
     */
-
-    // recording clear colors for all swapchain command buffers
-    main_window_swapchain.record([&main_window_swapchain, &test_pipeline, &test_vertex_buffer, &test_descriptor_sets, &new_mesh](const VkCommandBuffer& p_command_buffer) {
-        test_pipeline.bind(p_command_buffer);
-
-        test_descriptor_sets.bind(p_command_buffer,main_window_swapchain.current_frame(), test_pipeline.get_layout());
-        new_mesh.draw(p_command_buffer);
-	});
-
 	glm::vec3 Position = {0.f, 0.f, 0.f};
 
 
@@ -251,10 +242,7 @@ main() {
         uint32_t frame = main_window_swapchain.read_acquired_frame();
         vk::vk_command_buffer current = main_window_swapchain.get_active_command_buffer(frame);
 
-        // draw (after recording)
-		
-        //! TODO: Could be relocated. All this needs to know is the current
-        //! frame to update the uniforms
+        //! @note Updating our uniforms before we draw
         static auto startTime = std::chrono::high_resolution_clock::now();
 
         auto currentTime = std::chrono::high_resolution_clock::now();
@@ -266,19 +254,25 @@ main() {
         ubo.Projection = glm::perspective(glm::radians(45.0f), width / (float) height, 0.1f, 10.0f);
         ubo.Projection[1][1] *= -1;
 
-        // ubo.proj * ubo.view * ubo.model
         glm::mat4 MVP = ubo.Projection * ubo.View * ubo.Model;
-
-        // test_uniforms[p_frame_index].update(&mvp, sizeof(mvp));
         test_uniforms[frame].update(&MVP, sizeof(MVP));
 
-        //! @note This submits the command buffer and also presents the command buffer as well
 
+        // Start recording
+        main_window_swapchain.begin(current);
+        test_pipeline.bind(current);
+
+        test_descriptor_sets.bind(current,main_window_swapchain.current_frame(), test_pipeline.get_layout());
+
+        // draw (after recording)
+        new_mesh.draw(current);
+        main_window_swapchain.end(current);
+
+        //! @note This submits the command buffer and also presents the command buffer as well
         main_window_swapchain.submit(current);
 
 
         // presenting frame (after drawing that frame)
-
         main_window_swapchain.present();
 
         glfwPollEvents();

@@ -26,70 +26,8 @@ namespace vk {
 
         void resize(uint32_t p_width, uint32_t p_height);
 
-        template<typename UFunction>
-        void record(const UFunction& p_callable) {
-            console_log_info("vk_swapchain::record Begin recording!!!");
-            // VkClearValue clear_value = {};
-            // clear_value.color = m_color;
-            std::array<VkClearValue, 2> clear_values = {};
-            clear_values[0].color = m_color;
-            clear_values[1].depthStencil = { 1.0f, 0 };
-
-            VkRenderPassBeginInfo renderpass_begin_info = {
-                .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                .pNext = nullptr,
-                .renderPass = m_swapchain_renderpass,
-                .renderArea = {
-                    .offset = {
-                        .x = 0,
-                        .y = 0
-                    },
-                    .extent = {
-                        .width = m_swapchain_size.width,
-                        .height = m_swapchain_size.height
-                    },
-                },
-                // .clearValueCount = 1,
-                // .pClearValues = &clear_value
-                .clearValueCount = static_cast<uint32_t>(clear_values.size()),
-                .pClearValues = clear_values.data()
-            };
-
-            for (uint32_t i = 0; i < m_swapchain_command_buffers.size(); i++) {
-                m_swapchain_command_buffers[i].begin(
-                  VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
-                VkViewport viewport = {
-                    .x = 0.0f,
-                    .y = 0.0f,
-                    .width = static_cast<float>(m_swapchain_size.width),
-                    .height = static_cast<float>(m_swapchain_size.height),
-                    .minDepth = 0.0f,
-                    .maxDepth = 1.0f,
-                };
-                vkCmdSetViewport(
-                  m_swapchain_command_buffers[i].handle(), 0, 1, &viewport);
-
-                VkRect2D scissor = {
-                    .offset = { 0, 0 },
-                    .extent = m_swapchain_size,
-                };
-
-                vkCmdSetScissor(
-                  m_swapchain_command_buffers[i].handle(), 0, 1, &scissor);
-
-                renderpass_begin_info.framebuffer = m_swapchain_framebuffers[i];
-
-                vkCmdBeginRenderPass(m_swapchain_command_buffers[i],
-                                     &renderpass_begin_info,
-                                     VK_SUBPASS_CONTENTS_INLINE);
-                p_callable(m_swapchain_command_buffers[i].handle());
-                vkCmdEndRenderPass(m_swapchain_command_buffers[i]);
-                m_swapchain_command_buffers[i].end();
-            }
-
-            console_log_info(
-              "vk_swapchain::record finished recording successfully!!!");
-        }
+        void begin(vk_command_buffer& p_current);
+        void end(vk_command_buffer& p_current);
 
         void submit(const VkCommandBuffer& p_current);
         void present();
