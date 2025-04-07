@@ -235,7 +235,7 @@ namespace vk {
         // We dont need to specify queue information. This should be provided to
         // by the swapchain The queue is provided within the swapchain during
         // its initialization phase
-        m_swapchain_queue =
+        m_swapchain_present_queue =
           vk_queue(m_driver, m_swapchain_handler, m_present_queue);
 
         m_swapchain_renderpass =
@@ -281,6 +281,23 @@ namespace vk {
         on_create();
     }
 
+	uint32_t vk_swapchain::read_acquired_frame() {
+		//! @note We always want to wait until the current frame is ready before moving onto the next frame
+		m_swapchain_present_queue.wait_idle();
+		uint32_t current_frame = m_swapchain_present_queue.read_acquire_image();
+		m_current_image_index = current_frame;
+		return current_frame;
+	}
+
+	void vk_swapchain::submit(const VkCommandBuffer& p_current) {
+		m_swapchain_present_queue.submit_to(p_current,submission_type::Async);
+	}
+
+	void vk_swapchain::present() {
+
+		m_swapchain_present_queue.present(m_current_image_index);
+	}
+
     void vk_swapchain::destroy() {
 
         // needed to be called to ensure all children objects are executed just
@@ -293,7 +310,7 @@ namespace vk {
 
         vkDestroyRenderPass(m_driver, m_swapchain_renderpass, nullptr);
 
-        m_swapchain_queue.destroy();
+        m_swapchain_present_queue.destroy();
 
         // vkDestroyCommandPool(m_driver, m_command_pool, nullptr);
         for (size_t i = 0; i < m_swapchain_command_buffers.size(); i++) {

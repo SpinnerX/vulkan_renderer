@@ -227,20 +227,9 @@ main() {
 
     // recording clear colors for all swapchain command buffers
     main_window_swapchain.record([&main_window_swapchain, &test_pipeline, &test_vertex_buffer, &test_descriptor_sets, &new_mesh](const VkCommandBuffer& p_command_buffer) {
-          test_pipeline.bind(p_command_buffer);
+        test_pipeline.bind(p_command_buffer);
 
-          test_descriptor_sets.bind(p_command_buffer,
-                                    main_window_swapchain.current_frame(),
-                                    test_pipeline.get_layout());
-        //   test_vertex_buffer.bind(p_command_buffer);
-        //   test_index_buffer.bind(p_command_buffer);
-
-        //   if (test_index_buffer.has_indices()) {
-        //       test_index_buffer.draw(p_command_buffer);
-        //   }
-        //   else {
-        //       test_vertex_buffer.draw(p_command_buffer);
-        //   }
+        test_descriptor_sets.bind(p_command_buffer,main_window_swapchain.current_frame(), test_pipeline.get_layout());
         new_mesh.draw(p_command_buffer);
 	});
 
@@ -258,62 +247,38 @@ main() {
         float dt = (float)glfwGetTime();
 
         // acquire next image ( then record)
-        // test_imgui.begin();
-
-        // ImGui::Button("Test");
-        // test_imgui.end();
+        // uint32_t frame = main_window_swapchain.current_frame();
+        uint32_t frame = main_window_swapchain.read_acquired_frame();
+        vk::vk_command_buffer current = main_window_swapchain.get_active_command_buffer(frame);
 
         // draw (after recording)
-
-		if(glfwGetKey(main_window, GLFW_KEY_W) == GLFW_PRESS) {
-			// Position.x += (0.1f) * dt;
-			camera.ProcessKeyboard(FORWARD, dt);
-		}
-		if(glfwGetKey(main_window, GLFW_KEY_S) == GLFW_PRESS) {
-			camera.ProcessKeyboard(BACKWARD, dt);
-		}
-		if(glfwGetKey(main_window, GLFW_KEY_Q) == GLFW_PRESS) {
-			// Position.y += (0.1f) * dt;
-			camera.ProcessKeyboard(UP, dt);
-		}
-		if(glfwGetKey(main_window, GLFW_KEY_E) == GLFW_PRESS) {
-			// Position.y -= (0.1f) * dt;
-			camera.ProcessKeyboard(DOWN, dt);
-		}
-
-		if(glfwGetKey(main_window, GLFW_KEY_A) == GLFW_PRESS) {
-			// Position.z += (0.1f) * dt;
-			camera.ProcessKeyboard(RIGHT, dt);
-		}
-		if(glfwGetKey(main_window, GLFW_KEY_D) == GLFW_PRESS) {
-			// Position.z -= (0.1f) * dt;
-			camera.ProcessKeyboard(LEFT, dt);
-		}
-
-		camera.UpdateProjView();
 		
         //! TODO: Could be relocated. All this needs to know is the current
         //! frame to update the uniforms
-        main_window_swapchain.update_uniforms([&test_uniforms, &main_window, width, height, &Position, &camera](const uint32_t& p_frame_index) {
-			static auto startTime = std::chrono::high_resolution_clock::now();
+        static auto startTime = std::chrono::high_resolution_clock::now();
 
-			auto currentTime = std::chrono::high_resolution_clock::now();
-			float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-			camera_data_uniform ubo{};
-            ubo.Model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-            ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-            ubo.Projection = glm::perspective(glm::radians(45.0f), width / (float) height, 0.1f, 10.0f);
-            ubo.Projection[1][1] *= -1;
+        camera_data_uniform ubo{};
+        ubo.Model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.Projection = glm::perspective(glm::radians(45.0f), width / (float) height, 0.1f, 10.0f);
+        ubo.Projection[1][1] *= -1;
 
-            // ubo.proj * ubo.view * ubo.model
-            glm::mat4 MVP = ubo.Projection * ubo.View * ubo.Model;
+        // ubo.proj * ubo.view * ubo.model
+        glm::mat4 MVP = ubo.Projection * ubo.View * ubo.Model;
 
-			// test_uniforms[p_frame_index].update(&mvp, sizeof(mvp));
-			test_uniforms[p_frame_index].update(&MVP, sizeof(MVP));
-		});
+        // test_uniforms[p_frame_index].update(&mvp, sizeof(mvp));
+        test_uniforms[frame].update(&MVP, sizeof(MVP));
+
+        //! @note This submits the command buffer and also presents the command buffer as well
+
+        main_window_swapchain.submit(current);
+
 
         // presenting frame (after drawing that frame)
+
         main_window_swapchain.present();
 
         glfwPollEvents();

@@ -14,7 +14,6 @@ namespace vk {
     };
     class vk_swapchain {
     public:
-        // static uint32_t FrameIndex = 0;
         vk_swapchain() = default;
         vk_swapchain(vk_physical_driver& p_physical,
                      const vk_driver& p_driver,
@@ -92,54 +91,13 @@ namespace vk {
               "vk_swapchain::record finished recording successfully!!!");
         }
 
-        vk_queue* current_queue() { return &m_swapchain_queue; }
+        void submit(const VkCommandBuffer& p_current);
+        void present();
 
-        //! TODO: Probably want to do this better
-        //! @note In the tutorial he has them just after read_acquire_image's
-        //! called
-        //! @note I put a variable to keep track of our current frame, this will
-        //! be used when uniforms are in need to be updated
-        template<typename UCallable>
-        void update_uniforms(const UCallable& p_callable) {
-            p_callable(m_current_image_index);
-        }
-
-        void present() {
-            // This is needed to ensure that we wait until all commands are
-            // executed!
-            /**
-            @note Something to NOTE: IF you receive an error that involves
-            acquired image being retrieved or a semaphore unsignaled sort of
-            issue, make sure to call this queue.wait_idle!
-            */
-
-            // if(m_swapchain_queue.is_resize() == VK_ERROR_OUT_OF_DATE_KHR) {
-            //     recreate();
-            // }
-
-            m_swapchain_queue.wait_idle();
-
-            uint32_t frame_idx = m_swapchain_queue.read_acquire_image();
-
-            if(m_swapchain_queue.is_resize_requested()) {
-                // int width=0, height=0;
-                // glfwGetFramebufferSize(vk_window::native_window(), &width, &height);
-                vkDeviceWaitIdle(m_driver);
-                on_create();
-                m_swapchain_queue.set_resize_request(false);
-                return;
-            }
-
-            m_current_image_index = frame_idx;
-
-            m_swapchain_queue.submit_to(
-              m_swapchain_command_buffers[frame_idx].handle(),
-              submission_type::Async);
-
-            m_swapchain_queue.present(frame_idx);
-        }
+        vk_command_buffer get_active_command_buffer(uint32_t p_frame) { return m_swapchain_command_buffers[p_frame]; }
 
         /*
+        //! @note This is something to do once we cleanup the swapchain
         template<typename UCallable>
         void submit_to(const UCallable& p_callable){
             uint32_t image_acquired_index = read_acquired_image();
@@ -149,8 +107,6 @@ namespace vk {
         this p_callable(m_swapchain_command_buffers[image_acquired_index]);
         }
         */
-        // void submit_to(const VkCommandBuffer& p_current_command_buffer);
-
         uint32_t image_size() const { return m_swapchain_images.size(); }
 
         // Used to indicate you want to destroy this swapchain
@@ -161,48 +117,26 @@ namespace vk {
         //! TODO: Implement this for swapchain recreation
         void recreate();
 
+        //! @note Used by imgui
         VkRenderPass get_renderpass() const { return m_swapchain_renderpass; }
 
         VkExtent2D get_extent() const { return m_swapchain_size; }
 
         uint32_t current_frame() const { return m_current_image_index; }
 
-        static VkSurfaceKHR get_surface() {
-            return s_instance->m_current_surface;
-        }
+        uint32_t read_acquired_frame();
 
-        // Lets have textures use this????
-        //! @note vk_texture should be able to call
-        //! vk_swapchain::current_active_comand_buffer() whenever we need to
-        //! deal with transition_image_layout
-        //! @note vk_texture will essentially be usedf to
         VkCommandBuffer current_active_comand_buffer() const {
             return m_swapchain_command_buffers[m_current_image_index].handle();
         }
-
-        static surface_properties data() { return s_instance->m_surface_data; }
 
         static uint32_t image_count() {
             return s_instance->m_swapchain_images.size();
         }
 
-        static VkRenderPass swapchain_renderpass() {
-            console_log_trace("Orig Rp = {}",
-                              (void*)s_instance->m_swapchain_renderpass);
-            return s_instance->m_swapchain_renderpass;
-        }
-
-        static VkCommandBuffer current_active_buffer() {
-            return s_instance
-              ->m_swapchain_command_buffers[s_instance->m_current_image_index]
-              .handle();
-        }
-
     private:
         //! @note These private functions are for initiating the swapchain first
         void on_create();
-
-        void select_swapchain_surface_formats();
 
     private:
         // change swapchain background color
@@ -237,18 +171,14 @@ namespace vk {
         VkSwapchainKHR m_swapchain_handler;
 
         // for now command buffers in swapchain
-        // VkCommandPool m_command_pool = nullptr;
-        // std::vector<VkCommandBuffer> m_swapchain_command_buffers;
         std::vector<vk_command_buffer> m_swapchain_command_buffers;
 
         //! @note Setup Images
-        // std::array<image, swapchain_configs::MaxFramesInFlight>
-        // m_swapchain_images;
         std::vector<image> m_swapchain_images;
         std::vector<vk_image> m_swapchain_depth_images;
 
         // swapchain queue
-        vk_queue m_swapchain_queue;
+        vk_queue m_swapchain_present_queue;
 
         VkRenderPass m_swapchain_renderpass = nullptr;
         std::vector<VkFramebuffer> m_swapchain_framebuffers;
