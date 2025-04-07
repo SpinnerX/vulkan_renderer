@@ -141,22 +141,7 @@ main() {
     //! @note Now without needing to manually set the layout bindings manually,
     //! this will set up the descriptor sets automatically
     // this descriptor set layout is for shaders/shader.*
-    /*
-	std::vector<vk::vk_descriptor_set_properties> descriptor_layouts = {
-        { "in_Vertices", 0, vk::descriptor_type::STORAGE_BUFFER, vk::shader_stage::VERTEX },
-        { "ubo", 1, vk::descriptor_type::UNIFORM_BUFFER, vk::shader_stage::VERTEX },
-        { "texSampler", 2, vk::descriptor_type::IMAGE_AND_SAMPLER, vk::shader_stage::FRAGMENT }
-    };
-
-    vk::vk_descriptor_set test_descriptor_sets = vk::vk_descriptor_set(image_count, descriptor_layouts);
-	*/
-	
-	/*
-	
-		p_layouts
-		- Used to specify what kinds of data will this descriptor set be containing
-
-	*/
+    // - Used to specify what kinds of data will this descriptor set be containing
 	vk::vk_descriptor_set test_descriptor_sets = vk::vk_descriptor_set(image_count,
 	{
 		{.binding = 0, .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_VERTEX_BIT, .pImmutableSamplers  = nullptr},
@@ -165,12 +150,12 @@ main() {
 	);
 
     // Vulkan Pipeline Specifications
-    // specifically binding descriptions for pipeline
+    // specifically binding descriptions for the pipeline to use
     std::vector<vk::vertex_binding_description> binding_descriptions = {
         { "Vertex", 0, sizeof(vk::vertex), VK_VERTEX_INPUT_RATE_VERTEX }
     };
 
-    // specifically vertex attributes
+    // Specify vertex attributes
     std::vector<vk::pipeline_vertex_attributes> vertex_attributes = {
         { "inPosition", 0, 0, offsetof(vk::vertex, Position), VK_FORMAT_R32G32B32A32_SFLOAT },
         { "inColor", 0, 1, offsetof(vk::vertex, Color), VK_FORMAT_R32G32B32A32_SFLOAT },
@@ -229,16 +214,14 @@ main() {
 
 	perspective_camera camera = perspective_camera((float)width / height);
 
-    // vk::vk_imgui test_imgui = vk::vk_imgui();
-    // VkRenderPass rp = main_window_swapchain.get_renderpass();
-    // test_imgui.initialize(initiating_vulkan, main_physical_device,
-    // main_window_swapchain);
+    vk::vk_imgui test_imgui = vk::vk_imgui();
+    VkRenderPass rp = main_window_swapchain.get_renderpass();
+    test_imgui.initialize(initiating_vulkan, main_physical_device, rp, main_window_swapchain.image_size());
 
     while (main_window.is_active()) {
         float dt = (float)glfwGetTime();
 
         // acquire next image ( then record)
-        // uint32_t frame = main_window_swapchain.current_frame();
         uint32_t frame = main_window_swapchain.read_acquired_frame();
         vk::vk_command_buffer current = main_window_swapchain.get_active_command_buffer(frame);
 
@@ -260,12 +243,19 @@ main() {
 
         // Start recording
         main_window_swapchain.begin(current);
+        test_imgui.begin();
         test_pipeline.bind(current);
 
         test_descriptor_sets.bind(current,main_window_swapchain.current_frame(), test_pipeline.get_layout());
 
         // draw (after recording)
         new_mesh.draw(current);
+
+        ImGui::Begin("Testing");
+        ImGui::Button("Press Me!");
+        ImGui::End();
+
+        test_imgui.end(current);
         main_window_swapchain.end(current);
 
         //! @note This submits the command buffer and also presents the command buffer as well
@@ -287,9 +277,9 @@ main() {
     vkDeviceWaitIdle(main_driver);
 
     // test_texture.destroy();
+    test_imgui.destroy();
 
     my_texture.destroy();
-    // test_uniforms.destroy();
     for (size_t i = 0; i < test_uniforms.size(); i++) {
         test_uniforms[i].destroy();
     }

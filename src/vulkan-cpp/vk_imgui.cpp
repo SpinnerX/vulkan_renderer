@@ -7,6 +7,7 @@
 #include <vulkan-cpp/vk_window.hpp>
 #include <vulkan-cpp/vk_context.hpp>
 #include <vulkan-cpp/vk_driver.hpp>
+#include <vulkan-cpp/logger.hpp>
 
 namespace vk {
     static void imgui_color_layout_customization() {
@@ -81,9 +82,7 @@ namespace vk {
     }
 
     void vk_imgui::initialize(const VkInstance& p_instance,
-                              const VkPhysicalDevice& p_physical,
-                              const vk_swapchain& p_swapchain) {
-        m_current_swapchain = p_swapchain;
+                              const VkPhysicalDevice& p_physical, const VkRenderPass& p_rp, uint32_t p_image_size) {
         console_log_info("Imgui Debug Track #0");
         //! @note Setting up imgui stuff.
         // Setup Dear ImGui context
@@ -133,13 +132,13 @@ namespace vk {
         console_log_info("Imgui Debug Track #4.4");
         init_info.Queue = m_driver.get_graphics_queue();
         console_log_info("Imgui Debug Track #4.5");
-        init_info.RenderPass = p_swapchain.get_renderpass();
+        init_info.RenderPass = p_rp;
         console_log_info("Imgui Debug Track #4.6");
         init_info.PipelineCache = nullptr;
         init_info.DescriptorPool = m_imgui_desc_pool;
         console_log_info("Imgui Debug Track #4.7");
         init_info.MinImageCount = 2;
-        init_info.ImageCount = p_swapchain.image_size();
+        init_info.ImageCount = p_image_size;
         console_log_info("Imgui Debug Track #4.8");
         init_info.UseDynamicRendering = false;
         console_log_info("Imgui Debug Track #5");
@@ -157,13 +156,13 @@ namespace vk {
         ImGui::NewFrame();
     }
 
-    void vk_imgui::end() {
+    void vk_imgui::end(const VkCommandBuffer& p_current) {
         ImGui::Render();
 
         // auto current_cmd_buffer = get_current_command_buffer();
         // VkCommandBuffer current = vk_swapchain::current_active_buffer();
-        VkCommandBuffer current =
-          m_current_swapchain.current_active_comand_buffer();
+        // VkCommandBuffer current =
+        //   m_current_swapchain.current_active_comand_buffer();
 
         int width, height;
         glfwGetFramebufferSize(vk_window::native_window(),
@@ -176,7 +175,7 @@ namespace vk {
 
         //! @note This works, dont modify.
         ImDrawData* draw_data = ImGui::GetDrawData();
-        ImGui_ImplVulkan_RenderDrawData(draw_data, current);
+        ImGui_ImplVulkan_RenderDrawData(draw_data, p_current);
 
         ImGuiIO& io = ImGui::GetIO();
         (void)io;
@@ -188,6 +187,7 @@ namespace vk {
     }
 
     void vk_imgui::destroy() {
-        vkDestroyDescriptorPool(m_driver, m_imgui_desc_pool, nullptr);
+		ImGui_ImplVulkan_Shutdown();
+		vkDestroyDescriptorPool(m_driver, m_imgui_desc_pool, nullptr);
     }
 };

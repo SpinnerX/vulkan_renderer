@@ -12,20 +12,17 @@ namespace vk {
         vk_imgui();
 
         void initialize(const VkInstance& p_instance,
-                        const VkPhysicalDevice& p_physical,
-                        const vk_swapchain& p_swapchain);
+                        const VkPhysicalDevice& p_physical, const VkRenderPass& p_rp, uint32_t p_image_size);
 
         void begin();
-        void end();
+        void end(const VkCommandBuffer& p_current);
 
         void destroy();
 
     private:
         vk_driver m_driver;
         VkDescriptorPool m_imgui_desc_pool = nullptr;
-        vk_swapchain m_current_swapchain;
+        // vk_swapchain m_current_swapchain;
         // VkRenderPass m_viewport_renderpass=nullptr;
-
-        std::vector<vk_command_buffer> m_imgui_command_buffers;
     };
 };

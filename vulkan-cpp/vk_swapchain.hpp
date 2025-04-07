@@ -1,12 +1,11 @@
 #pragma once
-#include <vulkan-cpp/vk_driver.hpp>
 #include <array>
-#include <vulkan-cpp/vk_queue.hpp>
 #include <deque>
-#include <vulkan-cpp/logger.hpp>
-#include <vulkan-cpp/vk_buffer.hpp>
+#include <functional>
+#include <vulkan-cpp/vk_driver.hpp>
+#include <vulkan-cpp/vk_queue.hpp>
 #include <vulkan-cpp/vk_command_buffer.hpp>
-#include <vulkan-cpp/vk_window.hpp>
+#include <vulkan-cpp/vk_buffer.hpp>
 
 namespace vk {
     struct swapchain_configs {
