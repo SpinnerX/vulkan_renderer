@@ -90,8 +90,8 @@ namespace vk {
     }
 
     void mesh::set_texture(uint32_t p_index, const std::string& p_filename) {
-        m_current_texture = vk_texture(p_filename);
-        m_textures[p_index] = &m_current_texture;
+        // m_current_texture = vk_texture(p_filename);
+        m_textures[p_index] = vk_texture(p_filename);
     }
 
     void mesh::draw(const VkCommandBuffer& p_cmd_buffer) {
@@ -110,5 +110,9 @@ namespace vk {
     void mesh::destroy() {
         m_vbo.destroy();
         m_ibo.destroy();
+
+        // for(size_t i = 0; i < m_textures.size(); i++) {
+        //     m_textures[i].destroy();
+        // }
     }
 };

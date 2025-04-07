@@ -269,6 +269,53 @@ namespace vk {
         }
     }
 
+    void vk_descriptor_set::update_test_descriptors(const std::span<vk_uniform_buffer>& p_uniforms, vk_vertex_buffer& p_vertex, const std::span<vk_texture>& p_textures) {
+        std::vector<VkDescriptorImageInfo> descriptor_image_infos(p_textures.size());
+
+        for(size_t i = 0; i < descriptor_image_infos.size(); i++) {
+            // VkDescriptorImageInfo imageInfo{};
+            if(p_textures[i].has_loaded()) {
+            descriptor_image_infos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            descriptor_image_infos[i].imageView = p_textures[i].image_view();
+            descriptor_image_infos[i].sampler = p_textures[i].sampler();
+            }
+        }
+
+        // VkDescriptorImageInfo imageInfo{};
+        // imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        // imageInfo.imageView = p_texture.image_view();
+        // imageInfo.sampler = p_texture.sampler();
+        for(size_t i = 0; i < m_descriptor_count; i++) {
+            // if(p_textures[i].has_loaded()) {
+            VkDescriptorBufferInfo bufferInfo{};
+            bufferInfo.buffer = p_uniforms[i];
+            bufferInfo.offset = 0;
+            bufferInfo.range = sizeof(camera_data_uniform);
+
+            // std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+            std::array<VkWriteDescriptorSet, 2> write_descriptors;
+
+            write_descriptors[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write_descriptors[0].pNext = nullptr;
+            write_descriptors[0].dstSet = m_descriptor_sets[i];
+            write_descriptors[0].dstBinding = 0;
+            write_descriptors[0].dstArrayElement = 0;
+            write_descriptors[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            write_descriptors[0].descriptorCount = 1;
+            write_descriptors[0].pBufferInfo = &bufferInfo;
+
+            write_descriptors[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write_descriptors[1].pNext = nullptr;
+            write_descriptors[1].dstSet = m_descriptor_sets[i];
+            write_descriptors[1].dstBinding = 1;
+            write_descriptors[1].dstArrayElement = 0;
+            write_descriptors[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            write_descriptors[1].descriptorCount = static_cast<uint32_t>(descriptor_image_infos.size());
+            write_descriptors[1].pImageInfo = descriptor_image_infos.data();
+            vkUpdateDescriptorSets(m_driver, static_cast<uint32_t>(write_descriptors.size()), write_descriptors.data(), 0, nullptr); 
+        }
+    }
+
     void vk_descriptor_set::destroy() {
         vkDestroyDescriptorPool(m_driver, m_descriptor_pool, nullptr);
         vkDestroyDescriptorSetLayout(

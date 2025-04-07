@@ -111,6 +111,7 @@ namespace vk {
           create_sampler(min_filter, max_filter, addr_mode);
 
         console_log_info("vk_texture begin successful initialization!!!");
+        m_is_image_loaded = true;
     }
 
     void vk_texture::create_texture_from_data(uint32_t p_width,

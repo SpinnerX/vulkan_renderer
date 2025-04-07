@@ -141,6 +141,7 @@ namespace vk {
 
         // void update_test_descriptors(const std::initializer_list<VkWriteDescriptorSet>& p_write_descriptors);
         void update_test_descriptors(const std::span<vk_uniform_buffer>& p_uniforms, vk_vertex_buffer& p_vertex, vk_texture& p_texture);
+        void update_test_descriptors(const std::span<vk_uniform_buffer>& p_uniforms, vk_vertex_buffer& p_vertex, const std::span<vk_texture>& p_textures);
 
         VkDescriptorPool get_pool() const { return m_descriptor_pool; }
         VkDescriptorSetLayout get_layout() const {

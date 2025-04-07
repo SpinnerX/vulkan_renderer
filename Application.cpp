@@ -18,6 +18,9 @@
 #include <tiny_obj_loader.h>
 #include <vulkan-cpp/perspective_camera.hpp>
 #include <renderer/mesh.hpp>
+// #include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/ext.hpp>
 
 /*
 
@@ -59,6 +62,53 @@
 
 
 */
+
+class interactive_camera {
+public:
+    interactive_camera(float p_aspect_ratio) : m_aspect_ratio(p_aspect_ratio) {
+    }
+
+
+    void update() {
+        glm::mat4 cameraRotation = get_rotation();
+        m_position += glm::vec3(cameraRotation * glm::vec4(m_velocity * 0.5f, 0.f));
+    }
+
+
+    glm::mat4 get_rotation() {
+        glm::quat pitchRotation = glm::angleAxis(m_pitch, glm::vec3 { 1.f, 0.f, 0.f });
+        glm::quat yawRotation = glm::angleAxis(m_yaw, glm::vec3 { 0.f, -1.f, 0.f });
+
+        return glm::toMat4(yawRotation) * glm::toMat4(pitchRotation);
+    }
+
+    glm::mat4 get_view() {
+        glm::mat4 cameraTranslation = glm::translate(glm::mat4(1.f), m_position);
+        glm::mat4 cameraRotation = get_rotation();
+        return glm::inverse(cameraTranslation * cameraRotation);
+    }
+
+    glm::mat4 get_projection() {
+        m_projection = glm::mat4(1.f);
+        m_projection = glm::perspective(glm::radians(70.f), m_aspect_ratio, 1000.f, 0.1f);
+        // invert the Y direction on projection matrix so that we are more similar
+        // to opengl and gltf axis
+        m_projection[1][1] *= -1;
+        return m_projection;
+    }
+
+public:
+    glm::vec3 m_velocity = {0.f, 0.f, 0.f};
+private:
+    float m_aspect_ratio=0.f;
+    glm::mat4 m_view;
+    glm::mat4 m_projection;
+    glm::vec3 m_position = {0.f, 0.f, 0.f};
+    // vertical rotation
+    float m_pitch { 0.f };
+    // horizontal rotation
+    float m_yaw { 0.f };
+};
 
 int
 main() {
@@ -192,7 +242,8 @@ main() {
     // test_descriptor_sets.update_vertex(test_vertex_buffer);
     vk::vk_texture my_texture = new_mesh.get_texture(0);
 
-	test_descriptor_sets.update_test_descriptors(test_uniforms, test_vertex_buffer, my_texture);
+    test_descriptor_sets.update_test_descriptors(test_uniforms, test_vertex_buffer, my_texture);
+	// test_descriptor_sets.update_test_descriptors(test_uniforms, test_vertex_buffer, new_mesh.get_textures());
 
     /*
 
@@ -212,7 +263,8 @@ main() {
 	glm::vec3 Position = {0.f, 0.f, 0.f};
 
 
-	perspective_camera camera = perspective_camera((float)width / height);
+	// perspective_camera camera = perspective_camera((float)width / height);
+    // interactive_camera camera = interactive_camera(((width) / height));
 
     vk::vk_imgui test_imgui = vk::vk_imgui();
     VkRenderPass rp = main_window_swapchain.get_renderpass();
@@ -220,6 +272,23 @@ main() {
 
     while (main_window.is_active()) {
         float dt = (float)glfwGetTime();
+
+
+        // if(glfwGetKey(main_window, GLFW_KEY_W) == GLFW_PRESS) { // forward
+        //     camera.m_velocity.z = -1;
+
+        // }
+        // if(glfwGetKey(main_window, GLFW_KEY_A) == GLFW_PRESS) { // left
+        //     camera.m_velocity.x = 1;
+        // }
+        // if(glfwGetKey(main_window, GLFW_KEY_S) == GLFW_PRESS) { // back
+        //     camera.m_velocity.z = 1;
+        // }
+        // if(glfwGetKey(main_window, GLFW_KEY_D) == GLFW_PRESS) { // right
+        //     camera.m_velocity.x = 1;
+        // }
+
+        // camera.update();
 
         // acquire next image ( then record)
         uint32_t frame = main_window_swapchain.read_acquired_frame();
@@ -232,6 +301,7 @@ main() {
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
         camera_data_uniform ubo{};
+        ubo.Model = glm::translate(ubo.Model, glm::vec3(0.f, 0.f, 0.f));
         ubo.Model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.Projection = glm::perspective(glm::radians(45.0f), width / (float) height, 0.1f, 10.0f);
@@ -253,10 +323,10 @@ main() {
         new_mesh.draw(current);
 
         ImGui::Begin("Viewport");
-        ImGui::Button("Press Me!");
+        ImGui::Button("Texture Image 0");
 
-        ImVec2 viewport_panel_size = ImGui::GetContentRegionAvail();
-        ImGui::Image(test_descriptor_sets.get(frame), ImVec2{100, 100});
+        // ImVec2 viewport_panel_size = ImGui::GetContentRegionAvail();
+        // ImGui::Image(test_descriptor_sets.get(frame), ImVec2{100, 100});
 
         // ImGui::Image()
         ImGui::End();
@@ -282,7 +352,8 @@ main() {
     // just before they get destroyed!!
     vkDeviceWaitIdle(main_driver);
 
-    // test_texture.destroy();
+    //! @note This would probably be something specified in something like vk_context::submit_resource_free([](){ m_command_buffers.destroy(); })
+    //! @note Whenever something needs to be submitted and destroyed when the application shuts down
     test_imgui.destroy();
 
     my_texture.destroy();
