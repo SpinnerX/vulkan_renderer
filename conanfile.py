@@ -28,9 +28,12 @@ class StarterConanRecipe(ConanFile):
       self.requires("vulkan-headers/1.3.290.0")
       self.requires("stb/cci.20230920")
       self.requires("spdlog/1.14.1", transitive_headers=True)
-      self.requires("spirv-cross/1.4.309.0")
+      # self.requires("spirv-cross/1.4.309.0")
       self.requires("flecs/4.0.0")
       self.requires("tinyobjloader/2.0.0-rc10")
+      self.requires("shaderc/2024.1")
+      # self.requires("glslang/11.5.0")
+      # self.requires("glslang/11.7.0", remote="conancenter")
 
     def build(self):
         cmake = CMake(self)

@@ -81,6 +81,7 @@ build_application(
     flecs
     tinyobjloader
     imguidocking
+    shaderc
 
     LINK_PACKAGES
     glfw
@@ -94,6 +95,7 @@ build_application(
     flecs::flecs_static
     tinyobjloader::tinyobjloader
     imguidocking::imguidocking
+    shaderc::shaderc
 )
 
 generate_compile_commands()
