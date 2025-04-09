@@ -63,11 +63,13 @@ set(
     ${SRC_DIR}/logger.cpp
 )
 
+add_subdirectory(src)
 
 build_application(
     SOURCES
     ${all_headers}
     ${all_src}
+    ${shader_sources}
 
     PACKAGES
     glfw3
