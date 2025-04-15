@@ -220,7 +220,8 @@ main() {
     std::vector<vk::pipeline_vertex_attributes> vertex_attributes = {
         { "inPosition", 0, 0, offsetof(vk::vertex, Position), VK_FORMAT_R32G32B32A32_SFLOAT },
         { "inColor", 0, 1, offsetof(vk::vertex, Color), VK_FORMAT_R32G32B32A32_SFLOAT },
-        { "inTexCoords", 0, 2, offsetof(vk::vertex, Uv), VK_FORMAT_R32G32B32A32_SFLOAT }
+        { "inNormals", 0, 2, offsetof(vk::vertex, Normals), VK_FORMAT_R32G32B32A32_SFLOAT },
+        { "inTexCoords", 0, 3, offsetof(vk::vertex, Uv), VK_FORMAT_R32G32B32A32_SFLOAT }
     };
 
     // setting up vulkan pipeline
@@ -279,7 +280,7 @@ main() {
 
     vk::vk_imgui test_imgui = vk::vk_imgui();
     VkRenderPass rp = main_window_swapchain.get_renderpass();
-    test_imgui.initialize(initiating_vulkan, main_physical_device, rp, main_window_swapchain.image_size());
+    test_imgui.initialize(initiating_vulkan, main_physical_device, rp, main_window_swapchain.image_size(), main_window_swapchain.data().SurfaceFormat);
 
     while (main_window.is_active()) {
         float dt = (float)glfwGetTime();

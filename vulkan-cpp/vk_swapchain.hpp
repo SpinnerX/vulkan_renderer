@@ -67,6 +67,8 @@ namespace vk {
             return m_swapchain_command_buffers[m_current_image_index].handle();
         }
 
+        surface_properties data() const { return m_surface_data; }
+
         static uint32_t image_count() {
             return s_instance->m_swapchain_images.size();
         }

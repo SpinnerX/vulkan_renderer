@@ -45,8 +45,30 @@ namespace vk {
           ImVec4{ 0.1f, 0.150f, 0.951f, 1.0f };
     }
 
+
+    VkCommandPool imgui_create_command_pool() {
+		vk_driver driver = vk_driver::driver_context();
+		VkCommandPool pool = nullptr;
+
+		VkCommandPoolCreateInfo pool_ci = {
+			.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+			.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+			.queueFamilyIndex = vk_physical_driver::physical_driver().get_queue_indices().Graphics
+		};
+
+		vk_check(vkCreateCommandPool(driver, &pool_ci, nullptr, &pool), "vkCreateCommandPool", __FUNCTION__);
+
+		return pool;
+    }
+
     vk_imgui::vk_imgui() {
         m_driver = vk_driver::driver_context();
+
+		m_imgui_command_pool = imgui_create_command_pool();
+
+
+
+
 
         VkDescriptorPoolSize pool_sizes[] = {
             { VK_DESCRIPTOR_TYPE_SAMPLER, 100 },
@@ -81,8 +103,12 @@ namespace vk {
         console_log_info("After creating descriptor sets for IMGUI");
     }
 
+	void vk_imgui::create_imgui_renderpass() {
+
+	}
+
     void vk_imgui::initialize(const VkInstance& p_instance,
-                              const VkPhysicalDevice& p_physical, const VkRenderPass& p_rp, uint32_t p_image_size) {
+                              const VkPhysicalDevice& p_physical, const VkRenderPass& p_rp, uint32_t p_image_size, const VkSurfaceFormatKHR& p_surface_format) {
         console_log_info("Imgui Debug Track #0");
         //! @note Setting up imgui stuff.
         // Setup Dear ImGui context
@@ -111,6 +137,45 @@ namespace vk {
             style.Colors[ImGuiCol_WindowBg].w = 1.0f;
         }
 
+		VkAttachmentDescription attachment = {};
+		attachment.format = p_surface_format.format;
+		attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+		attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+		VkAttachmentReference color_attachment = {};
+		color_attachment.attachment = 0;
+		color_attachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		VkSubpassDescription subpass = {};
+		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpass.colorAttachmentCount = 1;
+		subpass.pColorAttachments = &color_attachment;
+
+		VkSubpassDependency dependency = {};
+		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependency.dstSubpass = 0;
+		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.srcAccessMask = 0; // or VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+		VkRenderPassCreateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		info.attachmentCount = 1;
+		info.pAttachments = &attachment;
+		info.subpassCount = 1;
+		info.pSubpasses = &subpass;
+		info.dependencyCount = 1;
+		info.pDependencies = &dependency;
+
+
+		vk_check(vkCreateRenderPass(m_driver, &info, nullptr, &m_imgui_renderpass), "vkCreateRenderPass", __FUNCTION__);
+
         console_log_info("Imgui Debug Track #3");
 
         // VkRenderPass rp = p_renderpass;
@@ -132,7 +197,7 @@ namespace vk {
         console_log_info("Imgui Debug Track #4.4");
         init_info.Queue = m_driver.get_graphics_queue();
         console_log_info("Imgui Debug Track #4.5");
-        init_info.RenderPass = p_rp;
+        init_info.RenderPass = m_imgui_renderpass;
         console_log_info("Imgui Debug Track #4.6");
         init_info.PipelineCache = nullptr;
         init_info.DescriptorPool = m_imgui_desc_pool;
@@ -187,7 +252,10 @@ namespace vk {
     }
 
     void vk_imgui::destroy() {
+		//! @note This will probably be submitted at construction to be destructed when the application shutsdown
 		ImGui_ImplVulkan_Shutdown();
 		vkDestroyDescriptorPool(m_driver, m_imgui_desc_pool, nullptr);
+		vkDestroyRenderPass(m_driver, m_imgui_renderpass, nullptr);
+		vkDestroyCommandPool(m_driver, m_imgui_command_pool, nullptr);
     }
 };

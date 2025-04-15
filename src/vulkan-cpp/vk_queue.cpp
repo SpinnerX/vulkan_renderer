@@ -32,7 +32,7 @@ namespace vk {
 
     void vk_queue::submit_to(const VkCommandBuffer& p_command_buffer,
                              submission_type submission_t) {
-        VkPipelineStageFlags wait_flags =
+		VkPipelineStageFlags wait_flags =
           VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         // console_log_error("Debug #0 -- Tracked Here");
         VkSubmitInfo submit_info = {};
