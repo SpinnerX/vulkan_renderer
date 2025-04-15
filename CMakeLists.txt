@@ -31,6 +31,7 @@ set(
     ${INCLUDE_DIR}/logger.hpp
     renderer/mesh.hpp
     ${INCLUDE_DIR}/perspective_camera.hpp
+    shader_compiler/shader_compiler.hpp
 )
 
 set(
@@ -61,6 +62,7 @@ set(
     ${SRC_DIR}/vk_renderpass.cpp
     ${SRC_DIR}/helper_functions.cpp
     ${SRC_DIR}/logger.cpp
+    src/shader_compiler/shader_compiler.cpp
 )
 
 add_subdirectory(src)
