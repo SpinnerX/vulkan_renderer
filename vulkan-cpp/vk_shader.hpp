@@ -18,12 +18,21 @@ namespace vk {
         VkVertexInputBindingDescription AttributeDescription;
     };
     */
+    
 
     class vk_shader {
     public:
         vk_shader(const std::string& p_vert_filename,
                   const std::string& p_frag_filename);
+        
+        vk_shader(VkShaderModule p_vert_module, 
+                  VkShaderModule p_frag_module);
 
+        // loads and creates a vk_shader directly from source
+        // it probably will throw an exception 
+        // if any part of loading fails..
+        static vk_shader from_source_files(const std::string& p_vert_filename,
+                                        const std::string& p_frag_filename);
         // VkPipeline get_graphics_pipeline() { return m_graphics_pipeline; }
 
         VkShaderModule get_vertex_module() const {

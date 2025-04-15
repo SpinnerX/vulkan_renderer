@@ -1,3 +1,4 @@
+#include <shader_compiler/shader_compiler.hpp>
 #include <vulkan/vulkan_core.h>
 #include <fmt/core.h>
 #include <vulkan-cpp/logger.hpp>
@@ -110,6 +111,15 @@ private:
     float m_yaw { 0.f };
 };
 
+vk::vk_shader test_shader_compilation() {
+    vk::vk_shader test_compiled_shader = vk::vk_shader::from_source_files("shaders/shader.vert", "shaders/shader.frag");
+
+    // setup vertex attributes or smth
+    // set some uniforms as well
+    
+    return test_compiled_shader;
+}
+
 int
 main() {
     logger::console_log_manager::initialize_logger_manager();
@@ -148,7 +158,8 @@ main() {
       vk::vk_swapchain(main_physical_device, main_driver, main_window);
     main_window_swapchain.set_background_color({ 0.f, 0.f, 0.f, 1.f });
 
-    vk::vk_shader test_shader = vk::vk_shader("shaders/vert.spv", "shaders/frag.spv");
+    vk::vk_shader test_shader = vk::vk_shader("shaders/shader.vert", "shaders/shader.frag");
+
 	// vk::vk_shader test_shader = vk::vk_shader("shader_useful_directory/geometry/vert.spv","shader_useful_directory/geometry/frag.spv");
     test_shader.set_vertex_attributes({
 		{.location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(vk::vertex, Position)},
