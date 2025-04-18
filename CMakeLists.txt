@@ -86,6 +86,7 @@ build_application(
     tinyobjloader
     imguidocking
     shaderc
+    watcher
 
     LINK_PACKAGES
     glfw
@@ -100,6 +101,7 @@ build_application(
     tinyobjloader::tinyobjloader
     imguidocking::imguidocking
     shaderc::shaderc
+    watcher::watcher
 )
 
 generate_compile_commands()
