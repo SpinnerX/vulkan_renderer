@@ -55,14 +55,16 @@ namespace vk {
         std::span<VkVertexInputAttributeDescription> get_vertex_attributes() { return m_attribute_descriptions; }
         std::span<VkVertexInputBindingDescription> get_vertex_bind_attributes() { return m_binding_attribute_descriptions; }
 
+        void compile(const std::string& p_vert_filename, const std::string& p_frag_filename);
+
     private:
         void load_from_file(const std::string& p_filename);
         void load_from_text(const std::string& p_filename);
 
     private:
         vk_driver m_driver;
-        VkShaderModule m_vertex_shader_module = nullptr;
-        VkShaderModule m_fragment_shader_module = nullptr;
+        VkShaderModule m_vertex_shader_module = VK_NULL_HANDLE;
+        VkShaderModule m_fragment_shader_module = VK_NULL_HANDLE;
         VkExtent2D m_window_size{};
 
         std::vector<VkVertexInputAttributeDescription> m_attribute_descriptions;

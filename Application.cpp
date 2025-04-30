@@ -1,3 +1,4 @@
+#include <GLFW/glfw3.h>
 #include <shader_compiler/shader_compiler.hpp>
 #include <vulkan/vulkan_core.h>
 #include <fmt/core.h>
@@ -157,9 +158,11 @@ main() {
     vk::vk_swapchain main_window_swapchain =
       vk::vk_swapchain(main_physical_device, main_driver, main_window);
     main_window_swapchain.set_background_color({ 0.f, 0.f, 0.f, 1.f });
-
+    
+    //vk::shader_watcher watcher("shaders");
     vk::vk_shader test_shader = vk::vk_shader("shaders/shader.vert", "shaders/shader.frag");
-
+    // watcher.add_to_watchlist(test_shader, "shader.vert", "shader.frag");
+    
 	// vk::vk_shader test_shader = vk::vk_shader("shader_useful_directory/geometry/vert.spv","shader_useful_directory/geometry/frag.spv");
     test_shader.set_vertex_attributes({
 		{.location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(vk::vertex, Position)},
@@ -284,7 +287,15 @@ main() {
 
     while (main_window.is_active()) {
         float dt = (float)glfwGetTime();
+        
+        if (glfwGetKey(main_window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS &&
+            glfwGetKey(main_window, GLFW_KEY_R) == GLFW_PRESS) {
+            console_log_info("Reloading shaders...");
 
+            test_shader.compile("shaders/shader.vert", "shaders/shader.frag");
+            test_pipeline.reload_from_shader(test_shader, rp, test_descriptor_sets.get_layout());
+            
+        }
 
         // if(glfwGetKey(main_window, GLFW_KEY_W) == GLFW_PRESS) { // forward
         //     camera.m_velocity.z = -1;

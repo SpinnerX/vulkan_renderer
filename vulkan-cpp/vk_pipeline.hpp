@@ -127,6 +127,8 @@ namespace vk {
 
         void destroy();
 
+        void reload_from_shader(vk_shader& p_shader, const VkRenderPass& p_renderpass, const VkDescriptorSetLayout& p_descriptor_sets);
+
         VkPipelineLayout get_layout() const { return m_pipeline_layout; }
 
     private:
