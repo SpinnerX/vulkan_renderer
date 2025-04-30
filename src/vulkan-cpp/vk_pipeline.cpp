@@ -4,12 +4,26 @@
 #include <vulkan-cpp/logger.hpp>
 #include <vulkan-cpp/vk_driver.hpp>
 #include <vulkan-cpp/vk_window.hpp>
+#include <vulkan/vulkan_core.h>
 
 namespace vk {
     vk_pipeline::vk_pipeline(
       const VkRenderPass& p_renderpass,
       vk_shader& p_shader_src,
-      const VkDescriptorSetLayout& p_descriptor_sets) {
+      const VkDescriptorSetLayout& p_descriptor_sets) : 
+        m_pipeline(VK_NULL_HANDLE),
+        m_pipeline_layout(VK_NULL_HANDLE)
+{
+        reload_from_shader(p_shader_src, p_renderpass, p_descriptor_sets);
+    }
+
+
+    void vk_pipeline::reload_from_shader(vk_shader& p_shader, const VkRenderPass& p_renderpass, const VkDescriptorSetLayout& p_descriptor_sets) {
+        // destroy previously existing pipeline state
+        if (m_pipeline != VK_NULL_HANDLE) {
+            destroy();
+        }
+
         int width = 0;
         int height = 0;
         m_driver = vk_driver::driver_context();
@@ -18,8 +32,8 @@ namespace vk {
         console_log_info("vk_pipeline begin initialization!!!");
 
         glfwGetFramebufferSize(handle, &width, &height);
-        VkShaderModule vert_module = p_shader_src.get_vertex_module();
-        VkShaderModule frag_module = p_shader_src.get_fragment_module();
+        VkShaderModule vert_module = p_shader.get_vertex_module();
+        VkShaderModule frag_module = p_shader.get_fragment_module();
 
         if (vert_module != nullptr) {
             console_log_trace("vertex shader module is valid!!!");
@@ -47,8 +61,8 @@ namespace vk {
             vertex_pipeine_stage_ci, fragment_pipeine_stage_ci
         };
 
-        const std::span<VkVertexInputBindingDescription> bind_vertex_attributes = p_shader_src.get_vertex_bind_attributes();
-        const std::span<VkVertexInputAttributeDescription> vertex_attributes = p_shader_src.get_vertex_attributes();
+        const std::span<VkVertexInputBindingDescription> bind_vertex_attributes = p_shader.get_vertex_bind_attributes();
+        const std::span<VkVertexInputAttributeDescription> vertex_attributes = p_shader.get_vertex_attributes();
 
         VkPipelineVertexInputStateCreateInfo vertex_input_info = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -140,7 +154,7 @@ namespace vk {
               VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
               VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
         };
-
+        
         VkPipelineColorBlendStateCreateInfo color_blending_ci = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
             .logicOpEnable = VK_FALSE,
@@ -179,15 +193,14 @@ namespace vk {
 
 		//! @note This is just to double-check that the descriptor set layout is valid.
 		//! @note If the descriptor set layout is invalid, then proceed but not use the descriptor set layout
-        VkDescriptorSetLayout layout = p_descriptor_sets;
 
-        if (layout != nullptr) {
+        if (p_descriptor_sets != VK_NULL_HANDLE) {
             pipeline_layout_ci.setLayoutCount = 1;
-            pipeline_layout_ci.pSetLayouts = &layout;
+            pipeline_layout_ci.pSetLayouts = &p_descriptor_sets;
         }
         else {
             pipeline_layout_ci.setLayoutCount = 0;
-            pipeline_layout_ci.pSetLayouts = nullptr;
+            pipeline_layout_ci.pSetLayouts = VK_NULL_HANDLE;
         }
 
         vk::vk_check(
@@ -195,7 +208,13 @@ namespace vk {
             m_driver, &pipeline_layout_ci, nullptr, &m_pipeline_layout),
           "vkCreatePipelineLayout",
           __FUNCTION__);
-
+        
+        if (p_renderpass == VK_NULL_HANDLE) {
+            console_log_info("m_renderpass is null!!!!");
+        } else {
+            console_log_info("m_renderpass is NOT null!!!!!!!!");
+        }
+        console_log_info("Descriptor set layout is {}", (void *)&p_descriptor_sets);
         VkGraphicsPipelineCreateInfo graphics_pipeline_ci = {
             .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
             .pNext = nullptr,
@@ -228,8 +247,12 @@ namespace vk {
     }
 
     void vk_pipeline::destroy() {
+        vkDeviceWaitIdle(m_driver);
         vkDestroyPipelineLayout(m_driver, m_pipeline_layout, nullptr);
         vkDestroyPipeline(m_driver, m_pipeline, nullptr);
+
+        m_pipeline_layout = VK_NULL_HANDLE;
+        m_pipeline = VK_NULL_HANDLE;
     }
 
     void vk_pipeline::bind(const VkCommandBuffer& p_command_buffer) {

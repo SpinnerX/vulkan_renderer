@@ -132,20 +132,35 @@ namespace vk {
             console_log_trace("m_driver is in fact valid!!!!");
         }
 
+        compile(p_vert_filename, p_frag_filename);
+
+    }
+
+    void vk_shader::compile(const std::string& p_vert_filename, const std::string& p_frag_filename) {
+        
         std::vector<uint32_t> vertex_shader = load_binary_from_source(p_vert_filename, vk::shader_stage::VERTEX);
         std::vector<uint32_t> fragment_shader = load_binary_from_source(p_frag_filename, vk::shader_stage::FRAGMENT);
+
+        if (m_vertex_shader_module != VK_NULL_HANDLE &&
+            m_fragment_shader_module != VK_NULL_HANDLE) {
+            destroy();
+        }
+
 
         // Then we setup the shader module
         m_vertex_shader_module = load_shader_module(m_driver, vertex_shader);
         m_fragment_shader_module =
           load_shader_module(m_driver, fragment_shader);
-
-        console_log_info("vk_shader successfully loaded shader modules!!!\n\n");
+        
+        console_log_info("compiled the shader successfully");
     }
 
     void vk_shader::destroy() {
         vkDestroyShaderModule(m_driver, m_vertex_shader_module, nullptr);
         vkDestroyShaderModule(m_driver, m_fragment_shader_module, nullptr);
+
+        m_vertex_shader_module = VK_NULL_HANDLE;
+        m_fragment_shader_module = VK_NULL_HANDLE;
     }
 
     void vk_shader::load_from_file(const std::string& p_filename) {}
