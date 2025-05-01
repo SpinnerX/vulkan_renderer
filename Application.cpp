@@ -20,6 +20,7 @@
 #include <tiny_obj_loader.h>
 #include <vulkan-cpp/perspective_camera.hpp>
 #include <renderer/mesh.hpp>
+#include <wtr/watcher.hpp>
 // #include <glm/glm.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/ext.hpp>
@@ -285,15 +286,29 @@ main() {
     VkRenderPass rp = main_window_swapchain.get_renderpass();
     test_imgui.initialize(initiating_vulkan, main_physical_device, rp, main_window_swapchain.image_size(), main_window_swapchain.data().SurfaceFormat);
 
+    bool do_reload = false;
+
+    auto watcher = wtr::watch("./shaders", [&](wtr::event ev) mutable {
+        if (ev.effect_type == wtr::event::effect_type::modify && ev.path_type == wtr::event::path_type::file) {
+
+            if (ev.path_name.filename().string() == "shader.vert" || ev.path_name.filename().string() == "shader.frag") {
+                console_log_info("Detected shader reload stuff!!!!!!!!!!!!!!1l");
+                do_reload = true;
+            }
+        }
+    });
+
     while (main_window.is_active()) {
         float dt = (float)glfwGetTime();
         
-        if (glfwGetKey(main_window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS &&
+        if (do_reload || glfwGetKey(main_window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS &&
             glfwGetKey(main_window, GLFW_KEY_R) == GLFW_PRESS) {
             console_log_info("Reloading shaders...");
 
             test_shader.compile("shaders/shader.vert", "shaders/shader.frag");
             test_pipeline.reload_from_shader(test_shader, rp, test_descriptor_sets.get_layout());
+
+            do_reload = false;
             
         }
 
