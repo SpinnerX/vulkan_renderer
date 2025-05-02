@@ -9,12 +9,47 @@
 
 namespace vk {
 
+    static const std::string g_hardcoded_vert = 
+        "#version 460\n"
+        "layout(location = 0) in vec3 inPosition;\n"
+        "layout(location = 1) in vec3 inColor;\n"
+        "layout(location = 2) in vec3 inNormals;\n"
+        "layout(location = 3) in vec2 inTexCoords;\n"
+        "layout(location = 0) out vec4 fragColor;\n"
+        "layout(location = 1) out vec3 fragNormals;\n"
+        "layout(location = 2) out vec2 fragTexCoords;\n"
+        "layout (binding = 0) uniform UniformBuffer {\n"
+        "	mat4 MVP;\n"
+        "} ubo;\n"
+
+        "void main() {\n"
+        "	gl_Position = ubo.MVP * vec4(inPosition, 1.0);\n"
+        "	fragColor = vec4(inColor, 1.0);\n"
+        "	fragTexCoords = inTexCoords;\n"
+        "	fragNormals = inNormals;\n"
+        "}\n";
+    static const std::string g_hardcoded_frag = 
+        "#version 460\n"
+        "layout (binding = 1) uniform sampler2D texSampler;\n"
+        "layout (location = 0) in vec4 fragColor;\n"
+        "layout (location = 1) in vec3 fragNormals;\n"
+        "layout (location = 2) in vec2 fragTexCoords;\n"
+        "layout(location = 0) out vec4 outColor;\n"
+        "void main()\n"
+        "{\n"
+        "    vec3 col1 = vec3(1.0, 0.0, 1.0);\n"
+        "    vec3 col2 = vec3(0.0, 0.0, 0.0);\n"
+        "    ivec2 tile = ivec2(fragTexCoords * 10.0f);\n"
+        "    tile.x += tile.y % 2;\n"
+        "    ivec2 stuff = tile % 2;\n"
+        "    outColor = vec4(col1 * float(stuff.x) + col2 * float(1 - stuff.y), 1.0);\n"
+        "};\n";
+
     static VkShaderModule load_shader_module(const VkDevice& p_driver, const std::span<uint32_t>& p_binary_blobs);
 
     static std::vector<char> read_file(const std::string& p_filename);
 
-    static std::vector<uint32_t> load_binary_from_source(const std::string &p_shader_filename, shader_stage stage) {
-        std::vector<char> source_text = read_file(p_shader_filename);
+    static std::vector<uint32_t> load_binary_from_source(const std::string& p_shader_src, const std::string& p_shader_filename, shader_stage stage) {
         
         shaderc::CompileOptions options;
         options.SetTargetEnvironment(shaderc_target_env_vulkan,  shaderc_env_version_vulkan_1_3);
@@ -30,8 +65,8 @@ namespace vk {
 
         shaderc::Compiler compiler;
         shaderc::CompilationResult result = compiler.CompileGlslToSpv(
-            source_text.data(), 
-            source_text.size(), 
+            p_shader_src.data(), 
+            p_shader_src.size(), 
             shader_type, 
             p_shader_filename.c_str(), 
             "main", 
@@ -55,9 +90,17 @@ namespace vk {
         return binaries;
     }
 
+    
+    static std::vector<uint32_t> load_binary_from_file(const std::string& p_shader_filename, shader_stage stage) {
+        std::vector<char> source_text = read_file(p_shader_filename);
+        std::string source_string(source_text.begin(), source_text.end());
+        return load_binary_from_source(source_string, p_shader_filename, stage);
+    }
+    
+
     vk_shader vk_shader::from_source_files(const std::string &p_vert_filename, const std::string &p_frag_filename) {
-        std::vector<uint32_t> vert_binaries = load_binary_from_source(p_vert_filename, shader_stage::VERTEX);
-        std::vector<uint32_t> frag_binaries = load_binary_from_source(p_frag_filename, shader_stage::FRAGMENT);
+        std::vector<uint32_t> vert_binaries = load_binary_from_file(p_vert_filename, shader_stage::VERTEX);
+        std::vector<uint32_t> frag_binaries = load_binary_from_file(p_frag_filename, shader_stage::FRAGMENT);
 
         if (vert_binaries.size() == 0 || frag_binaries.size() == 0) {
             console_log_error("binary lengths invalid (vert: {} frag: {})",
@@ -138,8 +181,15 @@ namespace vk {
 
     void vk_shader::compile(const std::string& p_vert_filename, const std::string& p_frag_filename) {
         
-        std::vector<uint32_t> vertex_shader = load_binary_from_source(p_vert_filename, vk::shader_stage::VERTEX);
-        std::vector<uint32_t> fragment_shader = load_binary_from_source(p_frag_filename, vk::shader_stage::FRAGMENT);
+        std::vector<uint32_t> vertex_shader = load_binary_from_file(p_vert_filename, vk::shader_stage::VERTEX);
+        std::vector<uint32_t> fragment_shader = load_binary_from_file(p_frag_filename, vk::shader_stage::FRAGMENT);
+
+        if (vertex_shader.size() == 0 || fragment_shader.size() == 0) {
+            console_log_error("Failed to compile shader!!! Not updating vk_shader!!!!!!!!!!!!");
+            
+            vertex_shader = load_binary_from_source(g_hardcoded_vert, "builtin", vk::shader_stage::VERTEX);
+            fragment_shader = load_binary_from_source(g_hardcoded_frag, "builtin", vk::shader_stage::FRAGMENT);
+        }
 
         if (m_vertex_shader_module != VK_NULL_HANDLE &&
             m_fragment_shader_module != VK_NULL_HANDLE) {
