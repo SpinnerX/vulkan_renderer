@@ -102,7 +102,7 @@ layout (binding = 0) uniform UniformBuffer {
 } ubo;
 
 void main() {
-	gl_Position = ubo.MVP * vec4(fract(inPosition), 1.0);
+	gl_Position = ubo.MVP * vec4(inPosition, 1.0);
 	fragColor = vec4(inColor, 1.0);
 	fragTexCoords = inTexCoords;
 	fragNormals = inNormals;

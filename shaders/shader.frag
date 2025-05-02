@@ -40,12 +40,10 @@ layout (location = 1) in vec3 fragNormals;
 layout (location = 2) in vec2 fragTexCoords;
 
 layout(location = 0) out vec4 outColor;
+
 //aaaaa
-void main() 
+void main()
 {
-    //vec4 color = vec4(1.0, 1.0, 1.0, 1.0);
     vec4 color = vec4(0.0, 0.0, 1.0, 1.0);
-    // vec4 color = vec4(0.5, 0.5, 0.5, 1.0);
-    // out_Color = texture(texSampler, uv) * color;
     outColor = texture(texSampler, fragTexCoords) * color;
 }
