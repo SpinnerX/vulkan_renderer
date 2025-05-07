@@ -13,8 +13,7 @@ namespace vk {
       vk_shader& p_shader_src,
       const VkDescriptorSetLayout& p_descriptor_sets) : 
         m_pipeline(VK_NULL_HANDLE),
-        m_pipeline_layout(VK_NULL_HANDLE)
-{
+        m_pipeline_layout(VK_NULL_HANDLE){
         reload_from_shader(p_shader_src, p_renderpass, p_descriptor_sets);
     }
 
@@ -195,13 +194,13 @@ namespace vk {
 		//! @note This is just to double-check that the descriptor set layout is valid.
 		//! @note If the descriptor set layout is invalid, then proceed but not use the descriptor set layout
 
-        if (p_descriptor_sets != VK_NULL_HANDLE) {
+        if (p_descriptor_sets != nullptr) {
             pipeline_layout_ci.setLayoutCount = 1;
             pipeline_layout_ci.pSetLayouts = &p_descriptor_sets;
         }
         else {
             pipeline_layout_ci.setLayoutCount = 0;
-            pipeline_layout_ci.pSetLayouts = VK_NULL_HANDLE;
+            pipeline_layout_ci.pSetLayouts = nullptr;
         }
 
         vk::vk_check(
@@ -210,11 +209,6 @@ namespace vk {
           "vkCreatePipelineLayout",
           __FUNCTION__);
         
-        if (p_renderpass == VK_NULL_HANDLE) {
-            console_log_info("m_renderpass is null!!!!");
-        } else {
-            console_log_info("m_renderpass is NOT null!!!!!!!!");
-        }
         console_log_info("Descriptor set layout is {}", (void *)&p_descriptor_sets);
         VkGraphicsPipelineCreateInfo graphics_pipeline_ci = {
             .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,

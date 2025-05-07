@@ -185,8 +185,8 @@ namespace vk {
             vkDestroyShaderModule(m_driver, m_vertex_shader_module, nullptr);
             vkDestroyShaderModule(m_driver, m_fragment_shader_module, nullptr);
 
-            m_vertex_shader_module = VK_NULL_HANDLE;
-            m_fragment_shader_module = VK_NULL_HANDLE;
+            m_vertex_shader_module = nullptr;
+            m_fragment_shader_module = nullptr;
         });
 
     }
