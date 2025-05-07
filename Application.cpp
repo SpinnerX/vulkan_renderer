@@ -399,12 +399,11 @@ main() {
         test_uniforms[i].destroy();
     }
 
-    test_descriptor_sets.destroy();
-    // test_index_buffer.destroy();
-    // test_vertex_buffer.destroy();
-    new_mesh.destroy();
-    test_pipeline.destroy();
-    test_shader.destroy();
-    main_window_swapchain.destroy();
-    main_driver.destroy();
+    // test_descriptor_sets.destroy();
+    // new_mesh.destroy();
+    // test_pipeline.destroy();
+    // test_shader.destroy();
+    // main_window_swapchain.destroy();
+    // main_driver.destroy();
+    initiating_vulkan.cleanup();
 }

@@ -108,8 +108,19 @@ namespace vk {
         // vkDestroyInstance(m_instance, nullptr);
     }
 
+    void vk_context::submit_resource_free(const std::function<void()>& p_callable) {
+        s_instance->resource_free(p_callable);
+    }
+
+    void vk_context::resource_free(const std::function<void()>& p_callable) {
+        m_resource_to_free.push_front(p_callable);
+    }
+
     void vk_context::cleanup() {
-        vkDestroyInstance(m_instance, nullptr);
+        for(auto& callable : m_resource_to_free) {
+            callable();
+        }
+        // vkDestroyInstance(m_instance, nullptr);
     }
 
 };

@@ -3,6 +3,7 @@
 #include <tiny_obj_loader.h>
 #include <vulkan-cpp/logger.hpp>
 #include <vulkan-cpp/vk_vertex_buffer.hpp>
+#include <vulkan-cpp/vk_context.hpp>
 
 namespace vk {
     mesh::mesh(const std::span<vertex>& p_vertices,
@@ -87,6 +88,13 @@ namespace vk {
 
         m_vbo = vk_vertex_buffer(vertices);
         m_ibo = vk_index_buffer(indices);
+
+
+
+        vk_context::submit_resource_free([this](){
+            m_vbo.destroy();
+            m_ibo.destroy();
+        });
     }
 
     void mesh::set_texture(uint32_t p_index, const std::string& p_filename) {
@@ -108,8 +116,6 @@ namespace vk {
     }
 
     void mesh::destroy() {
-        m_vbo.destroy();
-        m_ibo.destroy();
 
         // for(size_t i = 0; i < m_textures.size(); i++) {
         //     m_textures[i].destroy();

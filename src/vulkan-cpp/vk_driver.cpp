@@ -2,6 +2,7 @@
 #include <vector>
 #include <vulkan-cpp/logger.hpp>
 #include <vulkan-cpp/helper_functions.hpp>
+#include <vulkan-cpp/vk_context.hpp>
 
 namespace vk {
 
@@ -107,6 +108,13 @@ namespace vk {
         console_log_info("vk_driver::vk_driver end initialization!!!\n\n");
 
         s_instance = this;
+
+		
+		vk_context::submit_resource_free([this](){
+			console_log_fatal("vk_driver resource freed");
+			vkDestroyDevice(m_driver, nullptr);
+		});
+
     }
 
     VkFormat vk_driver::depth_format() {
@@ -116,7 +124,7 @@ namespace vk {
     vk_driver::~vk_driver() {}
 
     void vk_driver::destroy() {
-        vkDestroyDevice(m_driver, nullptr);
+        // vkDestroyDevice(m_driver, nullptr);
     }
 
     VkQueue vk_driver::get_presentation_queue(

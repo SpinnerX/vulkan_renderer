@@ -4,6 +4,7 @@
 #include <vulkan-cpp/helper_functions.hpp>
 #include <vulkan-cpp/logger.hpp>
 #include <span>
+#include <vulkan-cpp/vk_context.hpp>
 
 namespace vk {
 
@@ -98,7 +99,12 @@ namespace vk {
                                           m_descriptor_sets.data()),
                  "vkAllocateDescriptorSets",
                  __FUNCTION__);
+        vk_context::submit_resource_free([this](){
+            vkDestroyDescriptorPool(m_driver, m_descriptor_pool, nullptr);
+            vkDestroyDescriptorSetLayout(m_driver, m_descriptor_set_layout, nullptr);
+        });
     }
+
 
     void vk_descriptor_set::bind(const VkCommandBuffer& p_command_buffer,
                                  uint32_t p_frame_index,
@@ -317,8 +323,7 @@ namespace vk {
     }
 
     void vk_descriptor_set::destroy() {
-        vkDestroyDescriptorPool(m_driver, m_descriptor_pool, nullptr);
-        vkDestroyDescriptorSetLayout(
-          m_driver, m_descriptor_set_layout, nullptr);
+        // vkDestroyDescriptorPool(m_driver, m_descriptor_pool, nullptr);
+        // vkDestroyDescriptorSetLayout(m_driver, m_descriptor_set_layout, nullptr);
     }
 };

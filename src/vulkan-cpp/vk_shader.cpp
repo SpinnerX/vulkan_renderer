@@ -6,6 +6,8 @@
 #include <fmt/ranges.h>
 #include <shaderc/shaderc.hpp>
 #include <shader_compiler/shader_compiler.hpp>
+#include <vulkan-cpp/vk_context.hpp>
+
 
 namespace vk {
 
@@ -176,6 +178,16 @@ namespace vk {
         }
 
         compile(p_vert_filename, p_frag_filename);
+
+
+        vk_context::submit_resource_free([this](){
+            console_log_fatal("vk_shader resource freed");
+            vkDestroyShaderModule(m_driver, m_vertex_shader_module, nullptr);
+            vkDestroyShaderModule(m_driver, m_fragment_shader_module, nullptr);
+
+            m_vertex_shader_module = VK_NULL_HANDLE;
+            m_fragment_shader_module = VK_NULL_HANDLE;
+        });
 
     }
 

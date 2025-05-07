@@ -5,6 +5,7 @@
 #include <vulkan-cpp/vk_driver.hpp>
 #include <vulkan-cpp/vk_window.hpp>
 #include <vulkan/vulkan_core.h>
+#include <vulkan-cpp/vk_context.hpp>
 
 namespace vk {
     vk_pipeline::vk_pipeline(
@@ -244,15 +245,24 @@ namespace vk {
           __FUNCTION__);
 
         console_log_info("vk_pipeline successfully initialized!!!!\n\n");
+
+        vk_context::submit_resource_free([this](){
+            console_log_fatal("vk_pipeline resource freed");
+            vkDestroyPipelineLayout(m_driver, m_pipeline_layout, nullptr);
+            vkDestroyPipeline(m_driver, m_pipeline, nullptr);
+
+            m_pipeline_layout = VK_NULL_HANDLE;
+            m_pipeline = VK_NULL_HANDLE;
+        });
     }
 
     void vk_pipeline::destroy() {
-        vkDeviceWaitIdle(m_driver);
-        vkDestroyPipelineLayout(m_driver, m_pipeline_layout, nullptr);
-        vkDestroyPipeline(m_driver, m_pipeline, nullptr);
+        // vkDeviceWaitIdle(m_driver);
+        // vkDestroyPipelineLayout(m_driver, m_pipeline_layout, nullptr);
+        // vkDestroyPipeline(m_driver, m_pipeline, nullptr);
 
-        m_pipeline_layout = VK_NULL_HANDLE;
-        m_pipeline = VK_NULL_HANDLE;
+        // m_pipeline_layout = VK_NULL_HANDLE;
+        // m_pipeline = VK_NULL_HANDLE;
     }
 
     void vk_pipeline::bind(const VkCommandBuffer& p_command_buffer) {

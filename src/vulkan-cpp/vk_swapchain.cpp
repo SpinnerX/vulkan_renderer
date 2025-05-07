@@ -1,6 +1,7 @@
 #include <vulkan-cpp/vk_swapchain.hpp>
 #include <vulkan-cpp/helper_functions.hpp>
 #include <vulkan-cpp/logger.hpp>
+#include <vulkan-cpp/vk_context.hpp>
 
 namespace vk {
     vk_swapchain* vk_swapchain::s_instance = nullptr;
@@ -121,6 +122,43 @@ namespace vk {
       , m_current_surface(p_surface) {
         m_surface_data = p_physical.get_surface_properties(p_surface);
         on_create();
+
+
+		vk_context::submit_resource_free([this](){
+			console_log_fatal("vk_swapchain resource freed");
+			// needed to be called to ensure all children objects are executed just
+			// before they get destroyed!! vkDeviceWaitIdle(m_driver);
+
+			for (size_t i = 0; i < m_swapchain_framebuffers.size(); i++) {
+				vkDestroyFramebuffer(
+				m_driver, m_swapchain_framebuffers[i], nullptr);
+			}
+
+			vkDestroyRenderPass(m_driver, m_swapchain_renderpass, nullptr);
+
+			m_swapchain_present_queue.destroy();
+
+			// vkDestroyCommandPool(m_driver, m_command_pool, nullptr);
+			for (size_t i = 0; i < m_swapchain_command_buffers.size(); i++) {
+				m_swapchain_command_buffers[i].destroy();
+			}
+
+			for (uint32_t i = 0; i < m_swapchain_depth_images.size(); i++) {
+				vkDestroyImageView(
+				m_driver, m_swapchain_depth_images[i].ImageView, nullptr);
+				vkDestroyImage(
+				m_driver, m_swapchain_depth_images[i].Image, nullptr);
+				vkFreeMemory(
+				m_driver, m_swapchain_depth_images[i].DeviceMemory, nullptr);
+			}
+
+			for (uint32_t i = 0; i < m_swapchain_images.size(); i++) {
+				vkDestroyImageView(
+				m_driver, m_swapchain_images[i].ImageView, nullptr);
+			}
+
+			vkDestroySwapchainKHR(m_driver, m_swapchain_handler, nullptr);
+		});
     }
 
     void vk_swapchain::on_create() {
@@ -355,38 +393,38 @@ namespace vk {
 
     void vk_swapchain::destroy() {
 
-        // needed to be called to ensure all children objects are executed just
-        // before they get destroyed!! vkDeviceWaitIdle(m_driver);
+        // // needed to be called to ensure all children objects are executed just
+        // // before they get destroyed!! vkDeviceWaitIdle(m_driver);
 
-        for (size_t i = 0; i < m_swapchain_framebuffers.size(); i++) {
-            vkDestroyFramebuffer(
-              m_driver, m_swapchain_framebuffers[i], nullptr);
-        }
+        // for (size_t i = 0; i < m_swapchain_framebuffers.size(); i++) {
+        //     vkDestroyFramebuffer(
+        //       m_driver, m_swapchain_framebuffers[i], nullptr);
+        // }
 
-        vkDestroyRenderPass(m_driver, m_swapchain_renderpass, nullptr);
+        // vkDestroyRenderPass(m_driver, m_swapchain_renderpass, nullptr);
 
-        m_swapchain_present_queue.destroy();
+        // m_swapchain_present_queue.destroy();
 
-        // vkDestroyCommandPool(m_driver, m_command_pool, nullptr);
-        for (size_t i = 0; i < m_swapchain_command_buffers.size(); i++) {
-            m_swapchain_command_buffers[i].destroy();
-        }
+        // // vkDestroyCommandPool(m_driver, m_command_pool, nullptr);
+        // for (size_t i = 0; i < m_swapchain_command_buffers.size(); i++) {
+        //     m_swapchain_command_buffers[i].destroy();
+        // }
 
-        for (uint32_t i = 0; i < m_swapchain_depth_images.size(); i++) {
-            vkDestroyImageView(
-              m_driver, m_swapchain_depth_images[i].ImageView, nullptr);
-            vkDestroyImage(
-              m_driver, m_swapchain_depth_images[i].Image, nullptr);
-            vkFreeMemory(
-              m_driver, m_swapchain_depth_images[i].DeviceMemory, nullptr);
-        }
+        // for (uint32_t i = 0; i < m_swapchain_depth_images.size(); i++) {
+        //     vkDestroyImageView(
+        //       m_driver, m_swapchain_depth_images[i].ImageView, nullptr);
+        //     vkDestroyImage(
+        //       m_driver, m_swapchain_depth_images[i].Image, nullptr);
+        //     vkFreeMemory(
+        //       m_driver, m_swapchain_depth_images[i].DeviceMemory, nullptr);
+        // }
 
-        for (uint32_t i = 0; i < m_swapchain_images.size(); i++) {
-            vkDestroyImageView(
-              m_driver, m_swapchain_images[i].ImageView, nullptr);
-        }
+        // for (uint32_t i = 0; i < m_swapchain_images.size(); i++) {
+        //     vkDestroyImageView(
+        //       m_driver, m_swapchain_images[i].ImageView, nullptr);
+        // }
 
-        vkDestroySwapchainKHR(m_driver, m_swapchain_handler, nullptr);
+        // vkDestroySwapchainKHR(m_driver, m_swapchain_handler, nullptr);
     }
 
     void vk_swapchain::resize(uint32_t p_width, uint32_t p_height) {

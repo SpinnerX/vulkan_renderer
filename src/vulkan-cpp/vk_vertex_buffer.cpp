@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.h>
 #include <vulkan-cpp/helper_functions.hpp>
 #include <vulkan-cpp/logger.hpp>
+#include <vulkan-cpp/vk_context.hpp>
 
 namespace vk {
 
@@ -45,6 +46,14 @@ namespace vk {
         vkFreeMemory(m_driver, staging_buffer.DeviceMemory, nullptr);
         vkDestroyBuffer(m_driver, staging_buffer.BufferHandler, nullptr);
         console_log_trace("vertex buffer end initialization!!!");
+
+        // vk_context::submit_resource_free([this](){
+        //     // console_log_fatal("vk_vertex_buffer resource freed");
+        //     vkFreeMemory(m_driver, m_vertex_data.DeviceMemory, nullptr);
+        //     vkDestroyBuffer(m_driver, m_vertex_data.BufferHandler, nullptr);
+        //     m_vertex_data.AllocateDeviceSize = 0;
+        //     m_vertex_data = {};
+        // });
     }
 
     // void vk_vertex_buffer::copy(const VkCommandBuffer& p_command_buffer) {}
