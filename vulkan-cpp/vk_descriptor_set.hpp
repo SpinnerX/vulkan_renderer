@@ -130,18 +130,7 @@ namespace vk {
                   uint32_t p_frame_index,
                   const VkPipelineLayout& p_pipeline_layout);
 
-        // Updating specific groups of descriptor sets
-        //! @note Reason these are getting called for every descriptor set
-        //! @note Its because they need to be applied when doing camera
-        //! transforms, etc.
-        void update_uniforms(
-          const std::span<vk_uniform_buffer>& p_uniform_buffer);
-        void update_vertex(const vk_vertex_buffer& p_vertex_buffer);
-        void update_texture(const vk_texture* p_texture);
-
-        // void update_test_descriptors(const std::initializer_list<VkWriteDescriptorSet>& p_write_descriptors);
-        void update_test_descriptors(const std::span<vk_uniform_buffer>& p_uniforms, vk_vertex_buffer& p_vertex, vk_texture& p_texture);
-        void update_test_descriptors(const std::span<vk_uniform_buffer>& p_uniforms, vk_vertex_buffer& p_vertex, const std::span<vk_texture>& p_textures);
+        void update_mesh(const std::span<vk_uniform_buffer>& p_uniforms, const mesh& p_mesh);
 
         VkDescriptorPool get_pool() const { return m_descriptor_pool; }
         VkDescriptorSetLayout get_layout() const {

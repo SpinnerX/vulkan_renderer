@@ -66,62 +66,6 @@
 
 */
 
-class interactive_camera {
-public:
-    interactive_camera(float p_aspect_ratio) : m_aspect_ratio(p_aspect_ratio) {
-    }
-
-
-    void update() {
-        glm::mat4 cameraRotation = get_rotation();
-        m_position += glm::vec3(cameraRotation * glm::vec4(m_velocity * 0.5f, 0.f));
-    }
-
-
-    glm::mat4 get_rotation() {
-        glm::quat pitchRotation = glm::angleAxis(m_pitch, glm::vec3 { 1.f, 0.f, 0.f });
-        glm::quat yawRotation = glm::angleAxis(m_yaw, glm::vec3 { 0.f, -1.f, 0.f });
-
-        return glm::toMat4(yawRotation) * glm::toMat4(pitchRotation);
-    }
-
-    glm::mat4 get_view() {
-        glm::mat4 cameraTranslation = glm::translate(glm::mat4(1.f), m_position);
-        glm::mat4 cameraRotation = get_rotation();
-        return glm::inverse(cameraTranslation * cameraRotation);
-    }
-
-    glm::mat4 get_projection() {
-        m_projection = glm::mat4(1.f);
-        m_projection = glm::perspective(glm::radians(70.f), m_aspect_ratio, 1000.f, 0.1f);
-        // invert the Y direction on projection matrix so that we are more similar
-        // to opengl and gltf axis
-        m_projection[1][1] *= -1;
-        return m_projection;
-    }
-
-public:
-    glm::vec3 m_velocity = {0.f, 0.f, 0.f};
-private:
-    float m_aspect_ratio=0.f;
-    glm::mat4 m_view;
-    glm::mat4 m_projection;
-    glm::vec3 m_position = {0.f, 0.f, 0.f};
-    // vertical rotation
-    float m_pitch { 0.f };
-    // horizontal rotation
-    float m_yaw { 0.f };
-};
-
-vk::vk_shader test_shader_compilation() {
-    vk::vk_shader test_compiled_shader = vk::vk_shader::from_source_files("shaders/shader.vert", "shaders/shader.frag");
-
-    // setup vertex attributes or smth
-    // set some uniforms as well
-    
-    return test_compiled_shader;
-}
-
 int
 main() {
     logger::console_log_manager::initialize_logger_manager();
@@ -232,57 +176,18 @@ main() {
     vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window_swapchain.get_renderpass(),test_shader, test_descriptor_sets.get_layout());
 
     // Loading and using textures
-    // vk::vk_texture test_texture("models/viking_room.png");
     new_mesh.set_texture(0, "models/viking_room.png");
-    // vk::vk_texture test_texture("textures/bricks.jpg");
 
-    // updating descriptor sets
-    /*
-        API For writing uniforms to the shader
-            - mesh contains index and vertex buffers
-            - test_uniforms passes all of our camera data
-            - passing in our texture
-        update_descriptor_sets(mesh, test_uniforms)
 
-        This call should be updated to doing this:
-
-        Using vk_descriptor_set used as a single descriptor set rather then
-       supporting multiple. That is something that the vk_descriptor_set_manager
-       should do
-
-        descriptor_set[i].update_descriptor_set(uniform_buffer[i]);
-    */
-
-    // test_descriptor_sets.update_uniforms(test_uniforms);
-    // test_descriptor_sets.update_texture(&test_texture);
-    // test_descriptor_sets.update_vertex(test_vertex_buffer);
     vk::vk_texture my_texture = new_mesh.get_texture(0);
 
-    test_descriptor_sets.update_test_descriptors(test_uniforms, test_vertex_buffer, my_texture);
-	// test_descriptor_sets.update_test_descriptors(test_uniforms, test_vertex_buffer, new_mesh.get_textures());
+    // test_descriptor_sets.update_test_descriptors(test_uniforms, test_vertex_buffer, my_texture);
+    test_descriptor_sets.update_mesh(test_uniforms, new_mesh);
 
-    /*
-
-	// Essentially there are going to be vk_descriptor_set that is to be defined as a single descriptor set
-	// Then set the descriptor set as probably a shader source group
-    vk::vk_descriptor_set_manager desc_manager(image_size); // img_size = 3
-    std::vector<vk::vk_descriptor_set> descriptor_sets(3);
-
-      for(size_t i = 0; i < image_size; i++) {
-        // desc_manager.write(i, uniform);
-        descriptor_sets[i].write_uniform(uniform);
-        descriptor_sets[i].write_texture(&test_texture);
-
-      }
-
-    */
 	glm::vec3 Position = {0.f, 0.f, 0.f};
 
 
-	// perspective_camera camera = perspective_camera((float)width / height);
-    // interactive_camera camera = interactive_camera(((width) / height));
-
-    vk::vk_imgui test_imgui = vk::vk_imgui();
+	vk::vk_imgui test_imgui = vk::vk_imgui();
     VkRenderPass rp = main_window_swapchain.get_renderpass();
     test_imgui.initialize(initiating_vulkan, main_physical_device, rp, main_window_swapchain.image_size(), main_window_swapchain.data().SurfaceFormat);
 
@@ -311,22 +216,6 @@ main() {
             do_reload = false;
             
         }
-
-        // if(glfwGetKey(main_window, GLFW_KEY_W) == GLFW_PRESS) { // forward
-        //     camera.m_velocity.z = -1;
-
-        // }
-        // if(glfwGetKey(main_window, GLFW_KEY_A) == GLFW_PRESS) { // left
-        //     camera.m_velocity.x = 1;
-        // }
-        // if(glfwGetKey(main_window, GLFW_KEY_S) == GLFW_PRESS) { // back
-        //     camera.m_velocity.z = 1;
-        // }
-        // if(glfwGetKey(main_window, GLFW_KEY_D) == GLFW_PRESS) { // right
-        //     camera.m_velocity.x = 1;
-        // }
-
-        // camera.update();
 
         // acquire next image ( then record)
         uint32_t frame = main_window_swapchain.read_acquired_frame();
@@ -363,8 +252,8 @@ main() {
         ImGui::Begin("Viewport");
         ImGui::Button("Texture Image 0");
 
-        // ImVec2 viewport_panel_size = ImGui::GetContentRegionAvail();
-        // ImGui::Image(test_descriptor_sets.get(frame), ImVec2{100, 100});
+        ImVec2 viewport_panel_size = ImGui::GetContentRegionAvail();
+        ImGui::Image(test_descriptor_sets.get(frame), ImVec2{100, 100});
 
         // ImGui::Image()
         ImGui::End();

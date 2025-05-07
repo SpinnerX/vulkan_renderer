@@ -31,11 +31,13 @@ namespace vk {
         vk_index_buffer get_index() const { return m_ibo; }
 
 
-        std::span<vk_texture> get_textures() { return m_textures; }
+        std::span<vk_texture> get_textures() { return m_texture_slots; }
 
         void set_texture(uint32_t p_index, const std::string& p_filename);
 
-        vk_texture get_texture(uint32_t p_index) { return m_textures[p_index]; }
+        vk_texture get_texture(uint32_t p_index) const { return m_texture_slots[p_index]; }
+
+        size_t texture_size() const { return m_texture_slots.size(); }
 
         void destroy();
 
@@ -44,6 +46,6 @@ namespace vk {
         vk_vertex_buffer m_vbo;
         vk_index_buffer m_ibo;
         // contain locations of textures
-        std::array<vk_texture, 4> m_textures;
+        std::array<vk_texture, 4> m_texture_slots;
     };
 };

@@ -99,7 +99,7 @@ namespace vk {
 
     void mesh::set_texture(uint32_t p_index, const std::string& p_filename) {
         // m_current_texture = vk_texture(p_filename);
-        m_textures[p_index] = vk_texture(p_filename);
+        m_texture_slots[p_index] = vk_texture(p_filename);
     }
 
     void mesh::draw(const VkCommandBuffer& p_cmd_buffer) {
