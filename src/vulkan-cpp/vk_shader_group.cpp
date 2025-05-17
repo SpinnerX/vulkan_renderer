@@ -1,5 +1,4 @@
 #include <shaderc/shaderc.hpp>
-#include <shader_compiler/shader_compiler.hpp>
 #include <vulkan-cpp/vk_shader_group.hpp>
 #include <fstream>
 #include <vulkan-cpp/logger.hpp>
