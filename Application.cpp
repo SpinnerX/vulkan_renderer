@@ -103,16 +103,11 @@ main() {
       vk::vk_swapchain(main_physical_device, main_driver, main_window);
     main_window_swapchain.set_background_color({ 0.f, 0.f, 0.f, 1.f });
     
-    //vk::shader_watcher watcher("shaders");
-    // vk::vk_shader test_shader = vk::vk_shader("shaders/shader.vert", "shaders/shader.frag");
-
     vk::vk_shader_group group1 = {
         {"shaders/shader.vert", vk::shader_stage2::Vertex},
         {"shaders/shader.frag", vk::shader_stage2::Fragment},
     };
 
-    // VkVertexInputAttributeDescription::location
-    // VkVertexInputAttributeDescription
     group1.set_vertex_attributes({
 		{.location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(vk::vertex, Position)},
 		{.location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32A32_SFLOAT, .offset = offsetof(vk::vertex, Color)},
@@ -122,23 +117,8 @@ main() {
     group1.set_vertex_bind_attributes({
 		{.binding = 0, .stride = sizeof(vk::vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}
 	});
-    // vk::vk_shader vert_shader = vk_shader("shaders/shader.vert", shader_stage::Vertex);
-    // vk::vk_shader frag_shader = vk_shader("shaders/shader.frag", shader_stage::Fragment);
-
 
     // watcher.add_to_watchlist(test_shader, "shader.vert", "shader.frag");
-    
-	// vk::vk_shader test_shader = vk::vk_shader("shader_useful_directory/geometry/vert.spv","shader_useful_directory/geometry/frag.spv");
-    // test_shader.set_vertex_attributes({
-	// 	{.location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(vk::vertex, Position)},
-	// 	{.location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32A32_SFLOAT, .offset = offsetof(vk::vertex, Color)},
-    //     {.location = 2, .binding = 0, .format = VK_FORMAT_R32G32B32A32_SFLOAT, .offset = offsetof(vk::vertex, Normals)},
-	// 	{.location = 3, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(vk::vertex, Uv)}
-    // });
-
-	// test_shader.set_vertex_bind_attributes({
-	// 	{.binding = 0, .stride = sizeof(vk::vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}
-	// });
 
     // adding descriptor sets
     // creating our vertex and index buffers
@@ -193,7 +173,6 @@ main() {
     };
 
     // setting up vulkan pipeline
-    // vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window_swapchain.get_renderpass(),test_shader, test_descriptor_sets.get_layout());
     vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window_swapchain.get_renderpass(), group1, test_descriptor_sets.get_layout());
 
     // Loading and using textures
@@ -204,8 +183,6 @@ main() {
 
     // test_descriptor_sets.update_test_descriptors(test_uniforms, test_vertex_buffer, my_texture);
     test_descriptor_sets.update_mesh(test_uniforms, new_mesh);
-    // sphere_mesh.set_texture(1, "textures/bricks.jpg");
-    // test_descriptor_sets.update_mesh(test_uniforms, sphere_mesh);
 
     /*
         Vulkan Descriptor Set Extended API
@@ -242,7 +219,6 @@ main() {
     glm::vec3 scale = {1.f, 1.f, 1.f};
     glm::vec3 rotation = {1.50f, 8.70f, -0.10f};
     glm::vec4 color{1.f};
-    // glm::highp_vec3 rotation = {1.f, 1.f, 1.f};
 
     while (main_window.is_active()) {
         float dt = (float)glfwGetTime();
