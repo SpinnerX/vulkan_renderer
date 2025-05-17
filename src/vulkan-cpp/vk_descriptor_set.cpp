@@ -21,17 +21,7 @@ namespace vk {
         console_log_error("descriptor set type specified is invalid!!!");
     }
 
-    VkShaderStageFlags to_vk_shader_stage(const shader_stage& p_stage) {
-        switch (p_stage) {
-            case shader_stage::VERTEX:
-                return VK_SHADER_STAGE_VERTEX_BIT;
-            case shader_stage::FRAGMENT:
-                return VK_SHADER_STAGE_FRAGMENT_BIT;
-        }
-
-        console_log_error(
-          "vulkan shader stage that you specified was invalid!!!");
-    }
+    
 
     vk_descriptor_set::vk_descriptor_set(
       uint32_t p_descriptor_count,
@@ -135,7 +125,7 @@ namespace vk {
             VkDescriptorBufferInfo bufferInfo{};
             bufferInfo.buffer = p_uniforms[i];
             bufferInfo.offset = 0;
-            bufferInfo.range = sizeof(camera_data_uniform);
+            bufferInfo.range = sizeof(combined_uniforms);
 
             // std::array<vk_texture, 4> textures;
             std::vector<VkDescriptorImageInfo> descriptor_image_infos(p_mesh.texture_size());

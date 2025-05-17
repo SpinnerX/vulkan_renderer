@@ -1,6 +1,6 @@
-#include <vulkan-cpp/vk_pipeline.hpp>
 #include <vulkan-cpp/vulkan-imports.hpp>
-#include <vulkan-cpp/helper_functions.hpp>
+#include <vulkan-cpp/vk_pipeline.hpp>
+// #include <vulkan-cpp/helper_functions.hpp>
 #include <vulkan-cpp/logger.hpp>
 #include <vulkan-cpp/vk_driver.hpp>
 #include <vulkan-cpp/vk_window.hpp>
@@ -8,17 +8,54 @@
 #include <vulkan-cpp/vk_context.hpp>
 
 namespace vk {
-    vk_pipeline::vk_pipeline(
-      const VkRenderPass& p_renderpass,
-      vk_shader& p_shader_src,
-      const VkDescriptorSetLayout& p_descriptor_sets) : 
-        m_pipeline(VK_NULL_HANDLE),
-        m_pipeline_layout(VK_NULL_HANDLE){
-        reload_from_shader(p_shader_src, p_renderpass, p_descriptor_sets);
+
+    static VkShaderStageFlagBits shader_stage_to_vk(const shader_stage2& p_stage) {
+        switch (p_stage){
+        case shader_stage2::Vertex:
+            return VK_SHADER_STAGE_VERTEX_BIT;
+        case shader_stage2::Fragment:
+            return VK_SHADER_STAGE_FRAGMENT_BIT;
+        default:
+            break;
+        }
+    }
+    std::string shader_stage_to_string(VkShaderStageFlagBits p_stage_flags) {
+        switch (p_stage_flags){
+        case VK_SHADER_STAGE_VERTEX_BIT:
+            return "VK_SHADER_STAGE_VERTEX_BIT";
+        case VK_SHADER_STAGE_FRAGMENT_BIT:
+            return "VK_SHADER_STAGE_FRAGMENT_BIT";
+        default:
+            break;
+        }
+
+        return "";
     }
 
+    vk_pipeline::vk_pipeline(
+          const VkRenderPass& p_renderpass,
+          vk_shader_group& p_shader_group,
+          const VkDescriptorSetLayout& p_descriptor_sets) {
+        
+        // This is testing
+        reload_from_shader_sources(p_shader_group, p_renderpass, p_descriptor_sets);
+        
+        vk_context::submit_resource_free([this]() mutable{
+            console_log_fatal("vk_pipeline resource freed");
+            vkDestroyPipelineLayout(m_driver, m_pipeline_layout, nullptr);
+            vkDestroyPipeline(m_driver, m_pipeline, nullptr);
 
-    void vk_pipeline::reload_from_shader(vk_shader& p_shader, const VkRenderPass& p_renderpass, const VkDescriptorSetLayout& p_descriptor_sets) {
+            m_pipeline_layout = VK_NULL_HANDLE;
+            m_pipeline = VK_NULL_HANDLE;
+        });
+    }
+
+    void vk_pipeline::reload_from_shader_sources(vk_shader_group& p_shader_group, const VkRenderPass& p_renderpass, const VkDescriptorSetLayout& p_descriptor_sets) {
+        auto shader_modules = p_shader_group.data();
+        console_log_fatal("module.size() = {}", shader_modules.size());
+        if(shader_modules.size() <= 0) {
+            return;
+        }
         // destroy previously existing pipeline state
         if (m_pipeline != VK_NULL_HANDLE) {
             destroy();
@@ -32,37 +69,62 @@ namespace vk {
         console_log_info("vk_pipeline begin initialization!!!");
 
         glfwGetFramebufferSize(handle, &width, &height);
-        VkShaderModule vert_module = p_shader.get_vertex_module();
-        VkShaderModule frag_module = p_shader.get_fragment_module();
+        // VkShaderModule vert_module = p_shader.get_vertex_module();
+        // VkShaderModule frag_module = p_shader.get_fragment_module();
 
-        if (vert_module != nullptr) {
-            console_log_trace("vertex shader module is valid!!!");
+        // if (vert_module != nullptr) {
+        //     console_log_trace("vertex shader module is valid!!!");
+        // }
+
+        // if (frag_module != nullptr) {
+        //     console_log_trace("fragment shader module is valid!!!");
+        // }
+        const size_t module_size = shader_modules.size();
+        // std::array<VkPipelineShaderStageCreateInfo, module_size> pipeline_shader_stages;
+        std::vector<VkPipelineShaderStageCreateInfo> pipeline_shader_stages(module_size);
+        uint32_t index = 0;
+        for(const shader_module_info& info : shader_modules) {
+            std::string stage = shader_stage_to_string(shader_stage_to_vk(info.stage));
+            console_log_fatal("Shader Stage in vk_shader_group per iteration = {}", stage);
+            pipeline_shader_stages[index] = {
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                .stage = shader_stage_to_vk(info.stage),
+                .module = info.shader_module,
+                .pName = "main"
+            };
+            index++;
         }
+        // for(size_t i = 0; i < pipeline_shader_stages.size(); i++) {
+        //     pipeline_shader_stages[i] = {
+        //         .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        //         .stage = shader_stage_to_vk(),
+        //         .module = vert_module,
+        //         .pName = "main"
+        //     };
+        // }
 
-        if (frag_module != nullptr) {
-            console_log_trace("fragment shader module is valid!!!");
-        }
+        // VkPipelineShaderStageCreateInfo vertex_pipeine_stage_ci = {
+        //     .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        //     .stage = VK_SHADER_STAGE_VERTEX_BIT,
+        //     .module = vert_module,
+        //     .pName = "main"
+        // };
 
-        VkPipelineShaderStageCreateInfo vertex_pipeine_stage_ci = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .stage = VK_SHADER_STAGE_VERTEX_BIT,
-            .module = vert_module,
-            .pName = "main"
-        };
+        // VkPipelineShaderStageCreateInfo fragment_pipeine_stage_ci = {
+        //     .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        //     .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+        //     .module = frag_module,
+        //     .pName = "main"
+        // };
 
-        VkPipelineShaderStageCreateInfo fragment_pipeine_stage_ci = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-            .module = frag_module,
-            .pName = "main"
-        };
+        // std::array<VkPipelineShaderStageCreateInfo, 2> shader_stages = {
+        //     vertex_pipeine_stage_ci, fragment_pipeine_stage_ci
+        // };
 
-        std::array<VkPipelineShaderStageCreateInfo, 2> shader_stages = {
-            vertex_pipeine_stage_ci, fragment_pipeine_stage_ci
-        };
-
-        const std::span<VkVertexInputBindingDescription> bind_vertex_attributes = p_shader.get_vertex_bind_attributes();
-        const std::span<VkVertexInputAttributeDescription> vertex_attributes = p_shader.get_vertex_attributes();
+        // const std::span<VkVertexInputBindingDescription> bind_vertex_attributes = p_shader.get_vertex_bind_attributes();
+        // const std::span<VkVertexInputAttributeDescription> vertex_attributes = p_shader.get_vertex_attributes();
+        const std::span<VkVertexInputBindingDescription> bind_vertex_attributes = p_shader_group.get_vertex_bind_attributes();
+        const std::span<VkVertexInputAttributeDescription> vertex_attributes = p_shader_group.get_vertex_attributes();
 
         VkPipelineVertexInputStateCreateInfo vertex_input_info = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -214,8 +276,8 @@ namespace vk {
             .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
             .pNext = nullptr,
             .flags = 0,
-            .stageCount = static_cast<uint32_t>(shader_stages.size()),
-            .pStages = shader_stages.data(),
+            .stageCount = static_cast<uint32_t>(pipeline_shader_stages.size()),
+            .pStages = pipeline_shader_stages.data(),
             .pVertexInputState = &vertex_input_info,
             .pInputAssemblyState = &inputAssembly,
             .pViewportState = &viewportState,
@@ -239,15 +301,6 @@ namespace vk {
           __FUNCTION__);
 
         console_log_info("vk_pipeline successfully initialized!!!!\n\n");
-
-        vk_context::submit_resource_free([this](){
-            console_log_fatal("vk_pipeline resource freed");
-            vkDestroyPipelineLayout(m_driver, m_pipeline_layout, nullptr);
-            vkDestroyPipeline(m_driver, m_pipeline, nullptr);
-
-            m_pipeline_layout = VK_NULL_HANDLE;
-            m_pipeline = VK_NULL_HANDLE;
-        });
     }
 
     void vk_pipeline::destroy() {

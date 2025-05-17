@@ -99,10 +99,17 @@ layout(location = 2) out vec2 fragTexCoords;
 
 layout (binding = 0) uniform UniformBuffer {
 	mat4 MVP;
+	float delta_time;
+	vec2 mouse_pos;
 } ubo;
 
 void main() {
-	gl_Position = ubo.MVP * vec4(inPosition, 1.0);
+	vec4 pos = ubo.MVP * vec4(ubo.mouse_pos.x, 0.5, ubo.mouse_pos.y, 1.0);
+
+	vec4 pototo = ubo.MVP * vec4(inPosition, 1.0);
+	pototo.xy *= length(pototo.xz - pos.xz);
+	//vec4(inPosition.x * 2 * abs(sin(ubo.delta_time)), inPosition.y * 2 * (sin(ubo.delta_time)), inPosition.z , 1.0);
+	gl_Position = pototo;
 	fragColor = vec4(inColor, 1.0);
 	fragTexCoords = inTexCoords;
 	fragNormals = inNormals;

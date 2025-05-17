@@ -1,5 +1,4 @@
 #include <GLFW/glfw3.h>
-#include <shader_compiler/shader_compiler.hpp>
 #include <vulkan/vulkan_core.h>
 #include <fmt/core.h>
 #include <vulkan-cpp/logger.hpp>
@@ -7,7 +6,6 @@
 #include <vulkan-cpp/vk_context.hpp>
 #include <vulkan-cpp/vk_driver.hpp>
 #include <vulkan-cpp/vk_swapchain.hpp>
-#include <vulkan-cpp/vk_shader.hpp>
 #include <vulkan-cpp/vk_pipeline.hpp>
 #include <vulkan-cpp/vk_vertex_buffer.hpp>
 #include <vulkan-cpp/vk_uniform_buffer.hpp>
@@ -63,8 +61,490 @@
 				- Bind descriptors (containing to its respective data)
 				- End shadow renderpass
 
-
 */
+
+static void ImGuiLayoutColorModification(){
+    auto& colors = ImGui::GetStyle().Colors; // @note Colors is ImVec4
+		
+		colors[ImGuiCol_WindowBg] = ImVec4{ 0.1f, 0.105f, 0.11f, 1.0f };
+
+		// Headers
+		colors[ImGuiCol_Header] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
+		colors[ImGuiCol_HeaderHovered] = ImVec4{ 0.3f, 0.305f, 0.31f, 1.0f };
+		colors[ImGuiCol_HeaderActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+		
+		
+		// Buttons
+		colors[ImGuiCol_Button] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
+		colors[ImGuiCol_ButtonHovered] = ImVec4{ 0.3f, 0.305f, 0.31f, 1.0f };
+		colors[ImGuiCol_ButtonActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+
+
+		// Frame BG
+		colors[ImGuiCol_FrameBg] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
+		colors[ImGuiCol_FrameBgHovered] = ImVec4{ 0.3f, 0.305f, 0.31f, 1.0f };
+		colors[ImGuiCol_FrameBgActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+
+
+		// Tabs
+		colors[ImGuiCol_Tab] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+		colors[ImGuiCol_TabHovered] = ImVec4{ 0.38f, 0.3805f, 0.381f, 1.0f };
+		colors[ImGuiCol_TabActive] = ImVec4{ 0.28f, 0.2805f, 0.281f, 1.0f };
+		colors[ImGuiCol_TabUnfocused] = ImVec4{ 0.15f, 0.1505f, 0.15f, 1.0f };
+		colors[ImGuiCol_TabUnfocusedActive] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
+		
+		// Titles
+		colors[ImGuiCol_TitleBg] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+		colors[ImGuiCol_TitleBgActive] = ImVec4{ 0.15f, 0.1505f, 0.15f, 1.0f };
+		colors[ImGuiCol_TitleBgCollapsed] = ImVec4{ 0.1f, 0.150f, 0.951f, 1.0f };
+}
+
+// void DockspaceWindow(GLFWwindow* window, int Width, int Height, Framebuffer& frame_buffer, const std::function<void()>& p_UpdateUI){
+
+//     bool dockspace_open = true;
+//     static bool opt_fullscreen_persistant = true;
+//     bool opt_fullscreen = opt_fullscreen_persistant;
+//     static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+
+//     ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+
+//     if(opt_fullscreen){
+//         ImGuiViewport* viewport = ImGui::GetMainViewport();
+//         ImGui::SetNextWindowPos(viewport->Pos);
+//         ImGui::SetNextWindowSize(viewport->Size);
+//         ImGui::SetNextWindowViewport(viewport->ID);
+//         window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+//         window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+//     }
+
+//     if(dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode){
+//         window_flags |= ImGuiWindowFlags_NoBackground;
+//     }
+
+//     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+//     ImGui::Begin("Dockspace Demo", &dockspace_open, window_flags);
+//     ImGui::PopStyleVar();
+
+//     if(opt_fullscreen){
+//         ImGui::PopStyleVar(2);
+//     }
+
+//     // Dockspace
+//     ImGuiIO& io = ImGui::GetIO();
+//     if(io.ConfigFlags & ImGuiConfigFlags_DockingEnable){
+//         ImGuiID dockspace_id = ImGui::GetID("MyDockspace");
+//         ImGui::DockSpace(dockspace_id, ImVec2(0.f, 0.f), dockspace_flags);
+//     }
+
+//     if(ImGui::BeginMenuBar()){
+//         if(ImGui::MenuItem("Exit")){
+//             glfwSetWindowShouldClose(window, true);
+//         }
+
+//         ImGui::EndMenuBar();
+//     }
+
+//     ImGui::End();
+// }
+
+namespace ImGui{
+    //! @note We need to see if this works
+    //! @note Because imgui implements this but the header file for some reason does not contain this implementation...
+    void PushMultiItemsWidths(int components, float w_full);
+};
+
+static void DrawVec3UI(const std::string& Tag, glm::vec3& Position, float reset_value = 0.f){
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::PushID(Tag.c_str());
+
+    float columnWidth = 100.0f;
+
+    ImGui::Columns(2);
+    ImGui::SetColumnWidth(0, columnWidth);
+    ImGui::Text("%s", Tag.c_str());
+    ImGui::NextColumn();
+
+    ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{0, 0});
+    
+    float lineHeight = ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2.0f;
+    ImVec2 buttonSize = {lineHeight + 3.0f, lineHeight};
+
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.8, 0.1f, 0.15f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3f, 0.8f, 0.3f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.2, 0.1f, 0.2f, 1.0f});
+
+    if(ImGui::Button("X", buttonSize)){
+        Position.x = reset_value;
+        // ImGui::End();
+    }
+
+    // ImGui::PopFont();
+    ImGui::PopStyleColor(3);
+
+    ImGui::SameLine();
+    ImGui::DragFloat("##X", &Position.x, 0.1f, 0.0f, 0.0f, "%.2f");
+    ImGui::PopItemWidth();
+    ImGui::SameLine();
+
+
+    // Setting up for the Y button
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.2, 0.7f, 0.2f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3f, 0.8f, 0.3f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.2, 0.1f, 0.2f, 1.0f});
+
+    if(ImGui::Button("Y", buttonSize)){
+        Position.y = reset_value;
+        // ImGui::End();
+    }
+
+    // ImGui::PopFont();
+    ImGui::PopStyleColor(3);
+    ImGui::SameLine();
+    ImGui::DragFloat("##Y", &Position.y, 0.1f, 0.0f, 0.0f, "%.2f");
+    ImGui::PopItemWidth();
+    ImGui::SameLine();
+
+    // Setting up for the Z button
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.1, 0.25f, 0.8f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.2f, 0.35f, 0.9f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.8, 0.1f, 0.15f, 1.0f});
+    if(ImGui::Button("Z", buttonSize)){
+        Position.z = reset_value;
+        // ImGui::End();
+    }
+
+    // ImGui::PopFont();
+    ImGui::PopStyleColor(3);
+    ImGui::SameLine();
+    ImGui::DragFloat("##Z", &Position.z, 0.1f, 0.0f, 0.0f, "%.2f");
+    ImGui::PopItemWidth();
+    
+    ImGui::PopStyleVar();
+
+    ImGui::Columns(1);
+
+    ImGui::PopID();
+
+
+
+}
+
+static void DrawFloatUI(const std::string& Tag, float& value, float reset_value=0.f){
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::PushID(Tag.c_str());
+
+    float columnWidth = 100.0f;
+
+    ImGui::Columns(2);
+    ImGui::SetColumnWidth(0, columnWidth);
+    ImGui::Text("%s", Tag.c_str());
+    ImGui::NextColumn();
+
+    ImGui::PushItemWidth(ImGui::CalcItemWidth());
+    // ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{0, 0});
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.8, 0.1f, 0.15f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3f, 0.8f, 0.3f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.2, 0.1f, 0.2f, 1.0f});
+
+    if(ImGui::Button("R_X")){
+        value = reset_value;
+        // ImGui::End();
+    }
+
+    // ImGui::PopFont();
+    ImGui::PopStyleColor(3);
+
+    ImGui::SameLine();
+    ImGui::DragFloat("##X", &value, 0.1f, 0.0f, 0.0f, "%.2f");
+    ImGui::PopItemWidth();
+    ImGui::SameLine();
+
+    ImGui::PopStyleVar();
+
+    ImGui::Columns(1);
+
+    ImGui::PopID();
+}
+
+
+static void DrawVec3UI(const std::string& Tag, glm::vec4& Position, float reset_value = 0.f){
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::PushID(Tag.c_str());
+
+    float columnWidth = 100.0f;
+
+    ImGui::Columns(2);
+    ImGui::SetColumnWidth(0, columnWidth);
+    ImGui::Text("%s", Tag.c_str());
+    ImGui::NextColumn();
+
+    ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{0, 0});
+    
+    float lineHeight = ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2.0f;
+    ImVec2 buttonSize = {lineHeight + 3.0f, lineHeight};
+
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.8, 0.1f, 0.15f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3f, 0.8f, 0.3f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.2, 0.1f, 0.2f, 1.0f});
+
+    if(ImGui::Button("X", buttonSize)){
+        Position.x = reset_value;
+        // ImGui::End();
+    }
+
+    // ImGui::PopFont();
+    ImGui::PopStyleColor(3);
+
+    ImGui::SameLine();
+    ImGui::DragFloat("##X", &Position.x, 0.1f, 0.0f, 0.0f, "%.2f");
+    ImGui::PopItemWidth();
+    ImGui::SameLine();
+
+
+    // Setting up for the Y button
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.2, 0.7f, 0.2f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3f, 0.8f, 0.3f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.2, 0.1f, 0.2f, 1.0f});
+
+    if(ImGui::Button("Y", buttonSize)){
+        Position.y = reset_value;
+        // ImGui::End();
+    }
+
+    // ImGui::PopFont();
+    ImGui::PopStyleColor(3);
+    ImGui::SameLine();
+    ImGui::DragFloat("##Y", &Position.y, 0.1f, 0.0f, 0.0f, "%.2f");
+    ImGui::PopItemWidth();
+    ImGui::SameLine();
+
+    // Setting up for the Z button
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.1, 0.25f, 0.8f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.2f, 0.35f, 0.9f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.8, 0.1f, 0.15f, 1.0f});
+    if(ImGui::Button("Z", buttonSize)){
+        Position.z = reset_value;
+        // ImGui::End();
+    }
+
+    // ImGui::PopFont();
+    ImGui::PopStyleColor(3);
+    ImGui::SameLine();
+    ImGui::DragFloat("##Z", &Position.z, 0.1f, 0.0f, 0.0f, "%.2f");
+    ImGui::PopItemWidth();
+    
+
+
+    // Setting up for the W button
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.1, 0.25f, 0.8f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.2f, 0.35f, 0.9f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.8, 0.1f, 0.15f, 1.0f});
+    if(ImGui::Button("W", buttonSize)){
+        Position.z = reset_value;
+        // ImGui::End();
+    }
+
+    // ImGui::PopFont();
+    ImGui::PopStyleColor(3);
+    ImGui::SameLine();
+    ImGui::DragFloat("##W", &Position.w, 0.1f, 0.0f, 0.0f, "%.2f");
+    ImGui::PopItemWidth();
+    
+
+    ImGui::PopStyleVar();
+
+    ImGui::Columns(1);
+
+    ImGui::PopID();
+
+
+
+}
+
+
+// Defines several possible options for camera movement. Used as abstraction
+// to stay away from window-system specific input methods
+enum CameraMovement { Forward, Backward, Left, Right, Up, Down };
+
+class camera {
+    // Default camera values
+    // const float yaw = -90.0f;
+    // const float PITCH = 0.0f;
+    // const float ZOOM = 45.0f;
+public:
+    // constructor with vectors
+    camera(int p_aspect_ratio, glm::vec3 position = glm::vec3(0.0f, 0.f, 0.0f),
+            glm::vec3 up = glm::vec3(0.0f, -1.0f, 0.0f),
+            float yaw = 45.0f,
+            float pitch = 0.0f)
+        : MovementSpeed(5.f)
+        , MouseSensitivity(0.1f)
+        , Zoom(45.0f)
+        , camera_mouse_sensitivity(0.1f) {
+        Position = position;
+        WorldUp = up;
+        EulerRotation = { yaw, pitch, 1.f };
+        AspectRatio = (float)p_aspect_ratio;
+        update_camera();
+    }
+
+    // returns the view matrix calculated using Euler Angles and the LookAt
+    // Matrix
+    [[nodiscard]] glm::mat4 get_view() const { return View; }
+    [[nodiscard]] glm::mat4 get_projection() const { return Projection; }
+
+    // processes input received from any keyboard-like input system. Accepts
+    // input parameter in the form of camera defined ENUM (to abstract it
+    // from windowing systems)
+    void process_keyboard(CameraMovement p_direction, float p_delta_time) {
+        float velocity = MovementSpeed * p_delta_time;
+
+        if (p_direction == CameraMovement::Forward)
+            Position += get_front() * velocity;
+        if (p_direction == CameraMovement::Backward)
+            Position -= get_front() * velocity;
+        if (p_direction == CameraMovement::Left)
+            Position -= Right * velocity;
+        if (p_direction == CameraMovement::Right)
+            Position += Right * velocity;
+
+        if (p_direction == CameraMovement::Up) {
+            Position += Up * velocity;
+        }
+
+        if (p_direction == CameraMovement::Down) {
+            Position -= Up * velocity;
+        }
+    }
+
+    // processes input received from a mouse input system. Expects the
+    // offset value in both the x and y direction.
+    void process_mouse_movement(float p_x,
+                                float p_y,
+                                bool p_constraint_pitch = true) {
+
+        p_x *= MouseSensitivity;
+        p_y *= MouseSensitivity;
+
+        EulerRotation.x += p_x;
+        EulerRotation.y += p_y;
+
+        // make sure that when pitch is out of bounds, screen doesn't get
+        // flipped
+        if (p_constraint_pitch) {
+            if (EulerRotation.y > 89.0f) {
+                EulerRotation.y = 89.0f;
+            }
+            if (EulerRotation.y < -89.0f) {
+                EulerRotation.y = -89.0f;
+            }
+        }
+
+        // update Front, Right and Up Vectors using the updated Euler angles
+        update_camera();
+    }
+
+    // processes input received from a mouse scroll-wheel event. Only
+    // requires input on the vertical wheel-axis
+    void process_mouse_scroll(float yoffset) {
+        Zoom -= (float)yoffset;
+
+        if (Zoom < 1.0f) {
+            Zoom = 1.0f;
+        }
+
+        if (Zoom > 45.0f) {
+            Zoom = 45.0f;
+        }
+    }
+
+    //! TODO: REMOVE THESE -- these should be user-defined
+    void set_movement_speed(float p_sensitivity) {
+        camera_movement_sensitivity = p_sensitivity;
+        MovementSpeed = camera_movement_sensitivity;
+    }
+
+    void set_mouse_speed(float p_sensitivity) {
+        camera_mouse_sensitivity = p_sensitivity;
+    }
+
+    [[nodiscard]] float camera_sensitivity() const {
+        return camera_mouse_sensitivity;
+    }
+
+private:
+    // calculates the front vector from the Camera's (updated) Euler Angles
+    void update_camera() {
+        // calculate the new Front vector
+        // glm::vec3 front;
+        // front.x = cos(glm::radians(EulerRotation.x)) *
+        // cos(glm::radians(EulerRotation.y)); front.y =
+        // sin(glm::radians(EulerRotation.y)); front.z =
+        // sin(glm::radians(EulerRotation.x)) *
+        // cos(glm::radians(EulerRotation.y)); Front =
+        // glm::normalize(front); also re-calculate the Right and Up vector
+        Right = glm::normalize(glm::cross(
+            get_front(),
+            WorldUp)); // normalize the vectors, because their length
+                        // gets closer to 0 the more you look up or
+                        // down which results in slower movement.
+        Left = glm::normalize(glm::cross(-get_front(), WorldUp));
+        Up = glm::normalize(glm::cross(Right, get_front()));
+        Down = glm::normalize(glm::cross(-Right, WorldUp));
+    }
+
+public:
+    void update_proj_view() {
+        //! TODO: Eventually we will have camera configurations that will
+        //! utilize this.
+        Projection =
+            glm::perspective(glm::radians(Zoom), AspectRatio, 0.1f, 10.f);
+        View = glm::lookAt(Position, Position + get_front(), Up);
+    }
+
+    [[nodiscard]] glm::vec3 get_front() const {
+        glm::vec3 front_values;
+        front_values.x = cos(glm::radians(EulerRotation.x)) *
+                            cos(glm::radians(EulerRotation.y));
+        front_values.y = sin(glm::radians(EulerRotation.y));
+        front_values.z = sin(glm::radians(EulerRotation.x)) *
+                            cos(glm::radians(EulerRotation.y));
+        return glm::normalize(front_values);
+    }
+
+public:
+    // camera Attributes
+    glm::vec3 Position;
+    // glm::vec3 Front;
+    glm::vec3 Up;
+    glm::vec3 Down;
+    glm::vec3 Right;
+    glm::vec3 Left;
+    glm::vec3 WorldUp;
+
+    glm::mat4 Projection;
+    glm::mat4 View;
+
+    float AspectRatio = 0.f;
+
+    // euler Angles
+    // {x: Yaw, y: Pitch, z: Roll}
+    glm::vec3 EulerRotation;
+    // camera options
+    float MovementSpeed{};
+    float MouseSensitivity{};
+    float Zoom = 45.0f;
+
+    // float camera_mouse_sensitivity = 0.1f;
+    float camera_mouse_sensitivity = 2.5f;
+    float camera_movement_sensitivity = 2.5f;
+
+    // toggling between cameras and checking if our current
+    bool IsMainCamera = false;
+};
 
 int
 main() {
@@ -80,8 +560,8 @@ main() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-    int width = 900;
-    int height = 600;
+    int width = 1600;
+    int height = 900;
 
     //! @note 0.) Initialize Vulkan
     // create_vulkan_instance();
@@ -105,29 +585,50 @@ main() {
     main_window_swapchain.set_background_color({ 0.f, 0.f, 0.f, 1.f });
     
     //vk::shader_watcher watcher("shaders");
-    vk::vk_shader test_shader = vk::vk_shader("shaders/shader.vert", "shaders/shader.frag");
-    // watcher.add_to_watchlist(test_shader, "shader.vert", "shader.frag");
-    
-	// vk::vk_shader test_shader = vk::vk_shader("shader_useful_directory/geometry/vert.spv","shader_useful_directory/geometry/frag.spv");
-    test_shader.set_vertex_attributes({
+    // vk::vk_shader test_shader = vk::vk_shader("shaders/shader.vert", "shaders/shader.frag");
+
+    vk::vk_shader_group group1 = {
+        {"shaders/shader.vert", vk::shader_stage2::Vertex},
+        {"shaders/shader.frag", vk::shader_stage2::Fragment},
+    };
+
+    // VkVertexInputAttributeDescription::location
+    // VkVertexInputAttributeDescription
+    group1.set_vertex_attributes({
 		{.location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(vk::vertex, Position)},
 		{.location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32A32_SFLOAT, .offset = offsetof(vk::vertex, Color)},
         {.location = 2, .binding = 0, .format = VK_FORMAT_R32G32B32A32_SFLOAT, .offset = offsetof(vk::vertex, Normals)},
 		{.location = 3, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(vk::vertex, Uv)}
     });
-
-	test_shader.set_vertex_bind_attributes({
+    group1.set_vertex_bind_attributes({
 		{.binding = 0, .stride = sizeof(vk::vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}
 	});
+    // vk::vk_shader vert_shader = vk_shader("shaders/shader.vert", shader_stage::Vertex);
+    // vk::vk_shader frag_shader = vk_shader("shaders/shader.frag", shader_stage::Fragment);
+
+
+    // watcher.add_to_watchlist(test_shader, "shader.vert", "shader.frag");
+    
+	// vk::vk_shader test_shader = vk::vk_shader("shader_useful_directory/geometry/vert.spv","shader_useful_directory/geometry/frag.spv");
+    // test_shader.set_vertex_attributes({
+	// 	{.location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(vk::vertex, Position)},
+	// 	{.location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32A32_SFLOAT, .offset = offsetof(vk::vertex, Color)},
+    //     {.location = 2, .binding = 0, .format = VK_FORMAT_R32G32B32A32_SFLOAT, .offset = offsetof(vk::vertex, Normals)},
+	// 	{.location = 3, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(vk::vertex, Uv)}
+    // });
+
+	// test_shader.set_vertex_bind_attributes({
+	// 	{.binding = 0, .stride = sizeof(vk::vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}
+	// });
 
     // adding descriptor sets
     // creating our vertex and index buffers
     // vk::mesh new_mesh = load("models/Ball OBJ.obj");
     // vk::mesh new_mesh = load("models/viking_room.obj");
     vk::mesh new_mesh = vk::mesh("models/viking_room.obj");
-    vk::vk_vertex_buffer test_vertex_buffer = new_mesh.get_vertex();
+    vk::mesh sphere_mesh = vk::mesh("models/sphere.obj");
 
-    uint32_t size_of_bytes = sizeof(camera_data_uniform);
+    uint32_t size_of_bytes = sizeof(combined_uniforms);
 
     // creating uniforms
     std::vector<vk::vk_uniform_buffer> test_uniforms;
@@ -153,7 +654,7 @@ main() {
     // - Used to specify what kinds of data will this descriptor set be containing
 	vk::vk_descriptor_set test_descriptor_sets = vk::vk_descriptor_set(image_count,
 	{
-		{.binding = 0, .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_VERTEX_BIT, .pImmutableSamplers  = nullptr},
+		{.binding = 0, .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT, .pImmutableSamplers  = nullptr},
 		{.binding = 1, .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT, .pImmutableSamplers  = nullptr}
 	}
 	);
@@ -173,7 +674,8 @@ main() {
     };
 
     // setting up vulkan pipeline
-    vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window_swapchain.get_renderpass(),test_shader, test_descriptor_sets.get_layout());
+    // vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window_swapchain.get_renderpass(),test_shader, test_descriptor_sets.get_layout());
+    vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window_swapchain.get_renderpass(), group1, test_descriptor_sets.get_layout());
 
     // Loading and using textures
     new_mesh.set_texture(0, "models/viking_room.png");
@@ -183,8 +685,18 @@ main() {
 
     // test_descriptor_sets.update_test_descriptors(test_uniforms, test_vertex_buffer, my_texture);
     test_descriptor_sets.update_mesh(test_uniforms, new_mesh);
+    // sphere_mesh.set_texture(1, "textures/bricks.jpg");
+    // test_descriptor_sets.update_mesh(test_uniforms, sphere_mesh);
 
-	glm::vec3 Position = {0.f, 0.f, 0.f};
+    /*
+        Vulkan Descriptor Set Extended API
+
+
+        vk_descriptor_set test_descriptor{
+            // Sets up the descriptor set pool sizes that gets utilized by the descriptor set layouts
+            { {UniformBuffer, .size = 1000}, {Image_Combined_Sampler, .size=1000}, }
+        };
+    */
 
 
 	vk::vk_imgui test_imgui = vk::vk_imgui();
@@ -203,16 +715,26 @@ main() {
         }
     });
 
+    camera test_camera(width/height);
+    test_camera.Position = {-3.69f, -0.73f, -3.84f};
+    static float g_delta_time = 0.f;
+    float previous_time = 0.f;
+    glm::vec3 position = {0.f, 0.f, 0.f};
+    glm::vec3 scale = {1.f, 1.f, 1.f};
+    glm::vec3 rotation = {1.50f, 8.70f, -0.10f};
+    glm::vec4 color{1.f};
+    // glm::highp_vec3 rotation = {1.f, 1.f, 1.f};
+
     while (main_window.is_active()) {
         float dt = (float)glfwGetTime();
+        g_delta_time = (dt - previous_time);
+        previous_time = dt;
         
         if (do_reload || glfwGetKey(main_window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS &&
             glfwGetKey(main_window, GLFW_KEY_R) == GLFW_PRESS) {
             console_log_info("Reloading shaders...");
-
-            test_shader.compile("shaders/shader.vert", "shaders/shader.frag");
-            test_pipeline.reload_from_shader(test_shader, rp, test_descriptor_sets.get_layout());
-
+            group1.compile();
+            test_pipeline.reload_from_shader_sources(group1, rp, test_descriptor_sets.get_layout());
             do_reload = false;
             
         }
@@ -227,15 +749,98 @@ main() {
         auto currentTime = std::chrono::high_resolution_clock::now();
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
+        if(glfwGetKey(main_window, GLFW_KEY_W) == GLFW_PRESS) {
+            test_camera.process_keyboard(CameraMovement::Forward, g_delta_time);
+        }
+
+        if(glfwGetKey(main_window, GLFW_KEY_S) == GLFW_PRESS) {
+            test_camera.process_keyboard(CameraMovement::Backward, g_delta_time);
+        }
+
+        if(glfwGetKey(main_window, GLFW_KEY_A) == GLFW_PRESS) {
+            test_camera.process_keyboard(CameraMovement::Left, g_delta_time);
+        }
+
+        if(glfwGetKey(main_window, GLFW_KEY_D) == GLFW_PRESS) {
+            test_camera.process_keyboard(CameraMovement::Right, g_delta_time);
+        }
+
+        if(glfwGetKey(main_window, GLFW_KEY_Q) == GLFW_PRESS) {
+            test_camera.process_keyboard(CameraMovement::Up, g_delta_time);
+        }
+
+        if(glfwGetKey(main_window, GLFW_KEY_E) == GLFW_PRESS) {
+            test_camera.process_keyboard(CameraMovement::Down, g_delta_time);
+        }
+
+        if(glfwGetKey(main_window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+            if(glfwGetMouseButton(main_window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+                double xPos, yPos;
+                glfwGetCursorPos(main_window, &xPos, &yPos);
+                float x_offset = (float)xPos;
+                float velocity = x_offset * g_delta_time;
+
+                test_camera.process_mouse_movement(-velocity, 0.f);
+            }
+
+            if(glfwGetMouseButton(main_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+                double xPos, yPos;
+                glfwGetCursorPos(main_window, &xPos, &yPos);
+                float y_offset = (float)yPos;
+                float velocity = y_offset * g_delta_time;
+                test_camera.process_mouse_movement(velocity, 0.f);
+            }
+
+            if(glfwGetMouseButton(main_window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS) {
+                double xPos, yPos;
+                glfwGetCursorPos(main_window, &xPos, &yPos);
+                float x_offset = (float)yPos;
+                float velocity = x_offset * g_delta_time;
+                test_camera.process_mouse_movement(0.f, velocity);
+            }
+
+            if(glfwGetKey(main_window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+                double xPos, yPos;
+                glfwGetCursorPos(main_window, &xPos, &yPos);
+                float y_offset = (float)yPos;
+                float velocity = y_offset * g_delta_time;
+                test_camera.process_mouse_movement(0.f, -velocity);
+            }
+        }
+
         camera_data_uniform ubo{};
-        ubo.Model = glm::translate(ubo.Model, glm::vec3(0.f, 0.f, 0.f));
-        ubo.Model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.Projection = glm::perspective(glm::radians(45.0f), width / (float) height, 0.1f, 10.0f);
+        // ubo.Model = glm::translate(ubo.Model, glm::vec3(0.f, 0.f, 0.f));
+        // ubo.Model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        // ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        // ubo.Projection = glm::perspective(glm::radians(45.0f), width / (float) height, 0.1f, 10.0f);
+        // Rotation = {1.50f, 8.70f, -0.10f}
+        ubo.Model = glm::translate(ubo.Model, position); // this is only for one object. There should be one model matrix per scene object (glm::mat4)
+        // ubo.Model = glm::rotate(ubo.Model, glm::radians(45.0f), rotation);
+        ubo.Model = glm::scale(ubo.Model, scale);
+        glm::mat4 rotation_matrix = glm::mat4(glm::quat(rotation));
+        ubo.Model *= rotation_matrix;
+        ubo.View = test_camera.get_view();
+        ubo.Projection = test_camera.get_projection();
         ubo.Projection[1][1] *= -1;
+        ubo.timer = dt;
 
         glm::mat4 MVP = ubo.Projection * ubo.View * ubo.Model;
-        test_uniforms[frame].update(&MVP, sizeof(MVP));
+        glm::vec2 mouse_pos;
+        double x, y;
+
+        glfwGetCursorPos(main_window, &x, &y);
+        mouse_pos.x = (float)x / 1600.0f;
+        mouse_pos.y = (float)y / 900.0f;
+        combined_uniforms uniforms = {
+            .m_model = MVP,
+            .delta_time = dt,
+            .mouse_pos = mouse_pos
+        };
+        test_uniforms[frame].update(&uniforms, sizeof(uniforms));
+        // test_uniforms[frame].update(&dt, sizeof(dt));
+        // test_uniforms[frame].update(&color, sizeof(color));
+
+        test_camera.update_proj_view();
 
 
         // Start recording
@@ -248,12 +853,19 @@ main() {
 
         // draw (after recording)
         new_mesh.draw(current);
+        // sphere_mesh.draw(current);
 
         ImGui::Begin("Viewport");
         ImGui::Button("Texture Image 0");
 
-        ImVec2 viewport_panel_size = ImGui::GetContentRegionAvail();
-        ImGui::Image(test_descriptor_sets.get(frame), ImVec2{100, 100});
+        DrawVec3UI("Position", position);
+        DrawVec3UI("Rotation", rotation);
+        DrawVec3UI("Cam Pos", test_camera.Position);
+        DrawVec3UI("Color", color);
+        // DrawVec3UI("")
+
+        // ImVec2 viewport_panel_size = ImGui::GetContentRegionAvail();
+        // ImGui::Image(test_descriptor_sets.get(frame), ImVec2{100, 100});
 
         // ImGui::Image()
         ImGui::End();

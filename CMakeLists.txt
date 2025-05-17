@@ -13,7 +13,7 @@ set(
     ${INCLUDE_DIR}/vk_swapchain.hpp
     ${INCLUDE_DIR}/vk_queue.hpp
 
-    ${INCLUDE_DIR}/vk_shader.hpp
+    ${INCLUDE_DIR}/vk_shader_group.hpp
     ${INCLUDE_DIR}/vk_pipeline.hpp
 
     ${INCLUDE_DIR}/vk_descriptor_set.hpp
@@ -44,7 +44,7 @@ set(
     ${SRC_DIR}/vk_swapchain.cpp
     ${SRC_DIR}/vk_queue.cpp
     
-    ${SRC_DIR}/vk_shader.cpp
+    ${SRC_DIR}/vk_shader_group.cpp
     ${SRC_DIR}/vk_pipeline.cpp
     ${SRC_DIR}/vk_descriptor_set.cpp
     ${SRC_DIR}/vk_uniform_buffer.cpp
