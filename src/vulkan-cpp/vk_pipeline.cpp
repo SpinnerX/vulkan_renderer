@@ -94,35 +94,7 @@ namespace vk {
             };
             index++;
         }
-        // for(size_t i = 0; i < pipeline_shader_stages.size(); i++) {
-        //     pipeline_shader_stages[i] = {
-        //         .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        //         .stage = shader_stage_to_vk(),
-        //         .module = vert_module,
-        //         .pName = "main"
-        //     };
-        // }
-
-        // VkPipelineShaderStageCreateInfo vertex_pipeine_stage_ci = {
-        //     .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        //     .stage = VK_SHADER_STAGE_VERTEX_BIT,
-        //     .module = vert_module,
-        //     .pName = "main"
-        // };
-
-        // VkPipelineShaderStageCreateInfo fragment_pipeine_stage_ci = {
-        //     .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        //     .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-        //     .module = frag_module,
-        //     .pName = "main"
-        // };
-
-        // std::array<VkPipelineShaderStageCreateInfo, 2> shader_stages = {
-        //     vertex_pipeine_stage_ci, fragment_pipeine_stage_ci
-        // };
-
-        // const std::span<VkVertexInputBindingDescription> bind_vertex_attributes = p_shader.get_vertex_bind_attributes();
-        // const std::span<VkVertexInputAttributeDescription> vertex_attributes = p_shader.get_vertex_attributes();
+        
         const std::span<VkVertexInputBindingDescription> bind_vertex_attributes = p_shader_group.get_vertex_bind_attributes();
         const std::span<VkVertexInputAttributeDescription> vertex_attributes = p_shader_group.get_vertex_attributes();
 
@@ -172,7 +144,6 @@ namespace vk {
               VK_POLYGON_MODE_FILL, // if set to true then geometry never passes
                                     // through rasterizer stage. This basically
                                     // disables output to frame_buffer
-            .lineWidth = 1.0f,      // represents thickness of lines
             .cullMode =
 			        VK_CULL_MODE_NONE, // determines what culling to use. Can also
                                      // be disabled, culls front-face, back-face
@@ -190,8 +161,8 @@ namespace vk {
         //! @note Multi-sampling
         VkPipelineMultisampleStateCreateInfo multisampling_ci = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-            .sampleShadingEnable = VK_FALSE,
             .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+            .sampleShadingEnable = VK_FALSE,
             // .minSampleShading = 1.0f,          // Optional
             // .pSampleMask = nullptr,            // Optional
             // .alphaToCoverageEnable = VK_FALSE, // Optional
