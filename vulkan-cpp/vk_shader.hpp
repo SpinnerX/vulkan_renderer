@@ -3,6 +3,7 @@
 #include <string>
 #include <span>
 #include <initializer_list>
+#include <filesystem>
 
 namespace vk {
     enum class shader_load_type { File = 0, Text = 1 };
@@ -18,22 +19,16 @@ namespace vk {
         VkVertexInputBindingDescription AttributeDescription;
     };
     */
-    
+
+    //! TODO: May want this to expand to also have options for geometry,
+    //! compute, and tesselation shaders
+    enum shader_stage : uint8_t { VERTEX = 0, FRAGMENT = 1 };
+
 
     class vk_shader {
     public:
         vk_shader(const std::string& p_vert_filename,
                   const std::string& p_frag_filename);
-        
-        vk_shader(VkShaderModule p_vert_module, 
-                  VkShaderModule p_frag_module);
-
-        // loads and creates a vk_shader directly from source
-        // it probably will throw an exception 
-        // if any part of loading fails..
-        static vk_shader from_source_files(const std::string& p_vert_filename,
-                                        const std::string& p_frag_filename);
-        // VkPipeline get_graphics_pipeline() { return m_graphics_pipeline; }
 
         VkShaderModule get_vertex_module() const {
             return m_vertex_shader_module;
@@ -42,6 +37,7 @@ namespace vk {
             return m_fragment_shader_module;
         }
 
+        //! @note Used to temporarily destroy the shader primitives when invalidation
         void destroy();
 
         void set_window_size(uint32_t p_width, uint32_t p_height) {
@@ -58,13 +54,9 @@ namespace vk {
         void compile(const std::string& p_vert_filename, const std::string& p_frag_filename);
 
     private:
-        void load_from_file(const std::string& p_filename);
-        void load_from_text(const std::string& p_filename);
-
-    private:
         vk_driver m_driver;
-        VkShaderModule m_vertex_shader_module = VK_NULL_HANDLE;
-        VkShaderModule m_fragment_shader_module = VK_NULL_HANDLE;
+        VkShaderModule m_vertex_shader_module = nullptr;
+        VkShaderModule m_fragment_shader_module = nullptr;
         VkExtent2D m_window_size{};
 
         std::vector<VkVertexInputAttributeDescription> m_attribute_descriptions;

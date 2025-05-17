@@ -1,5 +1,4 @@
 #include <GLFW/glfw3.h>
-#include <shader_compiler/shader_compiler.hpp>
 #include <vulkan/vulkan_core.h>
 #include <fmt/core.h>
 #include <vulkan-cpp/logger.hpp>
@@ -7,7 +6,6 @@
 #include <vulkan-cpp/vk_context.hpp>
 #include <vulkan-cpp/vk_driver.hpp>
 #include <vulkan-cpp/vk_swapchain.hpp>
-#include <vulkan-cpp/vk_shader.hpp>
 #include <vulkan-cpp/vk_pipeline.hpp>
 #include <vulkan-cpp/vk_vertex_buffer.hpp>
 #include <vulkan-cpp/vk_uniform_buffer.hpp>
@@ -24,6 +22,8 @@
 // #include <glm/glm.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/ext.hpp>
+#include <renderer/widgets.hpp>
+#include <renderer/camera.hpp>
 
 /*
 
@@ -63,64 +63,7 @@
 				- Bind descriptors (containing to its respective data)
 				- End shadow renderpass
 
-
 */
-
-class interactive_camera {
-public:
-    interactive_camera(float p_aspect_ratio) : m_aspect_ratio(p_aspect_ratio) {
-    }
-
-
-    void update() {
-        glm::mat4 cameraRotation = get_rotation();
-        m_position += glm::vec3(cameraRotation * glm::vec4(m_velocity * 0.5f, 0.f));
-    }
-
-
-    glm::mat4 get_rotation() {
-        glm::quat pitchRotation = glm::angleAxis(m_pitch, glm::vec3 { 1.f, 0.f, 0.f });
-        glm::quat yawRotation = glm::angleAxis(m_yaw, glm::vec3 { 0.f, -1.f, 0.f });
-
-        return glm::toMat4(yawRotation) * glm::toMat4(pitchRotation);
-    }
-
-    glm::mat4 get_view() {
-        glm::mat4 cameraTranslation = glm::translate(glm::mat4(1.f), m_position);
-        glm::mat4 cameraRotation = get_rotation();
-        return glm::inverse(cameraTranslation * cameraRotation);
-    }
-
-    glm::mat4 get_projection() {
-        m_projection = glm::mat4(1.f);
-        m_projection = glm::perspective(glm::radians(70.f), m_aspect_ratio, 1000.f, 0.1f);
-        // invert the Y direction on projection matrix so that we are more similar
-        // to opengl and gltf axis
-        m_projection[1][1] *= -1;
-        return m_projection;
-    }
-
-public:
-    glm::vec3 m_velocity = {0.f, 0.f, 0.f};
-private:
-    float m_aspect_ratio=0.f;
-    glm::mat4 m_view;
-    glm::mat4 m_projection;
-    glm::vec3 m_position = {0.f, 0.f, 0.f};
-    // vertical rotation
-    float m_pitch { 0.f };
-    // horizontal rotation
-    float m_yaw { 0.f };
-};
-
-vk::vk_shader test_shader_compilation() {
-    vk::vk_shader test_compiled_shader = vk::vk_shader::from_source_files("shaders/shader.vert", "shaders/shader.frag");
-
-    // setup vertex attributes or smth
-    // set some uniforms as well
-    
-    return test_compiled_shader;
-}
 
 int
 main() {
@@ -136,8 +79,8 @@ main() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-    int width = 900;
-    int height = 600;
+    int width = 1600;
+    int height = 900;
 
     //! @note 0.) Initialize Vulkan
     // create_vulkan_instance();
@@ -160,30 +103,31 @@ main() {
       vk::vk_swapchain(main_physical_device, main_driver, main_window);
     main_window_swapchain.set_background_color({ 0.f, 0.f, 0.f, 1.f });
     
-    //vk::shader_watcher watcher("shaders");
-    vk::vk_shader test_shader = vk::vk_shader("shaders/shader.vert", "shaders/shader.frag");
-    // watcher.add_to_watchlist(test_shader, "shader.vert", "shader.frag");
-    
-	// vk::vk_shader test_shader = vk::vk_shader("shader_useful_directory/geometry/vert.spv","shader_useful_directory/geometry/frag.spv");
-    test_shader.set_vertex_attributes({
+    vk::vk_shader_group group1 = {
+        {"shaders/shader.vert", vk::shader_stage2::Vertex},
+        {"shaders/shader.frag", vk::shader_stage2::Fragment},
+    };
+
+    group1.set_vertex_attributes({
 		{.location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(vk::vertex, Position)},
 		{.location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32A32_SFLOAT, .offset = offsetof(vk::vertex, Color)},
         {.location = 2, .binding = 0, .format = VK_FORMAT_R32G32B32A32_SFLOAT, .offset = offsetof(vk::vertex, Normals)},
 		{.location = 3, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(vk::vertex, Uv)}
     });
-
-	test_shader.set_vertex_bind_attributes({
+    group1.set_vertex_bind_attributes({
 		{.binding = 0, .stride = sizeof(vk::vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}
 	});
+
+    // watcher.add_to_watchlist(test_shader, "shader.vert", "shader.frag");
 
     // adding descriptor sets
     // creating our vertex and index buffers
     // vk::mesh new_mesh = load("models/Ball OBJ.obj");
     // vk::mesh new_mesh = load("models/viking_room.obj");
     vk::mesh new_mesh = vk::mesh("models/viking_room.obj");
-    vk::vk_vertex_buffer test_vertex_buffer = new_mesh.get_vertex();
+    vk::mesh sphere_mesh = vk::mesh("models/sphere.obj");
 
-    uint32_t size_of_bytes = sizeof(camera_data_uniform);
+    uint32_t size_of_bytes = sizeof(combined_uniforms);
 
     // creating uniforms
     std::vector<vk::vk_uniform_buffer> test_uniforms;
@@ -209,7 +153,7 @@ main() {
     // - Used to specify what kinds of data will this descriptor set be containing
 	vk::vk_descriptor_set test_descriptor_sets = vk::vk_descriptor_set(image_count,
 	{
-		{.binding = 0, .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_VERTEX_BIT, .pImmutableSamplers  = nullptr},
+		{.binding = 0, .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT, .pImmutableSamplers  = nullptr},
 		{.binding = 1, .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT, .pImmutableSamplers  = nullptr}
 	}
 	);
@@ -229,60 +173,29 @@ main() {
     };
 
     // setting up vulkan pipeline
-    vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window_swapchain.get_renderpass(),test_shader, test_descriptor_sets.get_layout());
+    vk::vk_pipeline test_pipeline = vk::vk_pipeline(main_window_swapchain.get_renderpass(), group1, test_descriptor_sets.get_layout());
 
     // Loading and using textures
-    // vk::vk_texture test_texture("models/viking_room.png");
     new_mesh.set_texture(0, "models/viking_room.png");
-    // vk::vk_texture test_texture("textures/bricks.jpg");
 
-    // updating descriptor sets
-    /*
-        API For writing uniforms to the shader
-            - mesh contains index and vertex buffers
-            - test_uniforms passes all of our camera data
-            - passing in our texture
-        update_descriptor_sets(mesh, test_uniforms)
 
-        This call should be updated to doing this:
-
-        Using vk_descriptor_set used as a single descriptor set rather then
-       supporting multiple. That is something that the vk_descriptor_set_manager
-       should do
-
-        descriptor_set[i].update_descriptor_set(uniform_buffer[i]);
-    */
-
-    // test_descriptor_sets.update_uniforms(test_uniforms);
-    // test_descriptor_sets.update_texture(&test_texture);
-    // test_descriptor_sets.update_vertex(test_vertex_buffer);
     vk::vk_texture my_texture = new_mesh.get_texture(0);
 
-    test_descriptor_sets.update_test_descriptors(test_uniforms, test_vertex_buffer, my_texture);
-	// test_descriptor_sets.update_test_descriptors(test_uniforms, test_vertex_buffer, new_mesh.get_textures());
+    // test_descriptor_sets.update_test_descriptors(test_uniforms, test_vertex_buffer, my_texture);
+    test_descriptor_sets.update_mesh(test_uniforms, new_mesh);
 
     /*
+        Vulkan Descriptor Set Extended API
 
-	// Essentially there are going to be vk_descriptor_set that is to be defined as a single descriptor set
-	// Then set the descriptor set as probably a shader source group
-    vk::vk_descriptor_set_manager desc_manager(image_size); // img_size = 3
-    std::vector<vk::vk_descriptor_set> descriptor_sets(3);
 
-      for(size_t i = 0; i < image_size; i++) {
-        // desc_manager.write(i, uniform);
-        descriptor_sets[i].write_uniform(uniform);
-        descriptor_sets[i].write_texture(&test_texture);
-
-      }
-
+        vk_descriptor_set test_descriptor{
+            // Sets up the descriptor set pool sizes that gets utilized by the descriptor set layouts
+            { {UniformBuffer, .size = 1000}, {Image_Combined_Sampler, .size=1000}, }
+        };
     */
-	glm::vec3 Position = {0.f, 0.f, 0.f};
 
 
-	// perspective_camera camera = perspective_camera((float)width / height);
-    // interactive_camera camera = interactive_camera(((width) / height));
-
-    vk::vk_imgui test_imgui = vk::vk_imgui();
+	vk::vk_imgui test_imgui = vk::vk_imgui();
     VkRenderPass rp = main_window_swapchain.get_renderpass();
     test_imgui.initialize(initiating_vulkan, main_physical_device, rp, main_window_swapchain.image_size(), main_window_swapchain.data().SurfaceFormat);
 
@@ -298,35 +211,28 @@ main() {
         }
     });
 
+    camera test_camera(width/height);
+    test_camera.Position = {-3.69f, -0.73f, -3.84f};
+    static float g_delta_time = 0.f;
+    float previous_time = 0.f;
+    glm::vec3 position = {0.f, 0.f, 0.f};
+    glm::vec3 scale = {1.f, 1.f, 1.f};
+    glm::vec3 rotation = {1.50f, 8.70f, -0.10f};
+    glm::vec4 color{1.f};
+
     while (main_window.is_active()) {
         float dt = (float)glfwGetTime();
+        g_delta_time = (dt - previous_time);
+        previous_time = dt;
         
         if (do_reload || glfwGetKey(main_window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS &&
             glfwGetKey(main_window, GLFW_KEY_R) == GLFW_PRESS) {
             console_log_info("Reloading shaders...");
-
-            test_shader.compile("shaders/shader.vert", "shaders/shader.frag");
-            test_pipeline.reload_from_shader(test_shader, rp, test_descriptor_sets.get_layout());
-
+            group1.compile();
+            test_pipeline.reload_from_shader_sources(group1, rp, test_descriptor_sets.get_layout());
             do_reload = false;
             
         }
-
-        // if(glfwGetKey(main_window, GLFW_KEY_W) == GLFW_PRESS) { // forward
-        //     camera.m_velocity.z = -1;
-
-        // }
-        // if(glfwGetKey(main_window, GLFW_KEY_A) == GLFW_PRESS) { // left
-        //     camera.m_velocity.x = 1;
-        // }
-        // if(glfwGetKey(main_window, GLFW_KEY_S) == GLFW_PRESS) { // back
-        //     camera.m_velocity.z = 1;
-        // }
-        // if(glfwGetKey(main_window, GLFW_KEY_D) == GLFW_PRESS) { // right
-        //     camera.m_velocity.x = 1;
-        // }
-
-        // camera.update();
 
         // acquire next image ( then record)
         uint32_t frame = main_window_swapchain.read_acquired_frame();
@@ -338,15 +244,98 @@ main() {
         auto currentTime = std::chrono::high_resolution_clock::now();
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
+        if(glfwGetKey(main_window, GLFW_KEY_W) == GLFW_PRESS) {
+            test_camera.process_keyboard(CameraMovement::Forward, g_delta_time);
+        }
+
+        if(glfwGetKey(main_window, GLFW_KEY_S) == GLFW_PRESS) {
+            test_camera.process_keyboard(CameraMovement::Backward, g_delta_time);
+        }
+
+        if(glfwGetKey(main_window, GLFW_KEY_A) == GLFW_PRESS) {
+            test_camera.process_keyboard(CameraMovement::Left, g_delta_time);
+        }
+
+        if(glfwGetKey(main_window, GLFW_KEY_D) == GLFW_PRESS) {
+            test_camera.process_keyboard(CameraMovement::Right, g_delta_time);
+        }
+
+        if(glfwGetKey(main_window, GLFW_KEY_Q) == GLFW_PRESS) {
+            test_camera.process_keyboard(CameraMovement::Up, g_delta_time);
+        }
+
+        if(glfwGetKey(main_window, GLFW_KEY_E) == GLFW_PRESS) {
+            test_camera.process_keyboard(CameraMovement::Down, g_delta_time);
+        }
+
+        if(glfwGetKey(main_window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+            if(glfwGetMouseButton(main_window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+                double xPos, yPos;
+                glfwGetCursorPos(main_window, &xPos, &yPos);
+                float x_offset = (float)xPos;
+                float velocity = x_offset * g_delta_time;
+
+                test_camera.process_mouse_movement(-velocity, 0.f);
+            }
+
+            if(glfwGetMouseButton(main_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+                double xPos, yPos;
+                glfwGetCursorPos(main_window, &xPos, &yPos);
+                float y_offset = (float)yPos;
+                float velocity = y_offset * g_delta_time;
+                test_camera.process_mouse_movement(velocity, 0.f);
+            }
+
+            if(glfwGetMouseButton(main_window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS) {
+                double xPos, yPos;
+                glfwGetCursorPos(main_window, &xPos, &yPos);
+                float x_offset = (float)yPos;
+                float velocity = x_offset * g_delta_time;
+                test_camera.process_mouse_movement(0.f, velocity);
+            }
+
+            if(glfwGetKey(main_window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+                double xPos, yPos;
+                glfwGetCursorPos(main_window, &xPos, &yPos);
+                float y_offset = (float)yPos;
+                float velocity = y_offset * g_delta_time;
+                test_camera.process_mouse_movement(0.f, -velocity);
+            }
+        }
+
         camera_data_uniform ubo{};
-        ubo.Model = glm::translate(ubo.Model, glm::vec3(0.f, 0.f, 0.f));
-        ubo.Model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.Projection = glm::perspective(glm::radians(45.0f), width / (float) height, 0.1f, 10.0f);
+        // ubo.Model = glm::translate(ubo.Model, glm::vec3(0.f, 0.f, 0.f));
+        // ubo.Model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        // ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        // ubo.Projection = glm::perspective(glm::radians(45.0f), width / (float) height, 0.1f, 10.0f);
+        // Rotation = {1.50f, 8.70f, -0.10f}
+        ubo.Model = glm::translate(ubo.Model, position); // this is only for one object. There should be one model matrix per scene object (glm::mat4)
+        // ubo.Model = glm::rotate(ubo.Model, glm::radians(45.0f), rotation);
+        ubo.Model = glm::scale(ubo.Model, scale);
+        glm::mat4 rotation_matrix = glm::mat4(glm::quat(rotation));
+        ubo.Model *= rotation_matrix;
+        ubo.View = test_camera.get_view();
+        ubo.Projection = test_camera.get_projection();
         ubo.Projection[1][1] *= -1;
+        ubo.timer = dt;
 
         glm::mat4 MVP = ubo.Projection * ubo.View * ubo.Model;
-        test_uniforms[frame].update(&MVP, sizeof(MVP));
+        glm::vec2 mouse_pos;
+        double x, y;
+
+        glfwGetCursorPos(main_window, &x, &y);
+        mouse_pos.x = (float)x / 1600.0f;
+        mouse_pos.y = (float)y / 900.0f;
+        combined_uniforms uniforms = {
+            .m_model = MVP,
+            .delta_time = dt,
+            .mouse_pos = mouse_pos
+        };
+        test_uniforms[frame].update(&uniforms, sizeof(uniforms));
+        // test_uniforms[frame].update(&dt, sizeof(dt));
+        // test_uniforms[frame].update(&color, sizeof(color));
+
+        test_camera.update_proj_view();
 
 
         // Start recording
@@ -359,9 +348,16 @@ main() {
 
         // draw (after recording)
         new_mesh.draw(current);
+        // sphere_mesh.draw(current);
 
         ImGui::Begin("Viewport");
         ImGui::Button("Texture Image 0");
+
+        DrawVec3UI("Position", position);
+        DrawVec3UI("Rotation", rotation);
+        DrawVec3UI("Cam Pos", test_camera.Position);
+        DrawVec3UI("Color", color);
+        // DrawVec3UI("")
 
         // ImVec2 viewport_panel_size = ImGui::GetContentRegionAvail();
         // ImGui::Image(test_descriptor_sets.get(frame), ImVec2{100, 100});
@@ -399,12 +395,11 @@ main() {
         test_uniforms[i].destroy();
     }
 
-    test_descriptor_sets.destroy();
-    // test_index_buffer.destroy();
-    // test_vertex_buffer.destroy();
-    new_mesh.destroy();
-    test_pipeline.destroy();
-    test_shader.destroy();
-    main_window_swapchain.destroy();
-    main_driver.destroy();
+    // test_descriptor_sets.destroy();
+    // new_mesh.destroy();
+    // test_pipeline.destroy();
+    // test_shader.destroy();
+    // main_window_swapchain.destroy();
+    // main_driver.destroy();
+    initiating_vulkan.cleanup();
 }

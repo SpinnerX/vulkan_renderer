@@ -2,6 +2,7 @@
 #include <vulkan-cpp/helper_functions.hpp>
 #include <vulkan-cpp/vk_driver.hpp>
 #include <vulkan-cpp/logger.hpp>
+#include <vulkan-cpp/vk_context.hpp>
 
 namespace vk {
     vk_index_buffer::vk_index_buffer(const std::span<uint32_t>& p_indices) {
@@ -24,6 +25,11 @@ namespace vk {
         write(m_index_buffer_data, p_indices);
 
         console_log_info("vk_index_buffer end initialization successfully!!!!");
+
+        // vk_context::submit_resource_free([this](){
+        //     vkFreeMemory(m_driver, m_index_buffer_data.DeviceMemory, nullptr);
+        //     vkDestroyBuffer(m_driver, m_index_buffer_data.BufferHandler, nullptr);
+        // });
     }
 
     void vk_index_buffer::bind(const VkCommandBuffer& p_command_buffer) {

@@ -1,6 +1,8 @@
 #pragma once
 #include <string>
 #include <vulkan/vulkan.hpp>
+#include <functional>
+#include <deque>
 
 namespace vk {
     class vk_context {
@@ -14,10 +16,16 @@ namespace vk {
 
         static VkInstance current_context() { return *s_instance; }
 
+        static void submit_resource_free(const std::function<void()>& p_callable);
+
         void cleanup();
 
     private:
+        void resource_free(const std::function<void()>& p_callable);
+
+    private:
         static vk_context* s_instance;
+        std::deque<std::function<void()>> m_resource_to_free;
         VkInstance m_instance = nullptr;
     };
 };

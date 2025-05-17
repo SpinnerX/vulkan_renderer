@@ -6,6 +6,8 @@
 #include <fmt/ranges.h>
 #include <shaderc/shaderc.hpp>
 #include <shader_compiler/shader_compiler.hpp>
+#include <vulkan-cpp/vk_context.hpp>
+
 
 namespace vk {
 
@@ -45,82 +47,8 @@ namespace vk {
         "    outColor = vec4(col1 * float(stuff.x) + col2 * float(1 - stuff.y), 1.0);\n"
         "};\n";
 
-    static VkShaderModule load_shader_module(const VkDevice& p_driver, const std::span<uint32_t>& p_binary_blobs);
-
-    static std::vector<char> read_file(const std::string& p_filename);
-
-    static std::vector<uint32_t> load_binary_from_source(const std::string& p_shader_src, const std::string& p_shader_filename, shader_stage stage) {
-        
-        shaderc::CompileOptions options;
-        options.SetTargetEnvironment(shaderc_target_env_vulkan,  shaderc_env_version_vulkan_1_3);
-        options.SetWarningsAsErrors();
-
-        shaderc_shader_kind shader_type;
-        if (stage == shader_stage::VERTEX) {
-            shader_type = shaderc_glsl_vertex_shader;
-        } else {
-            shader_type = shaderc_glsl_fragment_shader;
-        }
-        
-
-        shaderc::Compiler compiler;
-        shaderc::CompilationResult result = compiler.CompileGlslToSpv(
-            p_shader_src.data(), 
-            p_shader_src.size(), 
-            shader_type, 
-            p_shader_filename.c_str(), 
-            "main", 
-            options);
-        
-        if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-            console_log_error("Shader compilation for {} failed with reason {}.\nReason: {}", p_shader_filename, (int)result.GetCompilationStatus(), result.GetErrorMessage());
-            return {};
-        }
-
-        console_log_info("Shader compilation successful for {}!", p_shader_filename);
-
-        std::vector<uint32_t> binaries;
-
-       for (auto thing : result) {
-            binaries.push_back(thing);
-       }
-        
-
-        console_log_info("If your seeing this then i did not segfault");
-        return binaries;
-    }
-
-    
-    static std::vector<uint32_t> load_binary_from_file(const std::string& p_shader_filename, shader_stage stage) {
-        std::vector<char> source_text = read_file(p_shader_filename);
-        std::string source_string(source_text.begin(), source_text.end());
-        return load_binary_from_source(source_string, p_shader_filename, stage);
-    }
-    
-
-    vk_shader vk_shader::from_source_files(const std::string &p_vert_filename, const std::string &p_frag_filename) {
-        std::vector<uint32_t> vert_binaries = load_binary_from_file(p_vert_filename, shader_stage::VERTEX);
-        std::vector<uint32_t> frag_binaries = load_binary_from_file(p_frag_filename, shader_stage::FRAGMENT);
-
-        if (vert_binaries.size() == 0 || frag_binaries.size() == 0) {
-            console_log_error("binary lengths invalid (vert: {} frag: {})",
-                              vert_binaries.size(),
-                              frag_binaries.size());
-            // uh I can't return error oops
-            // longjmp(off_a_bridge);
-        }
-
-        vk_driver driver = vk_driver::driver_context();
-        VkShaderModule vert_module = load_shader_module(driver, vert_binaries);
-        VkShaderModule frag_module = load_shader_module(driver, frag_binaries);
-
-        vk_shader new_shader(vert_module, frag_module);
-
-        return new_shader;
-    }
-
-
-    static std::vector<char> read_file(const std::string& p_filename) {
+    //! @note Reading the raw file and returning the source code read from the shader source file
+    static std::string read_file(const std::string& p_filename) {
         std::ifstream ins(p_filename, std::ios::ate | std::ios::binary);
 
         if (!ins.is_open()) {
@@ -128,54 +56,145 @@ namespace vk {
             return { 'a' };
         }
 
-        size_t fileSize = (size_t)ins.tellg();
-        std::vector<char> output(fileSize);
+        size_t file_size = (size_t)ins.tellg();
+        // std::vector<char> output(fileSize);
+        std::string output;
+        output.resize(file_size);
+
         ins.seekg(0);
-        ins.read(output.data(), fileSize);
+        ins.read(output.data(), file_size);
 
         console_log_trace("output.size() = {}", output.size());
 
         return output;
     }
 
-    static VkShaderModule load_shader_module(const VkDevice& p_driver,
-                                             const std::span<uint32_t>& p_binary_blobs) {
+    static VkShaderModule create_shader_module(const std::span<uint32_t>& p_binary_blobs) {
+        VkDevice driver = vk_driver::driver_context();
         VkShaderModuleCreateInfo module_ci = {
             .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-            .codeSize = p_binary_blobs.size() * sizeof(uint32_t),
+            .codeSize = p_binary_blobs.size_bytes(),
             .pCode = p_binary_blobs.data()
         };
 
         VkShaderModule shader_module;
         vk_check(
-          vkCreateShaderModule(p_driver, &module_ci, nullptr, &shader_module),
+          vkCreateShaderModule(driver, &module_ci, nullptr, &shader_module),
           "vkCreateShaderModule",
           __FUNCTION__);
 
         return shader_module;
     }
-    
-    static VkShaderModule load_shader_module(const VkDevice& p_driver,
-                                             const std::span<char>& p_code) {
-        return VK_NULL_HANDLE;
+
+
+
+    /**
+     * @param p_shader_src is the actual source of the shader source code in raw text
+     * @param p_shader_filename is the filename for ShaderC to compile glsl to spv
+     * @note Loads binary blob from the actual shader source, which just returns the binary blob
+    */
+    static std::vector<uint32_t> load_binary_from_source(const std::string& p_shader_filename, const shader_stage& p_stage) {
+        std::string source_raw_text = read_file(p_shader_filename);
+        
+        shaderc::CompileOptions options;
+        options.SetTargetEnvironment(shaderc_target_env_vulkan,  shaderc_env_version_vulkan_1_3);
+        options.SetWarningsAsErrors();
+
+        shaderc_shader_kind shader_type;
+        switch (p_stage){
+        case shader_stage::VERTEX:
+            shader_type = shaderc_glsl_vertex_shader;
+            break;
+        case shader_stage::FRAGMENT:
+            shader_type = shaderc_glsl_fragment_shader;
+            break;
+        default:
+            break;
+        }
+
+        shaderc::Compiler compiler;
+        std::vector<uint32_t> binaries;
+
+        //! @note Checks if the sources that are being passed are either hardcoded sources in text or passed in as a file!
+        if(std::filesystem::is_regular_file(p_shader_filename)) {
+            shaderc::CompilationResult result = compiler.CompileGlslToSpv(
+                source_raw_text.data(), 
+                source_raw_text.size(), 
+                shader_type, 
+                p_shader_filename.c_str(),
+                "main", 
+                options);
+            
+            //! @note TODO: Should have a better approach at checking if shaderc failed to compile shaders
+            if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
+                console_log_error("Shader compilation for {} failed with reason {}.\nReason: {}", p_shader_filename, (int)result.GetCompilationStatus(), result.GetErrorMessage());
+                return {};
+            }
+
+            for (uint32_t thing : result) {
+                binaries.push_back(thing);
+            }
+        }
+        else {
+            shaderc::CompilationResult result = compiler.CompileGlslToSpv(
+                p_shader_filename.data(), 
+                p_shader_filename.size(), 
+                shader_type, 
+                "builtin",
+                "main", 
+                options);
+            
+            //! @note TODO: Should have a better approach at checking if shaderc failed to compile shaders
+            if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
+                console_log_error("Shader compilation for {} failed with reason {}.\nReason: {}", p_shader_filename, (int)result.GetCompilationStatus(), result.GetErrorMessage());
+                return {};
+            }
+
+            for (uint32_t thing : result) {
+                binaries.push_back(thing);
+            }
+        }
+
+        console_log_info("Shader compilation successful for {}!", p_shader_filename);
+
+        return binaries;
     }
 
-    vk_shader::vk_shader(VkShaderModule p_vert_module, VkShaderModule p_frag_module) : 
-        m_vertex_shader_module(p_vert_module),
-        m_fragment_shader_module(p_frag_module),
-        m_driver(vk_driver::driver_context())
-    {}
+    /**
+     * @param p_shader_filename is the file of the shader source
+     * @param stage is the specific shader stage this shader file is in, the pipeline
+     * @note Loads shader file and returns the binary blob from reading the direct source using load_binary_from_source
+    */
+    static std::vector<uint32_t> load_binary_from_file(const std::string& p_shader_filename, shader_stage stage) {
+        return load_binary_from_source(p_shader_filename, stage);
+    }
+
+
+    // vk_shader::vk_shader(VkShaderModule p_vert_module, VkShaderModule p_frag_module) : 
+    //     m_vertex_shader_module(p_vert_module),
+    //     m_fragment_shader_module(p_frag_module),
+    //     m_driver(vk_driver::driver_context()) {
+        
+    //     // Loading Modules
+    // }
 
     vk_shader::vk_shader(const std::string& p_vert_filename,
                          const std::string& p_frag_filename) {
+        
         console_log_info("vk_shader begin loaded shader modules!!!");
         m_driver = vk_driver::driver_context();
 
-        if (m_driver != nullptr) {
-            console_log_trace("m_driver is in fact valid!!!!");
-        }
-
         compile(p_vert_filename, p_frag_filename);
+
+
+        vk_context::submit_resource_free([this](){
+            console_log_fatal("vk_shader resource freed");
+            vkDestroyShaderModule(m_driver, m_vertex_shader_module, nullptr);
+            vkDestroyShaderModule(m_driver, m_fragment_shader_module, nullptr);
+
+            m_vertex_shader_module = nullptr;
+            m_fragment_shader_module = nullptr;
+        });
 
     }
 
@@ -184,23 +203,35 @@ namespace vk {
         std::vector<uint32_t> vertex_shader = load_binary_from_file(p_vert_filename, vk::shader_stage::VERTEX);
         std::vector<uint32_t> fragment_shader = load_binary_from_file(p_frag_filename, vk::shader_stage::FRAGMENT);
 
+        if(!std::filesystem::is_regular_file(g_hardcoded_frag)) {
+            console_log_fatal("g_hardcoded_frag was not a file!!!");
+        }
+
+        if(std::filesystem::is_regular_file(p_vert_filename)) {
+            console_log_info("{} is a regular file!!", p_vert_filename);
+            console_log_info("{} is a regular file!!", p_frag_filename);
+        }
+        else {
+            console_log_fatal("{} is a NOT regular file!!", p_vert_filename);
+            console_log_fatal("{} is a NOT regular file!!", p_frag_filename);
+        }
+
         if (vertex_shader.size() == 0 || fragment_shader.size() == 0) {
             console_log_error("Failed to compile shader!!! Not updating vk_shader!!!!!!!!!!!!");
             
-            vertex_shader = load_binary_from_source(g_hardcoded_vert, "builtin", vk::shader_stage::VERTEX);
-            fragment_shader = load_binary_from_source(g_hardcoded_frag, "builtin", vk::shader_stage::FRAGMENT);
+            vertex_shader = load_binary_from_source(g_hardcoded_vert, vk::shader_stage::VERTEX);
+            fragment_shader = load_binary_from_source(g_hardcoded_frag, vk::shader_stage::FRAGMENT);
         }
 
-        if (m_vertex_shader_module != VK_NULL_HANDLE &&
-            m_fragment_shader_module != VK_NULL_HANDLE) {
+        if (m_vertex_shader_module != nullptr &&
+            m_fragment_shader_module != nullptr) {
             destroy();
         }
 
 
         // Then we setup the shader module
-        m_vertex_shader_module = load_shader_module(m_driver, vertex_shader);
-        m_fragment_shader_module =
-          load_shader_module(m_driver, fragment_shader);
+        m_vertex_shader_module = create_shader_module(vertex_shader);
+        m_fragment_shader_module = create_shader_module(fragment_shader);
         
         console_log_info("compiled the shader successfully");
     }
@@ -209,14 +240,9 @@ namespace vk {
         vkDestroyShaderModule(m_driver, m_vertex_shader_module, nullptr);
         vkDestroyShaderModule(m_driver, m_fragment_shader_module, nullptr);
 
-        m_vertex_shader_module = VK_NULL_HANDLE;
-        m_fragment_shader_module = VK_NULL_HANDLE;
+        m_vertex_shader_module = nullptr;
+        m_fragment_shader_module = nullptr;
     }
-
-    void vk_shader::load_from_file(const std::string& p_filename) {}
-
-    void vk_shader::load_from_text(const std::string& p_filename) {}
-
 
     void vk_shader::set_vertex_bind_attributes(const std::initializer_list<VkVertexInputBindingDescription>& p_attribute_descriptions) {
         m_binding_attribute_descriptions = std::vector<VkVertexInputBindingDescription>(p_attribute_descriptions);

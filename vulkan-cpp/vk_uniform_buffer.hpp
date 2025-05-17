@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <vulkan-cpp/vk_buffer.hpp>
-#include <vector>
+#include <span>
 
 namespace vk {
     class vk_uniform_buffer {
@@ -18,9 +18,6 @@ namespace vk {
         operator VkBuffer() const {
             return m_uniform_buffer_data.BufferHandler;
         }
-
-        // std::vector<vk_buffer> data() const { return
-        // m_uniform_buffers; }
 
         void destroy();
 

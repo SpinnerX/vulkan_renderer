@@ -42,10 +42,6 @@ namespace vk {
             // to descriptor sets (via VkDescriptorImageInfo)
     };
 
-    //! TODO: May want this to expand to also have options for geometry,
-    //! compute, and tesselation shaders
-    enum shader_stage : uint8_t { VERTEX = 0, FRAGMENT = 1 };
-
     /*
 
         For now lets just supply write descriptor sets as a
@@ -78,18 +74,15 @@ namespace vk {
         vk_descriptor_set_properties(const std::string& p_name,
                                      const uint32_t p_layout_binding,
                                      const descriptor_type& p_type,
-                                     const shader_stage& p_stage,
                                      bool p_has_samplers = false)
           : Name(p_name)
           , Binding(p_layout_binding)
           , Type(p_type)
-          , Stage(p_stage)
           , HasSamplers(p_has_samplers) {}
 
         std::string Name = "Undefined";
         uint32_t Binding = -1;
         descriptor_type Type;
-        shader_stage Stage;
         bool HasSamplers = false;
     };
 
@@ -119,9 +112,10 @@ namespace vk {
     class vk_descriptor_set {
     public:
         vk_descriptor_set() = default;
-        vk_descriptor_set(
-          uint32_t p_descriptor_count,
-          const std::initializer_list<VkDescriptorSetLayoutBinding>& p_layouts);
+        vk_descriptor_set(uint32_t p_descriptor_count, const std::initializer_list<VkDescriptorSetLayoutBinding>& p_layouts);
+
+        //! @note Used this to specify uniforms and can better extend this for better capabiolities on what per descriptor set should contain in terms of uniforms
+        vk_descriptor_set(const std::span<VkDescriptorSetLayoutBinding>& p_layouts, const std::span<vk_uniform_buffer>& p_uniforms);
 
         //! @note Does cleanup for descriptor set
         void destroy();
@@ -130,19 +124,8 @@ namespace vk {
                   uint32_t p_frame_index,
                   const VkPipelineLayout& p_pipeline_layout);
 
-        // Updating specific groups of descriptor sets
-        //! @note Reason these are getting called for every descriptor set
-        //! @note Its because they need to be applied when doing camera
-        //! transforms, etc.
-        void update_uniforms(
-          const std::span<vk_uniform_buffer>& p_uniform_buffer);
-        void update_vertex(const vk_vertex_buffer& p_vertex_buffer);
-        void update_texture(const vk_texture* p_texture);
-
-        // void update_test_descriptors(const std::initializer_list<VkWriteDescriptorSet>& p_write_descriptors);
-        void update_test_descriptors(const std::span<vk_uniform_buffer>& p_uniforms, vk_vertex_buffer& p_vertex, vk_texture& p_texture);
-        void update_test_descriptors(const std::span<vk_uniform_buffer>& p_uniforms, vk_vertex_buffer& p_vertex, const std::span<vk_texture>& p_textures);
-
+        void update_mesh(const std::span<vk_uniform_buffer>& p_uniforms, const mesh& p_mesh);
+        
         VkDescriptorPool get_pool() const { return m_descriptor_pool; }
         VkDescriptorSetLayout get_layout() const {
             return m_descriptor_set_layout;

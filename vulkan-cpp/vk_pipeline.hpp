@@ -1,11 +1,8 @@
 #pragma once
 #include <vulkan/vulkan.h>
-#include <array>
 #include <GLFW/glfw3.h>
-// #include <vulkan-cpp/vk_descriptor_set.hpp>
+#include <vulkan-cpp/vk_shader_group.hpp>
 #include <vulkan-cpp/vk_uniform_buffer.hpp>
-#include <vulkan-cpp/vk_shader.hpp>
-#include <span>
 
 namespace vk {
 
@@ -86,19 +83,6 @@ namespace vk {
         VkVertexInputRate InputRate;
     };
 
-    /*
-
-        Usage
-        { "inPosition", location = 0, binding = 0, .offset =
-       offsetof(vk::vertex, Position)} { "inColor", location = 1, binding = 0,
-       .offset = offsetof(vk::vertex, Color) } { "inColor", location = 2,
-       binding = 0, .offset = offsetof(vk::vertex, inTexCoords) }
-
-        Used for shaders that do something similar or the following vertex
-       attributes definition layout(location = 0) in vec3 inPosition;
-        layout(location = 1) in vec3 inColor;
-        layout(location = 2) in vec2 inTexCoord;
-    */
     struct pipeline_vertex_attributes {
         pipeline_vertex_attributes(const std::string p_name,
                                    uint32_t p_binding,
@@ -120,14 +104,14 @@ namespace vk {
     public:
         vk_pipeline(
           const VkRenderPass& p_renderpass,
-          vk_shader& p_shader_src,
+          vk_shader_group& p_shader_group,
           const VkDescriptorSetLayout& p_descriptor_sets);
 
         void bind(const VkCommandBuffer& p_command_buffer);
 
         void destroy();
 
-        void reload_from_shader(vk_shader& p_shader, const VkRenderPass& p_renderpass, const VkDescriptorSetLayout& p_descriptor_sets);
+        void reload_from_shader_sources(vk_shader_group& p_group1, const VkRenderPass& p_renderpass, const VkDescriptorSetLayout& p_descriptor_sets);
 
         VkPipelineLayout get_layout() const { return m_pipeline_layout; }
 

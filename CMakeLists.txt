@@ -13,7 +13,7 @@ set(
     ${INCLUDE_DIR}/vk_swapchain.hpp
     ${INCLUDE_DIR}/vk_queue.hpp
 
-    ${INCLUDE_DIR}/vk_shader.hpp
+    ${INCLUDE_DIR}/vk_shader_group.hpp
     ${INCLUDE_DIR}/vk_pipeline.hpp
 
     ${INCLUDE_DIR}/vk_descriptor_set.hpp
@@ -31,7 +31,6 @@ set(
     ${INCLUDE_DIR}/logger.hpp
     renderer/mesh.hpp
     ${INCLUDE_DIR}/perspective_camera.hpp
-    shader_compiler/shader_compiler.hpp
 )
 
 set(
@@ -44,7 +43,7 @@ set(
     ${SRC_DIR}/vk_swapchain.cpp
     ${SRC_DIR}/vk_queue.cpp
     
-    ${SRC_DIR}/vk_shader.cpp
+    ${SRC_DIR}/vk_shader_group.cpp
     ${SRC_DIR}/vk_pipeline.cpp
     ${SRC_DIR}/vk_descriptor_set.cpp
     ${SRC_DIR}/vk_uniform_buffer.cpp
@@ -62,7 +61,6 @@ set(
     ${SRC_DIR}/vk_renderpass.cpp
     ${SRC_DIR}/helper_functions.cpp
     ${SRC_DIR}/logger.cpp
-    src/shader_compiler/shader_compiler.cpp
 )
 
 add_subdirectory(src)

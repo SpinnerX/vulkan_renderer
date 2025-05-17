@@ -2,6 +2,7 @@
 #include <vulkan-cpp/helper_functions.hpp>
 #include <vulkan-cpp/logger.hpp>
 #include <vulkan-cpp/vk_driver.hpp>
+#include <vulkan-cpp/vk_context.hpp>
 
 namespace vk {
 
@@ -31,8 +32,7 @@ namespace vk {
         // }
         m_uniform_buffer_data = create_uniform_buffer(p_size_in_bytes);
 
-        console_log_info(
-          "vk_uniform_buffer successfully finished initialization!!!\n\n");
+        console_log_info("vk_uniform_buffer successfully finished initialization!!!\n\n");
     }
 
     VkBuffer vk_uniform_buffer::get(uint32_t p_frame_index) {

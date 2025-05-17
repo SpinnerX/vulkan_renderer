@@ -4,6 +4,7 @@
 #include <vulkan-cpp/helper_functions.hpp>
 #include <vulkan-cpp/logger.hpp>
 #include <span>
+#include <vulkan-cpp/vk_context.hpp>
 
 namespace vk {
 
@@ -20,17 +21,7 @@ namespace vk {
         console_log_error("descriptor set type specified is invalid!!!");
     }
 
-    VkShaderStageFlags to_vk_shader_stage(const shader_stage& p_stage) {
-        switch (p_stage) {
-            case shader_stage::VERTEX:
-                return VK_SHADER_STAGE_VERTEX_BIT;
-            case shader_stage::FRAGMENT:
-                return VK_SHADER_STAGE_FRAGMENT_BIT;
-        }
-
-        console_log_error(
-          "vulkan shader stage that you specified was invalid!!!");
-    }
+    
 
     vk_descriptor_set::vk_descriptor_set(
       uint32_t p_descriptor_count,
@@ -98,7 +89,12 @@ namespace vk {
                                           m_descriptor_sets.data()),
                  "vkAllocateDescriptorSets",
                  __FUNCTION__);
+        vk_context::submit_resource_free([this](){
+            vkDestroyDescriptorPool(m_driver, m_descriptor_pool, nullptr);
+            vkDestroyDescriptorSetLayout(m_driver, m_descriptor_set_layout, nullptr);
+        });
     }
+
 
     void vk_descriptor_set::bind(const VkCommandBuffer& p_command_buffer,
                                  uint32_t p_frame_index,
@@ -116,134 +112,33 @@ namespace vk {
         }
     }
 
-    void vk_descriptor_set::update_uniforms(
-      const std::span<vk_uniform_buffer>& p_uniform_buffer) {
+    // void vk_descriptor_set::write(const std::span<vk_uniform_buffer>& p_uniforms) {
+        
+    // }
 
-        std::vector<VkWriteDescriptorSet> write_descriptor_sets;
-        for (size_t i = 0; i < m_descriptor_count; i++) {
-            if (p_uniform_buffer.size() > 0) {
-                VkDescriptorBufferInfo uniform_info = {
-                    .buffer = p_uniform_buffer[i],
-                    .offset = 0,
-                    .range = (VkDeviceSize)p_uniform_buffer.size_bytes()
-                };
+    // void vk_descriptor_set::write(const vk_uniform_buffer& p_uniform) {}
 
-                // (dstBinding should be 1)
-                VkWriteDescriptorSet write_descriptor_set = {
-                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .pNext = nullptr,
-                    .dstSet = m_descriptor_sets[i],
-                    .dstBinding = 1,
-                    .dstArrayElement = 0,
-                    .descriptorCount = 1,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .pBufferInfo = &uniform_info
-                };
+    // void vk_descriptor_set::write(const vk_vertex_buffer& p_vbo, const std::span<vk_texture>& p_textures) {}
 
-                write_descriptor_sets.push_back(write_descriptor_set);
-            }
-        }
-
-        vkUpdateDescriptorSets(
-          m_driver,
-          static_cast<uint32_t>(write_descriptor_sets.size()),
-          write_descriptor_sets.data(),
-          0,
-          nullptr);
-    }
-
-    void vk_descriptor_set::update_vertex(
-      const vk_vertex_buffer& p_vertex_buffer) {
-        std::vector<VkWriteDescriptorSet> write_descriptor_sets;
-        VkDescriptorBufferInfo descriptor_buffer_info = {
-            .buffer = p_vertex_buffer,
-            .offset = 0,
-            .range = (VkDeviceSize)p_vertex_buffer.size()
-        };
-
-        for (size_t i = 0; i < m_descriptor_count; i++) {
-            VkWriteDescriptorSet vertex_buffer_write_descriptor_set = {
-                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .pNext = nullptr,
-                .dstSet = m_descriptor_sets[i],
-                .dstBinding = 0,
-                .dstArrayElement = 0,
-                .descriptorCount = 1,
-                .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                .pBufferInfo = &descriptor_buffer_info
-            };
-            write_descriptor_sets.push_back(vertex_buffer_write_descriptor_set);
-        }
-
-        vkUpdateDescriptorSets(
-          m_driver,
-          static_cast<uint32_t>(write_descriptor_sets.size()),
-          write_descriptor_sets.data(),
-          0,
-          nullptr);
-    }
-
-    void vk_descriptor_set::update_texture(const vk_texture* p_texture) {
-        std::vector<VkWriteDescriptorSet> write_descriptor_sets;
-        VkDescriptorImageInfo texture_descriptor_image_info;
-
-        if (p_texture != nullptr) {
-            console_log_fatal("p_texture != nullptr and so we add "
-                              "texture_descriptor_image_info!!!");
-            if (p_texture->image_view() != nullptr) {
-                console_log_trace("image_view NOT NULL!!!");
-            }
-
-            if (p_texture->sampler() != nullptr) {
-                console_log_trace("sampler NOT NULL!!!");
-            }
-
-            texture_descriptor_image_info = {
-                .sampler = p_texture->sampler(),
-                .imageView = p_texture->image_view(),
-                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-            };
-        }
-
-        // Apply our texture to all descriptor sets
-        for (size_t i = 0; i < m_descriptor_count; i++) {
-            VkWriteDescriptorSet texture_descriptor_set = {
-                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet = m_descriptor_sets[i],
-                .dstBinding = 2, // Location 2
-                .dstArrayElement = 0,
-                .descriptorCount = 1,
-                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .pImageInfo = &texture_descriptor_image_info,
-            };
-
-            if (p_texture != nullptr) {
-                console_log_trace(
-                  "Loading writing descriptor sets for textures!!!");
-
-                write_descriptor_sets.push_back(texture_descriptor_set);
-            }
-        }
-
-        vkUpdateDescriptorSets(
-          m_driver,
-          static_cast<uint32_t>(write_descriptor_sets.size()),
-          write_descriptor_sets.data(),
-          0,
-          nullptr);
-    }
-
-    void vk_descriptor_set::update_test_descriptors(const std::span<vk_uniform_buffer>& p_uniforms, vk_vertex_buffer& p_vertex, vk_texture& p_texture) {
+    void vk_descriptor_set::update_mesh(const std::span<vk_uniform_buffer>& p_uniforms, const mesh& p_mesh) {
         for(size_t i = 0; i < m_descriptor_count; i++) {
             VkDescriptorBufferInfo bufferInfo{};
             bufferInfo.buffer = p_uniforms[i];
             bufferInfo.offset = 0;
-            bufferInfo.range = sizeof(camera_data_uniform);
+            bufferInfo.range = sizeof(combined_uniforms);
 
-            VkDescriptorImageInfo imageInfo{};
-            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = p_texture.image_view();
-            imageInfo.sampler = p_texture.sampler();
+            // std::array<vk_texture, 4> textures;
+            std::vector<VkDescriptorImageInfo> descriptor_image_infos(p_mesh.texture_size());
+
+            for(size_t i = 0; i < p_mesh.texture_size(); i++) {
+                vk_texture texture = p_mesh.get_texture(i);
+                VkDescriptorImageInfo image_info{};
+                image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                image_info.imageView = texture.image_view();
+                image_info.sampler = texture.sampler();
+                // descriptor_image_infos.emplace_back(image_info);
+                descriptor_image_infos[i] = image_info;
+            }
 
             // std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
             std::array<VkWriteDescriptorSet, 2> write_descriptors;
@@ -257,6 +152,8 @@ namespace vk {
             write_descriptors[0].descriptorCount = 1;
             write_descriptors[0].pBufferInfo = &bufferInfo;
 
+            //! TODO: Because this takes in only one texture meaning that we can only pass in one texture
+            //! TODO: Unless we pass in explicitly 4 texture slots to the mesh that can be utilized by this specific write descriptor
             write_descriptors[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             write_descriptors[1].pNext = nullptr;
             write_descriptors[1].dstSet = m_descriptor_sets[i];
@@ -264,61 +161,13 @@ namespace vk {
             write_descriptors[1].dstArrayElement = 0;
             write_descriptors[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             write_descriptors[1].descriptorCount = 1;
-            write_descriptors[1].pImageInfo = &imageInfo;
-            vkUpdateDescriptorSets(m_driver, static_cast<uint32_t>(write_descriptors.size()), write_descriptors.data(), 0, nullptr); 
-        }
-    }
-
-    void vk_descriptor_set::update_test_descriptors(const std::span<vk_uniform_buffer>& p_uniforms, vk_vertex_buffer& p_vertex, const std::span<vk_texture>& p_textures) {
-        std::vector<VkDescriptorImageInfo> descriptor_image_infos(p_textures.size());
-
-        for(size_t i = 0; i < descriptor_image_infos.size(); i++) {
-            // VkDescriptorImageInfo imageInfo{};
-            if(p_textures[i].has_loaded()) {
-            descriptor_image_infos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            descriptor_image_infos[i].imageView = p_textures[i].image_view();
-            descriptor_image_infos[i].sampler = p_textures[i].sampler();
-            }
-        }
-
-        // VkDescriptorImageInfo imageInfo{};
-        // imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        // imageInfo.imageView = p_texture.image_view();
-        // imageInfo.sampler = p_texture.sampler();
-        for(size_t i = 0; i < m_descriptor_count; i++) {
-            // if(p_textures[i].has_loaded()) {
-            VkDescriptorBufferInfo bufferInfo{};
-            bufferInfo.buffer = p_uniforms[i];
-            bufferInfo.offset = 0;
-            bufferInfo.range = sizeof(camera_data_uniform);
-
-            // std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-            std::array<VkWriteDescriptorSet, 2> write_descriptors;
-
-            write_descriptors[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            write_descriptors[0].pNext = nullptr;
-            write_descriptors[0].dstSet = m_descriptor_sets[i];
-            write_descriptors[0].dstBinding = 0;
-            write_descriptors[0].dstArrayElement = 0;
-            write_descriptors[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            write_descriptors[0].descriptorCount = 1;
-            write_descriptors[0].pBufferInfo = &bufferInfo;
-
-            write_descriptors[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            write_descriptors[1].pNext = nullptr;
-            write_descriptors[1].dstSet = m_descriptor_sets[i];
-            write_descriptors[1].dstBinding = 1;
-            write_descriptors[1].dstArrayElement = 0;
-            write_descriptors[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            write_descriptors[1].descriptorCount = static_cast<uint32_t>(descriptor_image_infos.size());
-            write_descriptors[1].pImageInfo = descriptor_image_infos.data();
+            write_descriptors[1].pImageInfo = &descriptor_image_infos[0];
             vkUpdateDescriptorSets(m_driver, static_cast<uint32_t>(write_descriptors.size()), write_descriptors.data(), 0, nullptr); 
         }
     }
 
     void vk_descriptor_set::destroy() {
-        vkDestroyDescriptorPool(m_driver, m_descriptor_pool, nullptr);
-        vkDestroyDescriptorSetLayout(
-          m_driver, m_descriptor_set_layout, nullptr);
+        // vkDestroyDescriptorPool(m_driver, m_descriptor_pool, nullptr);
+        // vkDestroyDescriptorSetLayout(m_driver, m_descriptor_set_layout, nullptr);
     }
 };
