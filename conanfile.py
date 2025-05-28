@@ -22,13 +22,12 @@ class StarterConanRecipe(ConanFile):
     # Putting all of your packages here
     def requirements(self):
       self.requires("glfw/3.4")
-      self.requires("fmt/10.2.1")
       self.requires("glm/1.0.1", transitive_headers=True)
       self.requires("imguidocking/2.0", transitive_headers=True)
       self.requires("watcher/0.12.0")
       self.requires("vulkan-headers/1.3.290.0")
       self.requires("stb/cci.20230920")
-      self.requires("spdlog/1.14.1", transitive_headers=True)
+      self.requires("spdlog/1.15.1", transitive_headers=True)
       # self.requires("spirv-cross/1.4.309.0")
       self.requires("flecs/4.0.0")
       self.requires("tinyobjloader/2.0.0-rc10")
