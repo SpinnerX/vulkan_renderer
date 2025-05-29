@@ -1,6 +1,7 @@
 #include <vulkan-cpp/vk_swapchain.hpp>
 #include <vulkan-cpp/helper_functions.hpp>
 #include <vulkan-cpp/logger.hpp>
+#include <vulkan/vulkan_core.h>
 
 namespace vk {
     vk_swapchain* vk_swapchain::s_instance = nullptr;
@@ -125,8 +126,9 @@ namespace vk {
 
     void vk_swapchain::on_create() {
         console_log_info("vk_swapchain() begin initialization!!!");
+        m_surface_data = m_physical.get_surface_properties(m_current_surface);
         m_swapchain_size = m_surface_data.SurfaceCapabilities.currentExtent;
-
+        console_log_info("Extent data: {} {}", m_swapchain_size.width, m_swapchain_size.height);
         // request what our minimum image count is
         uint32_t request_min_image_count =
           select_images_size(m_surface_data.SurfaceCapabilities);
@@ -278,6 +280,8 @@ namespace vk {
 
     void vk_swapchain::recreate() {
         vkDeviceWaitIdle(m_driver);
+        console_log_info("Started: {}", __FUNCTION__);
+        destroy();
         on_create();
     }
 
@@ -340,7 +344,17 @@ namespace vk {
 	uint32_t vk_swapchain::read_acquired_frame() {
 		//! @note We always want to wait until the current frame is ready before moving onto the next frame
 		m_swapchain_present_queue.wait_idle();
+        
+        if (m_swapchain_present_queue.is_resize_requested()) {
+            recreate();
+            m_swapchain_present_queue.set_resize_completed();
+        }
 		uint32_t current_frame = m_swapchain_present_queue.read_acquire_image();
+
+        if (m_swapchain_present_queue.is_resize_requested()) {
+            recreate();
+            m_swapchain_present_queue.set_resize_completed();
+        }
 		m_current_image_index = current_frame;
 		return current_frame;
 	}
@@ -356,7 +370,7 @@ namespace vk {
     void vk_swapchain::destroy() {
 
         // needed to be called to ensure all children objects are executed just
-        // before they get destroyed!! vkDeviceWaitIdle(m_driver);
+        // before they get destroyed!! vkDeviceWaitIdle(m_driver)
 
         for (size_t i = 0; i < m_swapchain_framebuffers.size(); i++) {
             vkDestroyFramebuffer(

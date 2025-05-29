@@ -1,6 +1,7 @@
 #include <vulkan-cpp/vk_queue.hpp>
 #include <vulkan-cpp/helper_functions.hpp>
 #include <vulkan-cpp/logger.hpp>
+#include <vulkan/vulkan_core.h>
 
 namespace vk {
     static VkSemaphore create_semaphore(const VkDevice& p_driver) {
@@ -76,9 +77,11 @@ namespace vk {
                                           .swapchainCount = 1,
                                           .pSwapchains = &m_swapchain_handler,
                                           .pImageIndices = &p_frame_index };
-        vk_check(vkQueuePresentKHR(m_queue, &present_info),
-                 "vkQueuePresentKHR",
-                 __FUNCTION__);
+        VkResult queue_present_result = vkQueuePresentKHR(m_queue, &present_info);
+        if (queue_present_result == VK_ERROR_OUT_OF_DATE_KHR || queue_present_result ==  VK_SUBOPTIMAL_KHR) {
+            console_log_info("{} -- Swapchain out of date!! Attempting recreation.....", __FUNCTION__);
+            m_resize_requested = true;
+        }
     }
 
     void vk_queue::wait_idle() {
@@ -97,6 +100,7 @@ namespace vk {
         
         m_status = acquired_next_image_result;
         if(acquired_next_image_result == VK_ERROR_OUT_OF_DATE_KHR) {
+            console_log_info("{} -- Swapchain out of date!! Attempting recreation....", __FUNCTION__);
             m_resize_requested = true;
         }
 
