@@ -1,8 +1,6 @@
 #include <vulkan-cpp/helper_functions.hpp>
 #include <vulkan-cpp/logger.hpp>
 #include <vulkan-cpp/vk_driver.hpp>
-#include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_enums.hpp>
 
 
 namespace vk {
@@ -642,7 +640,7 @@ namespace vk {
                                      p_line,
                                      p_function_name);
             console_log_error_tagged(
-              "vulkan", "VkResult returned: {} ({})", (int)result, to_string((vk::Result)result));
+              "vulkan", "VkResult returned: {}", (int)result);
         }
     }
 
