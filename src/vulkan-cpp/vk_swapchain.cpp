@@ -349,12 +349,9 @@ namespace vk {
             recreate();
             m_swapchain_present_queue.set_resize_completed();
         }
+
 		uint32_t current_frame = m_swapchain_present_queue.read_acquire_image();
 
-        if (m_swapchain_present_queue.is_resize_requested()) {
-            recreate();
-            m_swapchain_present_queue.set_resize_completed();
-        }
 		m_current_image_index = current_frame;
 		return current_frame;
 	}
