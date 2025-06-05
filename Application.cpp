@@ -351,7 +351,7 @@ main() {
 
         // Start recording
         main_window_swapchain.begin(current);
-        test_imgui.begin();
+        //test_imgui.begin();
 
 
         test_pipeline.bind(current);
@@ -360,16 +360,16 @@ main() {
         // draw (after recording)
         new_mesh.draw(current);
 
-        ImGui::Begin("Viewport");
-        ImGui::Button("Texture Image 0");
+        //ImGui::Begin("Viewport");
+        //ImGui::Button("Texture Image 0");
 
         // ImVec2 viewport_panel_size = ImGui::GetContentRegionAvail();
         // ImGui::Image(test_descriptor_sets.get(frame), ImVec2{100, 100});
 
         // ImGui::Image()
-        ImGui::End();
+        //ImGui::End();
 
-        test_imgui.end(current);
+        //test_imgui.end(current);
         main_window_swapchain.end(current);
 
         //! @note This submits the command buffer and also presents the command buffer as well

@@ -22,7 +22,7 @@ namespace vk {
         uint32_t read_acquire_image();
 
         bool is_resize_requested() const { return m_resize_requested; }
-        void set_resize_request(const bool& p_request) { m_resize_requested = p_request; }
+        void set_resize_completed() { m_resize_requested = false; }
         VkResult queue_acquired_image_status() const { return m_status; }
         /*
         Specify whether you want to submit to the command buffer in either async

@@ -35,7 +35,6 @@ namespace vk {
         // 2. Mapping memory of vertex buffer (vkMap/vkUnmap operation)
         write(staging_buffer, p_vertices);
 
-
         // m_vertex_data = create_buffer(m_vertices_byte_size_count, usage, memory_property_flags);
         m_vertex_data = create_buffer(m_vertices_byte_size_count, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
