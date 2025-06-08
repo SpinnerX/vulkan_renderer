@@ -6,6 +6,7 @@
 #include <vulkan-cpp/vk_queue.hpp>
 #include <vulkan-cpp/vk_command_buffer.hpp>
 #include <vulkan-cpp/vk_buffer.hpp>
+#include <vulkan-cpp/vk_renderpass.hpp>
 
 namespace vk {
     struct swapchain_configs {
@@ -119,7 +120,8 @@ namespace vk {
         // swapchain queue
         vk_queue m_swapchain_present_queue;
 
-        VkRenderPass m_swapchain_renderpass = nullptr;
+        // VkRenderPass m_swapchain_renderpass = nullptr;
+        vk_renderpass m_swapchain_renderpass{};
         std::vector<VkFramebuffer> m_swapchain_framebuffers;
 
         // just to know which image to fetch

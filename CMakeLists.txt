@@ -49,6 +49,7 @@ set(
     ${SRC_DIR}/vk_descriptor_set.cpp
     ${SRC_DIR}/vk_uniform_buffer.cpp
     ${SRC_DIR}/vk_command_buffer.cpp
+    ${SRC_DIR}/vk_renderpass.cpp
 
     ${SRC_DIR}/vk_texture.cpp
 

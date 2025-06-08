@@ -240,8 +240,63 @@ namespace vk {
         m_swapchain_present_queue =
           vk_queue(m_driver, m_swapchain_handler, m_present_queue);
 
-        m_swapchain_renderpass =
-          create_simple_renderpass(m_driver, m_surface_data.SurfaceFormat);
+        // m_swapchain_renderpass =
+        //   create_simple_renderpass(m_driver, m_surface_data.SurfaceFormat);
+        VkAttachmentDescription color_attachment = {
+            .flags = 0,
+            .format = m_surface_data.SurfaceFormat.format,
+            .samples = VK_SAMPLE_COUNT_1_BIT,
+            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+            .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+        };
+
+        VkAttachmentDescription depth_attachment = {
+            .flags = 0,
+            .format = depth_format,
+            .samples = VK_SAMPLE_COUNT_1_BIT,
+            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+            .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+        };
+
+        VkAttachmentReference color_attachment_ref = {
+            .attachment = 0, .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        };
+
+        VkAttachmentReference depth_attachment_reference = {
+            .attachment = 1,
+            .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+        };
+
+        VkSubpassDescription subpass_description = {
+            .flags = 0,
+            .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+            .inputAttachmentCount = 0,
+            .pInputAttachments = nullptr,
+            .colorAttachmentCount = 1,
+            .pColorAttachments = &color_attachment_ref,
+            .pResolveAttachments = nullptr,
+            .pDepthStencilAttachment =
+              &depth_attachment_reference, // enable depth buffering
+            .preserveAttachmentCount = 0,
+            .pPreserveAttachments = nullptr
+        };
+
+		std::array<VkAttachmentDescription, 2> attachments = { color_attachment, depth_attachment};
+		std::array<VkSubpassDescription, 1> subpass_deps = {subpass_description};
+		vk_renderpass_options renderpass_options = {
+			.attachments = attachments,
+			.subpass_descriptions = subpass_deps,
+		};
+
+		m_swapchain_renderpass = vk_renderpass(renderpass_options);
 
         // creating framebuffers
         m_swapchain_framebuffers.resize(m_swapchain_images.size());
@@ -374,7 +429,8 @@ namespace vk {
               m_driver, m_swapchain_framebuffers[i], nullptr);
         }
 
-        vkDestroyRenderPass(m_driver, m_swapchain_renderpass, nullptr);
+        // vkDestroyRenderPass(m_driver, m_swapchain_renderpass, nullptr);
+		m_swapchain_renderpass.destroy();
 
         m_swapchain_present_queue.destroy();
 
