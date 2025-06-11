@@ -4,6 +4,7 @@
 #include <vulkan-cpp/vk_driver.hpp>
 #include <vulkan-cpp/vk_buffer.hpp>
 #include <vulkan-cpp/vk_swapchain.hpp>
+#include <vulkan-cpp/vk_renderpass.hpp>
 
 namespace vk {
     class vk_imgui {
@@ -32,7 +33,8 @@ namespace vk {
 
         std::vector<vk_image> m_viewport_images;
         std::vector<VkFramebuffer> m_viewport_framebuffers;
-        VkRenderPass m_imgui_renderpass=nullptr;
+
+        vk_renderpass m_imgui_renderpass;
         // vk_swapchain m_current_swapchain;
         // VkRenderPass m_viewport_renderpass=nullptr;
 
