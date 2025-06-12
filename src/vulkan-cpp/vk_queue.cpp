@@ -37,6 +37,8 @@ namespace vk {
           VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         // console_log_error("Debug #0 -- Tracked Here");
         VkSubmitInfo submit_info = {};
+        
+
         if (submission_t == submission_type::Async) {
             // console_log_warn("Submission Type == Async!!!");
             submit_info = { .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,

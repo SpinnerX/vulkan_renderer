@@ -8,6 +8,7 @@
 #include <vulkan-cpp/vk_context.hpp>
 #include <vulkan-cpp/vk_driver.hpp>
 #include <vulkan-cpp/logger.hpp>
+#include <vulkan/vulkan_core.h>
 
 namespace vk {
     static void imgui_color_layout_customization() {
@@ -105,9 +106,10 @@ namespace vk {
 
     void vk_imgui::initialize(const VkInstance& p_instance,
 			      const VkPhysicalDevice& p_physical,
-			      const VkRenderPass& p_rp,
+			      const VkSurfaceKHR& p_surface,
 			      uint32_t p_image_size,
-			      const VkSurfaceFormatKHR& p_surface_format) {
+			      const VkSurfaceFormatKHR& p_surface_format,
+                  const vk_swapchain& p_swapchain) {
         console_log_info("Imgui Debug Track #0");
         //! @note Setting up imgui stuff.
         // Setup Dear ImGui context
@@ -146,9 +148,11 @@ namespace vk {
         attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
+
         VkAttachmentReference color_attachment = {};
         color_attachment.attachment = 0;
         color_attachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
 
         VkSubpassDescription subpass = {};
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -186,9 +190,9 @@ namespace vk {
         };
 
         m_imgui_renderpass = vk_renderpass({
-            .attachments = std::span(attachments),
-            .subpass_descriptions = std::span(subpasses),
-            .dependencies = std::span(dependencies),
+            .attachments = attachments,
+            .subpass_descriptions = subpasses,
+            .dependencies = dependencies,
         });
 
 
@@ -234,6 +238,26 @@ namespace vk {
         console_log_warn("After ImGui_ImplGlfw_InitForVulkan called!");
 
         ImGui_ImplVulkan_CreateFontsTexture();
+
+        // create imgui viewport (i.e framebuffers)
+        uint32_t image_count = p_swapchain.image_size();
+        m_viewport_framebuffers.resize(image_count);
+
+        p_swapchain.create_new_framebuffers(m_imgui_renderpass, m_viewport_framebuffers, attachment_color);
+        
+        // Create a separate command buffer for ImGUI to avoid clashing with 
+        // incompatible pipelines and such
+        
+        uint32_t present_family_index = m_driver.get_physical_driver_context()
+            .get_presentation_index(p_surface);
+        
+        console_log_info("(IMGUI): Chosen family index: {}", present_family_index);
+        command_buffer_properties cmd_buf_props(
+            present_family_index,
+            Primary,
+            VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
+        );
+        m_command_buffer = vk_command_buffer(cmd_buf_props);
     }
 
     void vk_imgui::begin() {
@@ -242,7 +266,7 @@ namespace vk {
         ImGui::NewFrame();
     }
 
-    void vk_imgui::end(const VkCommandBuffer& p_current) {
+    void vk_imgui::end(const VkCommandBuffer& p_current, vk_swapchain& p_swapchain) {
         ImGui::Render();
 
         // auto current_cmd_buffer = get_current_command_buffer();
@@ -258,10 +282,37 @@ namespace vk {
         //     current,
         //   width,
         //   height); // Pass window width and height for initial viewport setup
+    
+        m_command_buffer.begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+        
+        VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+        VkRenderPassBeginInfo begin_renderpass_info = {
+            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+            .renderPass = m_imgui_renderpass,
+            .framebuffer = m_viewport_framebuffers.at(p_swapchain.current_frame()),
+            .renderArea = {
+                .offset = {0, 0},
+                .extent = p_swapchain.get_extent()
+            },
+            .clearValueCount = 1,
+            .pClearValues = &clear_color,
+        };
+
+        vkCmdBeginRenderPass(m_command_buffer,
+            &begin_renderpass_info,
+            VK_SUBPASS_CONTENTS_INLINE
+        );
 
         //! @note This works, dont modify.
         ImDrawData* draw_data = ImGui::GetDrawData();
-        ImGui_ImplVulkan_RenderDrawData(draw_data, p_current);
+        ImGui_ImplVulkan_RenderDrawData(draw_data, m_command_buffer);
+        
+        vkCmdEndRenderPass(m_command_buffer);
+
+        m_command_buffer.end();
+        
+        p_swapchain.submit(m_command_buffer);
+
 
         ImGuiIO& io = ImGui::GetIO();
         (void)io;
@@ -270,6 +321,7 @@ namespace vk {
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
         }
+
     }
 
     void vk_imgui::destroy() {
@@ -277,7 +329,18 @@ namespace vk {
         //! destructed when the application shutsdown
         ImGui_ImplVulkan_Shutdown();
         vkDestroyDescriptorPool(m_driver, m_imgui_desc_pool, nullptr);
-        vkDestroyRenderPass(m_driver, m_imgui_renderpass, nullptr);
+        // vkDestroyRenderPass(m_driver, m_imgui_renderpass, nullptr);
+        m_imgui_renderpass.destroy();
+
+        //NOTE: Not sure if we still need the separate command pool given the exclusive command buffer
+        // and the fact that vk_command_buffer appears to encapsulate its own command pool
         vkDestroyCommandPool(m_driver, m_imgui_command_pool, nullptr);
+
+        m_command_buffer.destroy();
+
+        // destroy all the framebuffers n stuff
+        for (auto & framebuffer : m_viewport_framebuffers) {
+            vkDestroyFramebuffer(m_driver, framebuffer, nullptr);
+        }
     }
 };

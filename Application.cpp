@@ -345,9 +345,10 @@ main() {
     VkRenderPass rp = main_window_swapchain.get_renderpass();
     test_imgui.initialize(initiating_vulkan,
 			  main_physical_device,
-			  rp,
+			  main_window,
 			  main_window_swapchain.image_size(),
-			  main_window_swapchain.data().SurfaceFormat);
+			  main_window_swapchain.data().SurfaceFormat,
+              main_window_swapchain);
 
     bool do_reload = false;
 
@@ -426,21 +427,6 @@ main() {
 	// Start recording
 	main_window_swapchain.begin(current);
 
-	test_imgui.begin();
-	ImGui::Begin("Viewport");
-	ImGui::Button("Texture Image 0");
-
-	ImVec2 viewport_panel_size = ImGui::GetContentRegionAvail();
-	// ImGui::Image(test_descriptor_sets.get(frame), ImVec2{ 100, 100 });
-
-	// ImGui::Image()
-	float floaty;
-	if (ImGui::InputFloat("floaty", &floaty)) {
-	    console_log_info("Floaty is: {}", floaty);
-	}
-	ImGui::End();
-
-	test_imgui.end(current);
 
 	test_pipeline.bind(current);
 	test_descriptor_sets.bind(current,
@@ -451,10 +437,27 @@ main() {
 	new_mesh.draw(current);
 
 	main_window_swapchain.end(current);
+        
 
 	//! @note This submits the command buffer and also presents the command
 	//! buffer as well
 	main_window_swapchain.submit(current);
+
+    test_imgui.begin();
+    ImGui::Begin("Viewport");
+    ImGui::Button("Texture Image 0");
+
+    ImVec2 viewport_panel_size = ImGui::GetContentRegionAvail();
+    // ImGui::Image(test_descriptor_sets.get(frame), ImVec2{ 100, 100 });
+
+    // ImGui::Image()
+    float floaty;
+    if (ImGui::InputFloat("floaty", &floaty)) {
+        console_log_info("Floaty is: {}", floaty);
+    }
+    ImGui::End();
+    test_imgui.end(current, main_window_swapchain);
+
 
 	// presenting frame (after drawing that frame)
 	main_window_swapchain.present();

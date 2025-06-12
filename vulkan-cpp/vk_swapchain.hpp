@@ -12,6 +12,13 @@ namespace vk {
     struct swapchain_configs {
         static constexpr uint32_t MaxFramesInFlight = 3;
     };
+
+    enum attachment_flags : uint8_t {
+        attachment_color = 0b1,
+        attachment_depth = 0b10,
+        attachments_all = 0b11,
+    };
+
     class vk_swapchain {
     public:
         vk_swapchain() = default;
@@ -30,9 +37,13 @@ namespace vk {
         void end(vk_command_buffer& p_current);
 
         void submit(const VkCommandBuffer& p_current);
+        void submit_sync(const VkCommandBuffer& p_current);
         void present();
 
         vk_command_buffer get_active_command_buffer(uint32_t p_frame) { return m_swapchain_command_buffers[p_frame]; }
+
+        // Yuckified this functions signature since certain framebuffers only need certain attachments
+        void create_new_framebuffers(const vk_renderpass& p_renderpass, std::span<VkFramebuffer> p_frame_buffers, attachment_flags p_include_attachments = attachments_all) const;
 
         /*
         //! @note This is something to do once we cleanup the swapchain
@@ -69,10 +80,6 @@ namespace vk {
         }
 
         surface_properties data() const { return m_surface_data; }
-
-        static uint32_t image_count() {
-            return s_instance->m_swapchain_images.size();
-        }
 
     private:
         //! @note These private functions are for initiating the swapchain first

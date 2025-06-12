@@ -16,6 +16,7 @@ namespace vk {
             VkQueue Compute;
         };
 
+
     public:
         vk_driver() = default;
         vk_driver(const vk_physical_driver& p_physical);
@@ -44,6 +45,12 @@ namespace vk {
 
         void destroy();
 
+
+        // NOTE:  Not const qualifiable at the moment due to
+        // querying queue family indices requiring a non-const 'this' binding
+        vk_physical_driver& get_physical_driver_context() {
+            return m_physical_driver;
+        }
     private:
         static vk_driver* s_instance;
         VkDevice m_driver = nullptr;
@@ -51,6 +58,5 @@ namespace vk {
         VkQueue m_graphics_queue = nullptr;
         device_queues m_device_queues;
 
-        queue_family_indices m_queue_indices;
     };
 };

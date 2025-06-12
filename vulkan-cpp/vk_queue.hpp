@@ -41,6 +41,8 @@ namespace vk {
 
     private:
     private:
+        // void wait_active_semaphores();
+
         vk_driver m_driver;
         VkSwapchainKHR m_swapchain_handler = nullptr;
         VkQueue m_queue = nullptr;
@@ -48,5 +50,8 @@ namespace vk {
         VkSemaphore m_present_completed_semaphore;
         bool m_resize_requested=false;
         VkResult m_status;
+
+        // VkSemaphore m_wait_semaphore = nullptr;
+        // VkSemaphore m_signal_semaphore = nullptr;
     };
 };
