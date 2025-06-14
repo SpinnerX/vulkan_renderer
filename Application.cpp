@@ -366,103 +366,103 @@ main() {
     });
 
     while (main_window.is_active()) {
-	float dt = (float)glfwGetTime();
+        float dt = (float)glfwGetTime();
 
-	if (do_reload ||
-	    glfwGetKey(main_window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS &&
-	      glfwGetKey(main_window, GLFW_KEY_R) == GLFW_PRESS) {
-	    console_log_info("Reloading shaders...");
+        if (do_reload ||
+            glfwGetKey(main_window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS &&
+              glfwGetKey(main_window, GLFW_KEY_R) == GLFW_PRESS) {
+            console_log_info("Reloading shaders...");
 
-	    test_shader.compile("shaders/shader.vert", "shaders/shader.frag");
-	    test_pipeline.reload_from_shader(
-	      test_shader, rp, test_descriptor_sets.get_layout());
+            test_shader.compile("shaders/shader.vert", "shaders/shader.frag");
+            test_pipeline.reload_from_shader(
+              test_shader, rp, test_descriptor_sets.get_layout());
 
-	    do_reload = false;
-	}
+            do_reload = false;
+        }
 
-	// if(glfwGetKey(main_window, GLFW_KEY_W) == GLFW_PRESS) { // forward
-	//     camera.m_velocity.z = -1;
+        // if(glfwGetKey(main_window, GLFW_KEY_W) == GLFW_PRESS) { // forward
+        //     camera.m_velocity.z = -1;
 
-	// }
-	// if(glfwGetKey(main_window, GLFW_KEY_A) == GLFW_PRESS) { // left
-	//     camera.m_velocity.x = 1;
-	// }
-	// if(glfwGetKey(main_window, GLFW_KEY_S) == GLFW_PRESS) { // back
-	//     camera.m_velocity.z = 1;
-	// }
-	// if(glfwGetKey(main_window, GLFW_KEY_D) == GLFW_PRESS) { // right
-	//     camera.m_velocity.x = 1;
-	// }
+        // }
+        // if(glfwGetKey(main_window, GLFW_KEY_A) == GLFW_PRESS) { // left
+        //     camera.m_velocity.x = 1;
+        // }
+        // if(glfwGetKey(main_window, GLFW_KEY_S) == GLFW_PRESS) { // back
+        //     camera.m_velocity.z = 1;
+        // }
+        // if(glfwGetKey(main_window, GLFW_KEY_D) == GLFW_PRESS) { // right
+        //     camera.m_velocity.x = 1;
+        // }
 
-	// camera.update();
+        // camera.update();
 
-	// acquire next image ( then record)
-	uint32_t frame = main_window_swapchain.read_acquired_frame();
-	vk::vk_command_buffer current =
-	  main_window_swapchain.get_active_command_buffer(frame);
+        // acquire next image ( then record)
+        uint32_t frame = main_window_swapchain.read_acquired_frame();
+        vk::vk_command_buffer current =
+          main_window_swapchain.get_active_command_buffer(frame);
 
-	//! @note Updating our uniforms before we draw
-	static auto startTime = std::chrono::high_resolution_clock::now();
+        //! @note Updating our uniforms before we draw
+        static auto startTime = std::chrono::high_resolution_clock::now();
 
-	auto currentTime = std::chrono::high_resolution_clock::now();
-	float time = std::chrono::duration<float, std::chrono::seconds::period>(
-		       currentTime - startTime)
-		       .count();
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float time = std::chrono::duration<float, std::chrono::seconds::period>(
+                   currentTime - startTime)
+                   .count();
 
-	camera_data_uniform ubo{};
-	ubo.Model = glm::translate(ubo.Model, glm::vec3(0.f, 0.f, 0.f));
-	ubo.Model = glm::rotate(glm::mat4(1.0f),
-				time * glm::radians(90.0f),
-				glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f),
-			       glm::vec3(0.0f, 0.0f, 0.0f),
-			       glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.Projection = glm::perspective(
-	  glm::radians(45.0f), width / (float)height, 0.1f, 10.0f);
-	ubo.Projection[1][1] *= -1;
+        camera_data_uniform ubo{};
+        ubo.Model = glm::translate(ubo.Model, glm::vec3(0.f, 0.f, 0.f));
+        ubo.Model = glm::rotate(glm::mat4(1.0f),
+                    time * glm::radians(90.0f),
+                    glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f),
+                       glm::vec3(0.0f, 0.0f, 0.0f),
+                       glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.Projection = glm::perspective(
+          glm::radians(45.0f), width / (float)height, 0.1f, 10.0f);
+        ubo.Projection[1][1] *= -1;
 
-	glm::mat4 MVP = ubo.Projection * ubo.View * ubo.Model;
-	test_uniforms[frame].update(&MVP, sizeof(MVP));
+        glm::mat4 MVP = ubo.Projection * ubo.View * ubo.Model;
+        test_uniforms[frame].update(&MVP, sizeof(MVP));
 
-	// Start recording
-	main_window_swapchain.begin(current);
-
-
-	test_pipeline.bind(current);
-	test_descriptor_sets.bind(current,
-				  main_window_swapchain.current_frame(),
-				  test_pipeline.get_layout());
-
-	// draw (after recording)
-	new_mesh.draw(current);
-
-	main_window_swapchain.end(current);
-        
-
-	//! @note This submits the command buffer and also presents the command
-	//! buffer as well
-	main_window_swapchain.submit(current);
-
-    test_imgui.begin();
-    ImGui::Begin("Viewport");
-    ImGui::Button("Texture Image 0");
-
-    ImVec2 viewport_panel_size = ImGui::GetContentRegionAvail();
-    // ImGui::Image(test_descriptor_sets.get(frame), ImVec2{ 100, 100 });
-
-    // ImGui::Image()
-    float floaty;
-    if (ImGui::InputFloat("floaty", &floaty)) {
-        console_log_info("Floaty is: {}", floaty);
-    }
-    ImGui::End();
-    test_imgui.end(current, main_window_swapchain);
+        // Start recording
+        main_window_swapchain.begin(current);
 
 
-	// presenting frame (after drawing that frame)
-	main_window_swapchain.present();
+        test_pipeline.bind(current);
+        test_descriptor_sets.bind(current,
+                      main_window_swapchain.current_frame(),
+                      test_pipeline.get_layout());
 
-	glfwPollEvents();
+        // draw (after recording)
+        new_mesh.draw(current);
+
+        main_window_swapchain.end(current);
+            
+
+        //! @note This submits the command buffer and also presents the command
+        //! buffer as well
+        main_window_swapchain.submit(current);
+
+        test_imgui.begin();
+        ImGui::Begin("Viewport");
+        ImGui::Button("Texture Image 0");
+
+        ImVec2 viewport_panel_size = ImGui::GetContentRegionAvail();
+        // ImGui::Image(test_descriptor_sets.get(frame), ImVec2{ 100, 100 });
+
+        // ImGui::Image()
+        float floaty;
+        if (ImGui::InputFloat("floaty", &floaty)) {
+            console_log_info("Floaty is: {}", floaty);
+        }
+        ImGui::End();
+        test_imgui.end(current, main_window_swapchain);
+
+
+        // presenting frame (after drawing that frame)
+        main_window_swapchain.present();
+
+        glfwPollEvents();
     }
 
     // Lets make sure we destroy these objects in the order they're created
