@@ -145,7 +145,7 @@ namespace vk {
         attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        attachment.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
         attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 
@@ -244,7 +244,7 @@ namespace vk {
         m_viewport_framebuffers.resize(image_count);
 
         p_swapchain.create_new_framebuffers(m_imgui_renderpass, m_viewport_framebuffers, attachment_color);
-        
+        p_swapchain.set_resize_callback(on_resize);
         // Create a separate command buffer for ImGUI to avoid clashing with 
         // incompatible pipelines and such
         

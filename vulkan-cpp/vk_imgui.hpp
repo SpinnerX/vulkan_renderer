@@ -32,6 +32,8 @@ namespace vk {
 	void create_viewport_images();
 	void create_viewport_imageview();
 
+    void on_resize(const vk_swapchain& p_swapchain);
+
     private:
 	vk_driver m_driver;
 	VkDescriptorPool m_imgui_desc_pool = nullptr;
