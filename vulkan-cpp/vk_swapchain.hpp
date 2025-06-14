@@ -18,6 +18,10 @@ namespace vk {
         attachment_depth = 0b10,
         attachments_all = 0b11,
     };
+    
+    class vk_swapchain;
+
+    using resize_callback = std::function<void(const vk_swapchain&)>;
 
     class vk_swapchain {
     public:
@@ -43,6 +47,8 @@ namespace vk {
 
         // Yuckified this functions signature since certain framebuffers only need certain attachments
         void create_new_framebuffers(const vk_renderpass& p_renderpass, std::span<VkFramebuffer> p_frame_buffers, attachment_flags p_include_attachments = attachments_all) const;
+
+        void register_resize_callback(resize_callback p_callback);
 
         /*
         //! @note This is something to do once we cleanup the swapchain
@@ -87,6 +93,8 @@ namespace vk {
     private:
         // change swapchain background color
         VkClearColorValue m_color = { 0.5f, 0.5f, 0.5f, 0.f };
+        
+        std::vector<resize_callback> m_resize_callbacks{};
 
     private:
         static vk_swapchain* s_instance;

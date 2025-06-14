@@ -16,7 +16,7 @@ namespace vk {
 			const VkSurfaceKHR& p_surface,
 			uint32_t p_image_size,
 			const VkSurfaceFormatKHR& p_surface_format,
-			const vk_swapchain& p_swapchain);
+			vk_swapchain& p_swapchain);
 
 	void begin();
 

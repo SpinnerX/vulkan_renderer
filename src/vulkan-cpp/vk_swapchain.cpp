@@ -310,6 +310,12 @@ namespace vk {
         console_log_info("Started: {}", __FUNCTION__);
         destroy();
         on_create();
+        
+        // invoke resize callbacks for any external resources that may depend on 
+        // the swapchain
+        for (auto & cb : m_resize_callbacks) {
+            cb(*this); // once again, there must be a more elegant way to pass this...
+        }
     }
 
     void vk_swapchain::create_new_framebuffers(const vk_renderpass& p_renderpass, std::span<VkFramebuffer> p_framebuffers, attachment_flags p_include_attachments) const {
@@ -468,5 +474,8 @@ namespace vk {
         m_swapchain_size.width = p_width;
         m_swapchain_size.height = p_height;
     }
-
+    
+    void vk_swapchain::register_resize_callback(resize_callback p_callback) {
+        m_resize_callbacks.push_back(std::move(p_callback));
+    }
 };

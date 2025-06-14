@@ -109,7 +109,7 @@ namespace vk {
 			      const VkSurfaceKHR& p_surface,
 			      uint32_t p_image_size,
 			      const VkSurfaceFormatKHR& p_surface_format,
-                  const vk_swapchain& p_swapchain) {
+                  vk_swapchain& p_swapchain) {
         console_log_info("Imgui Debug Track #0");
         //! @note Setting up imgui stuff.
         // Setup Dear ImGui context
@@ -244,7 +244,12 @@ namespace vk {
         m_viewport_framebuffers.resize(image_count);
 
         p_swapchain.create_new_framebuffers(m_imgui_renderpass, m_viewport_framebuffers, attachment_color);
-        p_swapchain.set_resize_callback(on_resize);
+        
+        // there's likely a slightly more elegant way to express this
+        p_swapchain.register_resize_callback([this](const vk_swapchain& p_chain) {
+            this->on_resize(p_chain);
+        });
+
         // Create a separate command buffer for ImGUI to avoid clashing with 
         // incompatible pipelines and such
         
@@ -264,6 +269,14 @@ namespace vk {
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+    }
+
+    void vk_imgui::on_resize(const vk_swapchain& p_swapchain) {
+        for (auto fb : m_viewport_framebuffers) {
+            vkDestroyFramebuffer(m_driver, fb, nullptr);
+        }
+
+        p_swapchain.create_new_framebuffers(m_imgui_renderpass, m_viewport_framebuffers, attachment_color); 
     }
 
     void vk_imgui::end(const VkCommandBuffer& p_current, vk_swapchain& p_swapchain) {
