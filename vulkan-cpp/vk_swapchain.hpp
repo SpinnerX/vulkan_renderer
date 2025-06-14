@@ -36,8 +36,7 @@ namespace vk {
         void begin(vk_command_buffer& p_current);
         void end(vk_command_buffer& p_current);
 
-        void submit(const VkCommandBuffer& p_current);
-        void submit_sync(const VkCommandBuffer& p_current);
+        void submit(const vk_command_buffer& p_current);
         void present();
 
         vk_command_buffer get_active_command_buffer(uint32_t p_frame) { return m_swapchain_command_buffers[p_frame]; }

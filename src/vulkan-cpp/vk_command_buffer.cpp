@@ -2,6 +2,7 @@
 #include <vulkan-cpp/helper_functions.hpp>
 #include <vulkan-cpp/vk_driver.hpp>
 #include <vulkan-cpp/logger.hpp>
+#include <vulkan/vulkan_core.h>
 
 namespace vk {
 
@@ -48,6 +49,18 @@ namespace vk {
                                           &m_command_buffer_handler),
                  "vkAllocateCommandBuffers",
                  __FUNCTION__);
+
+        VkSemaphoreCreateInfo semaphore_create_info = {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+        };
+
+
+        vk_check(vkCreateSemaphore(m_driver, 
+                                   &semaphore_create_info,
+                                   nullptr,
+                                   &m_finished_semaphore), 
+                 "vkCreateSemaphore",
+                 __FUNCTION__);
     }
 
     void vk_command_buffer::begin(const VkCommandBufferUsageFlags& p_usage) {
@@ -72,6 +85,7 @@ namespace vk {
     }
 
     void vk_command_buffer::destroy() {
+        vkDestroySemaphore(m_driver, m_finished_semaphore, nullptr);
         vkFreeCommandBuffers(
           m_driver, m_command_pool, 1, &m_command_buffer_handler);
         vkDestroyCommandPool(m_driver, m_command_pool, nullptr);

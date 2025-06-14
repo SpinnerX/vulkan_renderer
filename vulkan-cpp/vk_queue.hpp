@@ -1,6 +1,7 @@
 #pragma once
 #include <vulkan/vulkan.hpp>
 #include <vulkan-cpp/vk_driver.hpp>
+#include <vulkan-cpp/vk_command_buffer.hpp>
 
 namespace vk {
     enum class submission_type { Sync = 0, Async = 1 };
@@ -28,7 +29,7 @@ namespace vk {
         Specify whether you want to submit to the command buffer in either async
         or synchronization mode
         */
-        void submit_to(const VkCommandBuffer& p_command_buffer,
+        void submit_to(const vk_command_buffer& p_command_buffer,
                        submission_type submission_t);
 
         void present(uint32_t p_frame_index);
@@ -40,7 +41,6 @@ namespace vk {
         operator VkQueue() const { return m_queue; }
 
     private:
-    private:
         // void wait_active_semaphores();
 
         vk_driver m_driver;
@@ -51,7 +51,7 @@ namespace vk {
         bool m_resize_requested=false;
         VkResult m_status;
 
-        // VkSemaphore m_wait_semaphore = nullptr;
-        // VkSemaphore m_signal_semaphore = nullptr;
+        VkSemaphore m_wait_semaphore = nullptr;
+        VkSemaphore m_signal_semaphore = nullptr;
     };
 };

@@ -419,13 +419,10 @@ namespace vk {
 		return current_frame;
 	}
 
-	void vk_swapchain::submit(const VkCommandBuffer& p_current) {
+	void vk_swapchain::submit(const vk_command_buffer& p_current) {
 		m_swapchain_present_queue.submit_to(p_current,submission_type::Async);
 	}
     
-    void vk_swapchain::submit_sync(const VkCommandBuffer& p_current) {
-        m_swapchain_present_queue.submit_to(p_current, submission_type::Sync);
-    }
 
 	void vk_swapchain::present() {
 		m_swapchain_present_queue.present(m_current_image_index);
