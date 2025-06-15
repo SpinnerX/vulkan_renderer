@@ -63,6 +63,9 @@ namespace vk {
             return (m_command_buffer_handler != nullptr);
         }
 
+        const VkSemaphore& get_finished_semaphore() const { return m_finished_semaphore; }
+        const VkSemaphore& get_finished_semaphore() { return m_finished_semaphore; }
+
         operator VkCommandBuffer() { return m_command_buffer_handler; }
         operator VkCommandBuffer() const { return m_command_buffer_handler; }
 
@@ -76,6 +79,8 @@ namespace vk {
         uint32_t m_begin_end_count = 0;
         VkCommandPool m_command_pool = nullptr;
         VkCommandBuffer m_command_buffer_handler = nullptr;
+        
+        VkSemaphore m_finished_semaphore = nullptr;
     };
 
 };

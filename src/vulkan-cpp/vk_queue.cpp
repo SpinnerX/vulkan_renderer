@@ -31,24 +31,31 @@ namespace vk {
         m_present_completed_semaphore = create_semaphore(p_driver);
     }
 
-    void vk_queue::submit_to(const VkCommandBuffer& p_command_buffer,
+    void vk_queue::submit_to(const vk_command_buffer& p_command_buffer,
                              submission_type submission_t) {
 		VkPipelineStageFlags wait_flags =
           VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         // console_log_error("Debug #0 -- Tracked Here");
         VkSubmitInfo submit_info = {};
+
+        auto cmd_buffer_handle = p_command_buffer.handle();
+
+        uint32_t wait_semaphore_count = m_wait_semaphore != VK_NULL_HANDLE ? 1 : 0;
+        m_signal_semaphore = p_command_buffer.get_finished_semaphore();
+        
+
         if (submission_t == submission_type::Async) {
             // console_log_warn("Submission Type == Async!!!");
             submit_info = { .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
                             .pNext = nullptr,
-                            .waitSemaphoreCount = 1,
-                            .pWaitSemaphores = &m_present_completed_semaphore,
+                            .waitSemaphoreCount = wait_semaphore_count,
+                            .pWaitSemaphores = &m_wait_semaphore,
                             .pWaitDstStageMask = &wait_flags,
                             .commandBufferCount = 1,
-                            .pCommandBuffers = &p_command_buffer,
+                            .pCommandBuffers = &cmd_buffer_handle,
                             .signalSemaphoreCount = 1,
                             .pSignalSemaphores =
-                              &m_render_completed_semaphore };
+                              &m_signal_semaphore };
             // console_log_error("Debug #2 -- Tracked Here If Statement Async");
         }
         else {
@@ -58,22 +65,27 @@ namespace vk {
                             .pWaitSemaphores = nullptr,
                             .pWaitDstStageMask = nullptr,
                             .commandBufferCount = 1,
-                            .pCommandBuffers = &p_command_buffer,
+                            .pCommandBuffers = &cmd_buffer_handle,
                             .signalSemaphoreCount = 0,
                             .pSignalSemaphores = nullptr };
         }
 
         VkResult res = vkQueueSubmit(m_queue, 1, &submit_info, nullptr);
         vk_check(res, "vkQueueSubmit", __FUNCTION__);
+
+        m_wait_semaphore = m_signal_semaphore;
     }
 
     void vk_queue::present(uint32_t p_frame_index) {
+
+        uint32_t wait_semaphore_count = m_wait_semaphore != VK_NULL_HANDLE ? 1 : 0;
+
         VkPresentInfoKHR present_info = { .sType =
                                             VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
                                           .pNext = nullptr,
-                                          .waitSemaphoreCount = 1,
+                                          .waitSemaphoreCount = wait_semaphore_count,
                                           .pWaitSemaphores =
-                                            &m_render_completed_semaphore,
+                                            &m_wait_semaphore,
                                           .swapchainCount = 1,
                                           .pSwapchains = &m_swapchain_handler,
                                           .pImageIndices = &p_frame_index };
@@ -82,6 +94,8 @@ namespace vk {
             console_log_info("{} -- Swapchain out of date!! Attempting recreation.....", __FUNCTION__);
             m_resize_requested = true;
         }
+
+        m_wait_semaphore = VK_NULL_HANDLE;
     }
 
     void vk_queue::wait_idle() {
@@ -90,6 +104,7 @@ namespace vk {
 
     uint32_t vk_queue::read_acquire_image() {
         uint32_t image_acquired;
+
         VkResult acquired_next_image_result =
           vkAcquireNextImageKHR(m_driver,
                                 m_swapchain_handler,
@@ -97,7 +112,7 @@ namespace vk {
                                 m_present_completed_semaphore,
                                 nullptr,
                                 &image_acquired);
-        
+        m_wait_semaphore = m_present_completed_semaphore;
         m_status = acquired_next_image_result;
         if(acquired_next_image_result == VK_ERROR_OUT_OF_DATE_KHR) {
             console_log_info("{} -- Swapchain out of date!! Attempting recreation....", __FUNCTION__);

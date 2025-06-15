@@ -12,6 +12,17 @@ namespace vk {
     struct swapchain_configs {
         static constexpr uint32_t MaxFramesInFlight = 3;
     };
+
+    enum attachment_flags : uint8_t {
+        attachment_color = 0b1,
+        attachment_depth = 0b10,
+        attachments_all = 0b11,
+    };
+    
+    class vk_swapchain;
+
+    using resize_callback = std::function<void(const vk_swapchain&)>;
+
     class vk_swapchain {
     public:
         vk_swapchain() = default;
@@ -29,10 +40,15 @@ namespace vk {
         void begin(vk_command_buffer& p_current);
         void end(vk_command_buffer& p_current);
 
-        void submit(const VkCommandBuffer& p_current);
+        void submit(const vk_command_buffer& p_current);
         void present();
 
         vk_command_buffer get_active_command_buffer(uint32_t p_frame) { return m_swapchain_command_buffers[p_frame]; }
+
+        // Yuckified this functions signature since certain framebuffers only need certain attachments
+        void create_new_framebuffers(const vk_renderpass& p_renderpass, std::span<VkFramebuffer> p_frame_buffers, attachment_flags p_include_attachments = attachments_all) const;
+
+        void register_resize_callback(resize_callback p_callback);
 
         /*
         //! @note This is something to do once we cleanup the swapchain
@@ -70,10 +86,6 @@ namespace vk {
 
         surface_properties data() const { return m_surface_data; }
 
-        static uint32_t image_count() {
-            return s_instance->m_swapchain_images.size();
-        }
-
     private:
         //! @note These private functions are for initiating the swapchain first
         void on_create();
@@ -81,6 +93,8 @@ namespace vk {
     private:
         // change swapchain background color
         VkClearColorValue m_color = { 0.5f, 0.5f, 0.5f, 0.f };
+        
+        std::vector<resize_callback> m_resize_callbacks{};
 
     private:
         static vk_swapchain* s_instance;

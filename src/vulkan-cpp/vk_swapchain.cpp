@@ -301,17 +301,40 @@ namespace vk {
         // creating framebuffers
         m_swapchain_framebuffers.resize(m_swapchain_images.size());
 
+        create_new_framebuffers(m_swapchain_renderpass, m_swapchain_framebuffers);
+        console_log_info("vk_swapchain() successfully initialized!!!\n\n");
+    }
+
+    void vk_swapchain::recreate() {
+        vkDeviceWaitIdle(m_driver);
+        console_log_info("Started: {}", __FUNCTION__);
+        destroy();
+        on_create();
+        
+        // invoke resize callbacks for any external resources that may depend on 
+        // the swapchain
+        for (auto & cb : m_resize_callbacks) {
+            cb(*this); // once again, there must be a more elegant way to pass this...
+        }
+    }
+
+    void vk_swapchain::create_new_framebuffers(const vk_renderpass& p_renderpass, std::span<VkFramebuffer> p_framebuffers, attachment_flags p_include_attachments) const {
+        if (p_include_attachments == 0) {
+            console_log_error("Framebuffers must include at least one attachment!");
+        }
         for (uint32_t i = 0; i < m_swapchain_images.size(); i++) {
             std::vector<VkImageView> image_view_attachments;
-            image_view_attachments.push_back(m_swapchain_images[i].ImageView);
-            image_view_attachments.push_back(
-              m_swapchain_depth_images[i].ImageView);
+
+            if (p_include_attachments & attachment_color) 
+                image_view_attachments.push_back(m_swapchain_images[i].ImageView);
+            if (p_include_attachments & attachment_depth)
+                image_view_attachments.push_back(m_swapchain_depth_images[i].ImageView);
 
             VkFramebufferCreateInfo framebuffer_ci = {
                 .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
-                .renderPass = m_swapchain_renderpass,
+                .renderPass = p_renderpass,
                 // .attachmentCount = 1,
                 // .pAttachments = &m_swapchain_images[i].ImageView,
                 .attachmentCount =
@@ -325,19 +348,10 @@ namespace vk {
             vk_check(vkCreateFramebuffer(m_driver,
                                          &framebuffer_ci,
                                          nullptr,
-                                         &m_swapchain_framebuffers[i]),
+                                         &p_framebuffers[i]),
                      "vkCreateFramebuffer",
                      __FUNCTION__);
         }
-
-        console_log_info("vk_swapchain() successfully initialized!!!\n\n");
-    }
-
-    void vk_swapchain::recreate() {
-        vkDeviceWaitIdle(m_driver);
-        console_log_info("Started: {}", __FUNCTION__);
-        destroy();
-        on_create();
     }
 
 
@@ -411,9 +425,9 @@ namespace vk {
 		return current_frame;
 	}
 
-	void vk_swapchain::submit(const VkCommandBuffer& p_current) {
+	void vk_swapchain::submit(const vk_command_buffer& p_current) {
 		m_swapchain_present_queue.submit_to(p_current,submission_type::Async);
-	}
+	}  
 
 	void vk_swapchain::present() {
 		m_swapchain_present_queue.present(m_current_image_index);
@@ -460,5 +474,8 @@ namespace vk {
         m_swapchain_size.width = p_width;
         m_swapchain_size.height = p_height;
     }
-
+    
+    void vk_swapchain::register_resize_callback(resize_callback p_callback) {
+        m_resize_callbacks.push_back(std::move(p_callback));
+    }
 };
