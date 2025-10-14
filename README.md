@@ -3,6 +3,9 @@
 `conan-starter` is a starter project to easily get started to using conan. This is a template repository \
 that you can use.
 
+> [!WARNING]
+> Edit: This project has been archived and no longer will be maintained.
+
 ## Conan Setup
 
 To get all of Engine3D packages, just run this conan command. To start using them.
